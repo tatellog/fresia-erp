@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db'
+import { db } from '../data/db'
 import { money, round2, startOfDay, fmtTime, fmtDate } from '../lib/format'
 import { Card, Empty } from '../components/ui'
+import { StatCard } from '../features/reportes/StatCard'
 
 const ranges = [
   { id: 0, label: 'Hoy' },
@@ -62,10 +63,10 @@ export default function Reportes() {
       </div>
 
       <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Stat label="Ventas" value={money(stats.total)} />
-        <Stat label="Utilidad estimada" value={money(stats.profit)} accent={stats.profit >= 0 ? 'text-green-700' : 'text-red-600'} />
-        <Stat label="Tickets" value={String(stats.tickets)} />
-        <Stat label="Ticket promedio" value={money(stats.avg)} />
+        <StatCard label="Ventas" value={money(stats.total)} />
+        <StatCard label="Utilidad estimada" value={money(stats.profit)} accent={stats.profit >= 0 ? 'text-green-700' : 'text-red-600'} />
+        <StatCard label="Tickets" value={String(stats.tickets)} />
+        <StatCard label="Ticket promedio" value={money(stats.avg)} />
       </div>
 
       <Card className="mb-3 text-sm">
@@ -125,14 +126,5 @@ export default function Reportes() {
         ))}
       </div>
     </div>
-  )
-}
-
-function Stat({ label, value, accent = '' }: { label: string; value: string; accent?: string }) {
-  return (
-    <Card className="py-3">
-      <div className="text-xs font-medium text-berry-700/60">{label}</div>
-      <div className={`text-xl font-extrabold tabular-nums ${accent}`}>{value}</div>
-    </Card>
   )
 }

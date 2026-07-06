@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import './index.css'
 import App from './App'
-import { initDb } from './db'
-import { startSync } from './lib/sync'
+import { initDb } from './data/init'
+import { startSync } from './services/sync/engine'
 
 initDb().then(() => {
   startSync()
