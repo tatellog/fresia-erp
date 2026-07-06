@@ -44,7 +44,7 @@ export default function Ajustes() {
   }
 
   return (
-    <div className="pt-2">
+    <div className="mx-auto max-w-2xl pt-2 lg:pt-0">
       <h1 className="mb-3 text-lg font-bold">Ajustes</h1>
 
       <Card className="mb-3">

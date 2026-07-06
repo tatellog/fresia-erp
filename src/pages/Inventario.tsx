@@ -15,7 +15,7 @@ export default function Inventario() {
   const low = ingredients.filter(i => i.stock <= i.minStock)
 
   return (
-    <div className="pt-2">
+    <div className="mx-auto max-w-2xl pt-2 lg:pt-0">
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-lg font-bold">Insumos</h1>
         <Button variant="soft" className="px-3 py-2 text-sm" onClick={() => setAction({ kind: 'editar' })}>

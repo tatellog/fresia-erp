@@ -45,7 +45,7 @@ export default function Reportes() {
   if (!sales || !stats) return null
 
   return (
-    <div className="pt-2">
+    <div className="mx-auto max-w-3xl pt-2 lg:pt-0">
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-lg font-bold">Reportes</h1>
         <div className="flex gap-1 rounded-full bg-cream-200 p-1">
@@ -61,7 +61,7 @@ export default function Reportes() {
         </div>
       </div>
 
-      <div className="mb-3 grid grid-cols-2 gap-2">
+      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
         <Stat label="Ventas" value={money(stats.total)} />
         <Stat label="Utilidad estimada" value={money(stats.profit)} accent={stats.profit >= 0 ? 'text-green-700' : 'text-red-600'} />
         <Stat label="Tickets" value={String(stats.tickets)} />

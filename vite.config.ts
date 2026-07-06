@@ -20,7 +20,7 @@ export default defineConfig({
         description: 'Ventas, inventario, costos y caja de Fresia — fresas con crema',
         lang: 'es-MX',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'any',
         start_url: '/',
         background_color: '#FDF6EE',
         theme_color: '#AE3028',

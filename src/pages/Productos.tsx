@@ -14,7 +14,7 @@ export default function Productos() {
   const ingMap = new Map(ingredients.map(i => [i.id, i]))
 
   return (
-    <div className="pt-2">
+    <div className="mx-auto max-w-2xl pt-2 lg:pt-0">
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-lg font-bold">Menú y costos</h1>
         <Button variant="soft" className="px-3 py-2 text-sm" onClick={() => setEditing('new')}>
