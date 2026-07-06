@@ -10,7 +10,6 @@ import { Button, Field, Input, Sheet } from '../../components/ui'
 export function ProductFormSheet({ product, nextSort, onClose }: { product?: Product; nextSort: number; onClose: () => void }) {
   const ingredients = useLiveQuery(() => db.ingredients.orderBy('name').toArray())
   const [name, setName] = useState(product?.name ?? '')
-  const [emoji, setEmoji] = useState(product?.emoji ?? '🍓')
   const [price, setPrice] = useState(product ? String(product.price) : '')
   const [active, setActive] = useState(product?.active ?? true)
   const [recipe, setRecipe] = useState<RecipeItem[]>(product?.recipe ?? [])
@@ -30,22 +29,15 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
   }
 
   const save = async () => {
-    await saveProduct({ name: name.trim(), emoji: emoji || '🍓', price: p, recipe, active, toppingGroup }, product, nextSort)
+    await saveProduct({ name: name.trim(), emoji: product?.emoji ?? '🍓', price: p, recipe, active, toppingGroup }, product, nextSort)
     onClose()
   }
 
   return (
     <Sheet open onClose={onClose} title={product ? `Editar · ${product.name}` : 'Nuevo producto'}>
-      <div className="mb-3 flex gap-2">
-        <Field label="Emoji">
-          <Input value={emoji} onChange={e => setEmoji(e.target.value)} className="w-16 text-center" />
-        </Field>
-        <div className="flex-1">
-          <Field label="Nombre">
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Fresas con crema — Chica" autoFocus={!product} />
-          </Field>
-        </div>
-      </div>
+      <Field label="Nombre">
+        <Input value={name} onChange={e => setName(e.target.value)} placeholder="Clásica · Chica 350 ml" autoFocus={!product} />
+      </Field>
       <Field label="Precio de venta ($)">
         <Input type="number" inputMode="decimal" value={price} onChange={e => setPrice(e.target.value)} />
       </Field>
@@ -60,7 +52,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
                 toppingGroup === g ? 'bg-berry-500 text-white' : 'bg-cream-200 text-berry-700'
               }`}
             >
-              {g === undefined ? 'No' : g === 'clasica' ? 'Clásica ♥' : 'Balance 🌿'}
+              {g === undefined ? 'No' : g === 'clasica' ? 'Clásica' : 'Balance'}
             </button>
           ))}
         </div>

@@ -1,6 +1,14 @@
+@import '@fontsource/cormorant-garamond/600.css';
+@import '@fontsource/cormorant-garamond/700.css';
+@import '@fontsource/jost/400.css';
+@import '@fontsource/jost/500.css';
+@import '@fontsource/jost/600.css';
 @import 'tailwindcss';
 
 @theme {
+  --font-sans: 'Jost', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Cormorant Garamond', ui-serif, Georgia, serif;
+
   --color-berry-50: #fdf1f0;
   --color-berry-100: #f9dcda;
   --color-berry-200: #f0b3af;
@@ -15,6 +23,7 @@
   --color-cream-100: #fdf6ee;
   --color-cream-200: #f7ead9;
   --color-cream-300: #eed9bd;
+  --color-leaf-600: #5f6f3a;
 }
 
 html {
@@ -22,9 +31,14 @@ html {
 }
 
 body {
-  @apply bg-cream-100 text-berry-900 antialiased;
-  font-family: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  @apply bg-cream-100 font-sans text-berry-900 antialiased;
   overscroll-behavior-y: none;
+}
+
+/* los títulos usan la serif editorial de la marca */
+h1, h2 {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
 }
 
 input[type='number'] {

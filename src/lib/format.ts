@@ -1,6 +1,8 @@
-const mxn = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
+const entero = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
+const conCentavos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
 
-export const money = (n: number) => mxn.format(n)
+/** $99 para cantidades cerradas, $99.50 cuando hay centavos */
+export const money = (n: number) => (Number.isInteger(round2(n)) ? entero.format(n) : conCentavos.format(n))
 
 export const round2 = (n: number) => Math.round(n * 100) / 100
 

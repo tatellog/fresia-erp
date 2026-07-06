@@ -61,7 +61,7 @@ export default function Vender() {
   return (
     <div className="pt-2 lg:flex lg:items-start lg:gap-6 lg:pt-0">
       <div className="min-w-0 flex-1">
-        {active.length === 0 && <Empty emoji="🍨" text="Agrega productos en la pestaña Menú para empezar a vender." />}
+        {active.length === 0 && <Empty text="Agrega productos en la pestaña Menú para empezar a vender." />}
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
           {active.map(p => (
@@ -70,7 +70,7 @@ export default function Vender() {
         </div>
       </div>
 
-      {/* carrito fijo — iPad horizontal y pantallas grandes */}
+      {/* carrito fijo: iPad horizontal y pantallas grandes */}
       <aside className="sticky top-6 hidden w-80 shrink-0 lg:block">
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(174,48,40,0.08)]">
           <h2 className="mb-3 text-lg font-bold">Ticket</h2>
@@ -94,7 +94,7 @@ export default function Vender() {
         </div>
       )}
 
-      {/* barra de cobro + hoja — teléfono e iPad vertical */}
+      {/* barra de cobro + hoja: teléfono e iPad vertical */}
       {count > 0 && (
         <div className="fixed inset-x-0 bottom-[4.25rem] z-40 mx-auto max-w-lg px-4 pb-2 md:max-w-2xl lg:hidden">
           <Button className="w-full text-lg shadow-lg" onClick={() => setPaying(true)}>

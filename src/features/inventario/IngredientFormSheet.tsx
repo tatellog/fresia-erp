@@ -62,7 +62,7 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
                 groups.includes(g) ? 'bg-berry-500 text-white' : 'bg-cream-200 text-berry-700'
               }`}
             >
-              {g === 'clasica' ? 'Clásica ♥' : 'Balance 🌿'}
+              {g === 'clasica' ? 'Clásica' : 'Balance'}
             </button>
           ))}
         </div>

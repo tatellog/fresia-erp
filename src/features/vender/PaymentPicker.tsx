@@ -1,9 +1,9 @@
 import type { Payment } from '../../data/types'
 
-const payments: { id: Payment; label: string; icon: string }[] = [
-  { id: 'efectivo', label: 'Efectivo', icon: '💵' },
-  { id: 'tarjeta', label: 'Tarjeta', icon: '💳' },
-  { id: 'transferencia', label: 'Transferencia', icon: '📲' },
+const payments: { id: Payment; label: string }[] = [
+  { id: 'efectivo', label: 'Efectivo' },
+  { id: 'tarjeta', label: 'Tarjeta' },
+  { id: 'transferencia', label: 'Transfer.' },
 ]
 
 /** selector de método de pago */
@@ -14,11 +14,12 @@ export function PaymentPicker({ payment, setPayment }: { payment: Payment; setPa
         <button
           key={p.id}
           onClick={() => setPayment(p.id)}
-          className={`rounded-xl px-1 py-3 text-center text-xs font-semibold sm:text-sm ${
-            payment === p.id ? 'bg-berry-500 text-white' : 'bg-cream-200 text-berry-700'
+          className={`rounded-full border py-2.5 text-center text-[13px] font-medium tracking-wide transition-colors ${
+            payment === p.id
+              ? 'border-berry-500 bg-berry-500 text-cream-50'
+              : 'border-cream-300 bg-transparent text-berry-700'
           }`}
         >
-          <div className="text-lg">{p.icon}</div>
           {p.label}
         </button>
       ))}

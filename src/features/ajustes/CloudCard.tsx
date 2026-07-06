@@ -32,7 +32,7 @@ export function CloudCard() {
   if (!cloudEnabled) {
     return (
       <Card className="mb-3">
-        <h2 className="mb-1 font-bold">Nube (multi-sucursal) ☁️</h2>
+        <h2 className="mb-1 font-bold">Nube y sucursales</h2>
         <p className="text-sm text-berry-700/70">
           Falta configurar la llave del proyecto de Supabase (variable <code>VITE_SUPABASE_KEY</code> al compilar).
         </p>
@@ -68,7 +68,7 @@ export function CloudCard() {
 
   return (
     <Card className="mb-3">
-      <h2 className="mb-1 font-bold">Nube (multi-sucursal) ☁️</h2>
+      <h2 className="mb-1 font-bold">Nube y sucursales</h2>
       {!session ? (
         <>
           <p className="mb-3 text-sm text-berry-700/70">

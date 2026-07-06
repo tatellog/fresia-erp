@@ -111,7 +111,7 @@ export default function Reportes() {
       )}
 
       <h2 className="mb-2 text-sm font-bold text-berry-700/70">Últimas ventas</h2>
-      {sales.length === 0 && <Empty emoji="🧾" text="Aún no hay ventas en este periodo." />}
+      {sales.length === 0 && <Empty text="Aún no hay ventas en este periodo." />}
       <div className="space-y-1.5">
         {[...sales].sort((a, b) => b.ts - a.ts).slice(0, 25).map(s => (
           <div key={s.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">

@@ -23,7 +23,7 @@ export default function Productos() {
         </Button>
       </div>
 
-      {products.length === 0 && <Empty emoji="🍨" text="Crea tu primer producto con su receta." />}
+      {products.length === 0 && <Empty text="Crea tu primer producto con su receta." />}
 
       <div className="space-y-2">
         {products.map(p => (

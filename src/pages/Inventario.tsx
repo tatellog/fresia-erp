@@ -32,7 +32,7 @@ export default function Inventario() {
         </div>
       )}
 
-      {ingredients.length === 0 && <Empty emoji="📦" text="Registra tus insumos: fresas, crema, vasos…" />}
+      {ingredients.length === 0 && <Empty text="Registra tus insumos: fresas, crema, vasos…" />}
 
       <div className="space-y-2">
         {ingredients.map(ing => (

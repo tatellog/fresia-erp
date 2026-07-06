@@ -36,9 +36,9 @@ export default function Caja() {
       <h1 className="mb-3 text-lg font-bold">Caja</h1>
 
       {!session ? (
-        <Card className="mb-4 text-center">
-          <div className="mb-1 text-3xl">🔒</div>
-          <p className="mb-3 text-sm text-berry-700/70">La caja está cerrada. Ábrela al iniciar el día con tu fondo inicial.</p>
+        <Card className="mb-4 py-6 text-center">
+          <h2 className="mb-1 text-xl font-semibold">Caja cerrada</h2>
+          <p className="mb-4 text-sm text-berry-700/70">Ábrela al iniciar el día con tu fondo inicial.</p>
           <Button onClick={() => setSheet('abrir')}>Abrir caja</Button>
         </Card>
       ) : (
@@ -78,7 +78,7 @@ export default function Caja() {
       )}
 
       <h2 className="mb-2 text-sm font-bold text-berry-700/70">Cortes anteriores</h2>
-      {history.length === 0 && <Empty emoji="🧾" text="Aquí verás el historial de tus cortes de caja." />}
+      {history.length === 0 && <Empty text="Aquí verás el historial de tus cortes de caja." />}
       <div className="space-y-1.5">
         {history.map(s => (
           <HistoryRow key={s.id} s={s} />

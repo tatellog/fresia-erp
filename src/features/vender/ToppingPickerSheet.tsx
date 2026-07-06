@@ -31,7 +31,7 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
   const price = round2(product.price + extras * EXTRA_TOPPING_PRICE)
 
   return (
-    <Sheet open onClose={onClose} title={`${product.emoji} ${product.name}`}>
+    <Sheet open onClose={onClose} title={product.name}>
       <p className="mb-3 text-sm text-berry-700/70">
         Elige tus toppings · <b>{INCLUDED_TOPPINGS} incluidos</b>, adicionales {money(EXTRA_TOPPING_PRICE)} c/u
       </p>
