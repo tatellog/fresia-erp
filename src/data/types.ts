@@ -2,6 +2,8 @@
 
 export type Unit = 'g' | 'ml' | 'pza'
 export type Payment = 'efectivo' | 'tarjeta' | 'transferencia'
+/** línea de producto a la que pertenece un topping elegible */
+export type ToppingGroup = 'clasica' | 'balance'
 
 export interface Ingredient {
   id: string
@@ -13,6 +15,10 @@ export interface Ingredient {
   cost: number
   /** alerta de stock mínimo */
   minStock: number
+  /** si es topping elegible en el POS, en qué líneas aparece */
+  toppingGroups?: ToppingGroup[]
+  /** porción que consume una selección de topping, en `unit` */
+  portion?: number
 }
 
 export interface RecipeItem {
@@ -29,15 +35,20 @@ export interface Product {
   recipe: RecipeItem[]
   active: boolean
   sort: number
+  /** si el producto lleva toppings elegibles, de qué grupo se ofrecen */
+  toppingGroup?: ToppingGroup
 }
 
 export interface SaleItem {
   productId: string
   name: string
   qty: number
+  /** precio unitario cobrado (base + toppings adicionales) */
   price: number
   /** costo de insumos al momento de la venta */
   cost: number
+  /** nombres de los toppings elegidos */
+  toppings?: string[]
 }
 
 export interface Sale {

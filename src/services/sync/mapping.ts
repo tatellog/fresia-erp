@@ -8,11 +8,11 @@ type CloudRow = Record<string, unknown>
 export const toCloud: Record<SyncTable, { table: string; map: (r: CloudRow, branch: string) => CloudRow }> = {
   ingredients: {
     table: 'ingredients',
-    map: (r, branch) => ({ id: r.id, name: r.name, unit: r.unit, stock: r.stock, cost: r.cost, min_stock: r.minStock, branch, updated_at: new Date().toISOString() }),
+    map: (r, branch) => ({ id: r.id, name: r.name, unit: r.unit, stock: r.stock, cost: r.cost, min_stock: r.minStock, topping_groups: r.toppingGroups ?? null, portion: r.portion ?? null, branch, updated_at: new Date().toISOString() }),
   },
   products: {
     table: 'products',
-    map: (r, branch) => ({ id: r.id, name: r.name, emoji: r.emoji, price: r.price, recipe: r.recipe, active: r.active, sort: r.sort, branch, updated_at: new Date().toISOString() }),
+    map: (r, branch) => ({ id: r.id, name: r.name, emoji: r.emoji, price: r.price, recipe: r.recipe, active: r.active, sort: r.sort, topping_group: r.toppingGroup ?? null, branch, updated_at: new Date().toISOString() }),
   },
   sales: {
     table: 'sales',

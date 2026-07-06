@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
-import type { Product, RecipeItem } from '../../data/types'
+import type { Product, RecipeItem, ToppingGroup } from '../../data/types'
 import { deleteProduct, saveProduct } from '../../services/catalog'
 import { money } from '../../lib/format'
 import { Button, Field, Input, Sheet } from '../../components/ui'
@@ -14,6 +14,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
   const [price, setPrice] = useState(product ? String(product.price) : '')
   const [active, setActive] = useState(product?.active ?? true)
   const [recipe, setRecipe] = useState<RecipeItem[]>(product?.recipe ?? [])
+  const [toppingGroup, setToppingGroup] = useState<ToppingGroup | undefined>(product?.toppingGroup)
 
   if (!ingredients) return null
   const ingMap = new Map(ingredients.map(i => [i.id, i]))
@@ -29,7 +30,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
   }
 
   const save = async () => {
-    await saveProduct({ name: name.trim(), emoji: emoji || '🍓', price: p, recipe, active }, product, nextSort)
+    await saveProduct({ name: name.trim(), emoji: emoji || '🍓', price: p, recipe, active, toppingGroup }, product, nextSort)
     onClose()
   }
 
@@ -47,6 +48,22 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
       </div>
       <Field label="Precio de venta ($)">
         <Input type="number" inputMode="decimal" value={price} onChange={e => setPrice(e.target.value)} />
+      </Field>
+
+      <Field label="¿Lleva toppings elegibles? (2 incluidos, adicionales $15)">
+        <div className="grid grid-cols-3 gap-2">
+          {([undefined, 'clasica', 'balance'] as (ToppingGroup | undefined)[]).map(g => (
+            <button
+              key={g ?? 'no'}
+              onClick={() => setToppingGroup(g)}
+              className={`rounded-xl py-2.5 text-sm font-semibold ${
+                toppingGroup === g ? 'bg-berry-500 text-white' : 'bg-cream-200 text-berry-700'
+              }`}
+            >
+              {g === undefined ? 'No' : g === 'clasica' ? 'Clásica ♥' : 'Balance 🌿'}
+            </button>
+          ))}
+        </div>
       </Field>
 
       <div className="mb-1 text-sm font-medium text-berry-700">Receta (insumos por unidad vendida)</div>
