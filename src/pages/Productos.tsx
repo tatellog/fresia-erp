@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Product, type RecipeItem } from '../db'
-import { productCost } from '../lib/logic'
+import { deleteProduct, productCost, saveProduct } from '../lib/logic'
 import { money } from '../lib/format'
 import { Button, Card, Empty, Field, Input, Sheet } from '../components/ui'
 
@@ -73,7 +73,7 @@ function EditProduct({ product, nextSort, onClose }: { product?: Product; nextSo
   const p = parseFloat(price)
   const valid = name.trim() && p > 0
 
-  const setQty = (ingredientId: number, qty: number) => {
+  const setQty = (ingredientId: string, qty: number) => {
     setRecipe(prev => {
       const rest = prev.filter(r => r.ingredientId !== ingredientId)
       return qty > 0 ? [...rest, { ingredientId, qty }] : rest
@@ -81,9 +81,7 @@ function EditProduct({ product, nextSort, onClose }: { product?: Product; nextSo
   }
 
   const save = async () => {
-    const data = { name: name.trim(), emoji: emoji || '🍓', price: p, recipe, active }
-    if (product) await db.products.update(product.id, data)
-    else await db.products.add({ ...data, sort: nextSort } as Product)
+    await saveProduct({ name: name.trim(), emoji: emoji || '🍓', price: p, recipe, active }, product, nextSort)
     onClose()
   }
 
@@ -149,7 +147,7 @@ function EditProduct({ product, nextSort, onClose }: { product?: Product; nextSo
           className="mt-2 w-full"
           onClick={async () => {
             if (confirm(`¿Eliminar ${product.name}? Las ventas pasadas no se pierden.`)) {
-              await db.products.delete(product.id)
+              await deleteProduct(product.id)
               onClose()
             }
           }}

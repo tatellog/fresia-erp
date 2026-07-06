@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Ingredient, type Unit } from '../db'
-import { registerPurchase, registerWaste } from '../lib/logic'
+import { deleteIngredient, registerPurchase, registerWaste, saveIngredient } from '../lib/logic'
 import { money, round2 } from '../lib/format'
 import { Button, Card, Empty, Field, Input, Sheet } from '../components/ui'
 
@@ -116,9 +116,7 @@ function EditSheet({ ing, onClose }: { ing?: Ingredient; onClose: () => void }) 
   const valid = name.trim() && parseFloat(cost) >= 0
 
   const save = async () => {
-    const data = { name: name.trim(), unit, cost: parseFloat(cost), minStock: parseFloat(minStock) || 0 }
-    if (ing) await db.ingredients.update(ing.id, data)
-    else await db.ingredients.add({ ...data, stock: 0 } as Ingredient)
+    await saveIngredient({ name: name.trim(), unit, cost: parseFloat(cost), minStock: parseFloat(minStock) || 0 }, ing)
     onClose()
   }
 
@@ -155,7 +153,7 @@ function EditSheet({ ing, onClose }: { ing?: Ingredient; onClose: () => void }) 
           className="mt-2 w-full"
           onClick={async () => {
             if (confirm(`¿Eliminar ${ing.name}? Las recetas que lo usan dejarán de contarlo.`)) {
-              await db.ingredients.delete(ing.id)
+              await deleteIngredient(ing.id)
               onClose()
             }
           }}

@@ -18,7 +18,7 @@ interface Line {
 
 export default function Vender() {
   const products = useLiveQuery(() => db.products.orderBy('sort').toArray())
-  const [cart, setCart] = useState<Map<number, number>>(new Map())
+  const [cart, setCart] = useState<Map<string, number>>(new Map())
   const [paying, setPaying] = useState(false)
   const [payment, setPayment] = useState<Payment>('efectivo')
   const [done, setDone] = useState<number | null>(null)
@@ -32,7 +32,7 @@ export default function Vender() {
   const total = lines.reduce((s, l) => s + l.product.price * l.qty, 0)
   const count = lines.reduce((s, l) => s + l.qty, 0)
 
-  const setQty = (id: number, qty: number) => {
+  const setQty = (id: string, qty: number) => {
     const next = new Map(cart)
     if (qty <= 0) next.delete(id)
     else next.set(id, qty)
@@ -126,7 +126,7 @@ export default function Vender() {
   )
 }
 
-function CartLines({ lines, setQty }: { lines: Line[]; setQty: (id: number, qty: number) => void }) {
+function CartLines({ lines, setQty }: { lines: Line[]; setQty: (id: string, qty: number) => void }) {
   return (
     <div className="mb-4 space-y-2">
       {lines.map(l => (

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type CashSession } from '../db'
+import { addExpense, closeCash, openCash } from '../lib/logic'
 import { money, fmtDateTime, fmtTime, round2 } from '../lib/format'
 import { Button, Card, Empty, Field, Input, Sheet } from '../components/ui'
 
@@ -127,7 +128,7 @@ function AbrirSheet({ onClose }: { onClose: () => void }) {
         className="w-full"
         disabled={!(a >= 0)}
         onClick={async () => {
-          await db.cashSessions.add({ openTs: Date.now(), openAmount: a || 0 } as CashSession)
+          await openCash(a || 0)
           onClose()
         }}
       >
@@ -137,7 +138,7 @@ function AbrirSheet({ onClose }: { onClose: () => void }) {
   )
 }
 
-function GastoSheet({ sessionId, onClose }: { sessionId: number; onClose: () => void }) {
+function GastoSheet({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
   const [concept, setConcept] = useState('')
   const [amount, setAmount] = useState('')
   const a = parseFloat(amount)
@@ -153,7 +154,7 @@ function GastoSheet({ sessionId, onClose }: { sessionId: number; onClose: () => 
         className="w-full"
         disabled={!(concept.trim() && a > 0)}
         onClick={async () => {
-          await db.expenses.add({ ts: Date.now(), concept: concept.trim(), amount: a, sessionId } as never)
+          await addExpense(concept.trim(), a, sessionId)
           onClose()
         }}
       >
@@ -184,7 +185,7 @@ function CerrarSheet({ session, expected, onClose }: { session: CashSession; exp
         className="w-full"
         disabled={!(c >= 0)}
         onClick={async () => {
-          await db.cashSessions.update(session.id, { closeTs: Date.now(), closeAmount: c, expected })
+          await closeCash(session, c, expected)
           onClose()
         }}
       >

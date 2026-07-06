@@ -29,11 +29,12 @@ npx vercel deploy  # o cualquier hosting estático
 
 Una vez abierta en el teléfono: **Safari → Compartir → Agregar a inicio** (iPhone) o **Chrome → Instalar app** (Android). Después de la primera carga, la app abre y opera 100 % sin conexión.
 
-## Datos y respaldos
+## Datos, nube y respaldos
 
-- Los datos se guardan en IndexedDB del navegador/dispositivo (`Dexie`). No hay servidor: nada se cae si no hay internet.
-- **Descarga respaldos seguido** desde Ajustes (ideal: en cada corte de caja). Si se pierde o borra el dispositivo, ese JSON es tu única copia.
-- Si borras los datos del navegador/Safari, se borra la base — usa la app instalada y haz respaldos.
+- Los datos se guardan primero en IndexedDB del dispositivo (`Dexie`): la app opera 100 % sin internet.
+- **Sincronización con Supabase (multi-sucursal)**: cada cambio (venta, compra, merma, gasto, corte, catálogo) se encola en un *outbox* local y se sube por lotes idempotentes cuando hay red (al volver la señal, al abrir la app y cada 30 s). Se activa iniciando sesión en Ajustes → Nube; cada dispositivo declara su sucursal.
+- Configuración: el esquema está en `supabase/migrations/0001_fresia_erp.sql` (pegar en el SQL Editor de Supabase). La app se compila con la llave publishable: `VITE_SUPABASE_KEY=sb_publishable_… npm run build`. Los usuarios se crean en Supabase → Authentication.
+- El respaldo manual en JSON (Ajustes) sigue disponible como segunda red de seguridad.
 
 ## Arquitectura
 
