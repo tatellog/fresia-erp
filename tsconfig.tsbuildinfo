@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/db.ts","./src/main.tsx","./src/components/ui.tsx","./src/lib/format.ts","./src/lib/logic.ts","./src/pages/ajustes.tsx","./src/pages/caja.tsx","./src/pages/inventario.tsx","./src/pages/productos.tsx","./src/pages/reportes.tsx","./src/pages/vender.tsx"],"version":"5.8.3"}
