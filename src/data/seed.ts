@@ -15,7 +15,6 @@ export async function seed() {
   const fresa = ing('Fresa', 'g', 3000)
   const crema = ing('Crema tradicional', 'ml', 2000)
   const yogurt = ing('Yogurt griego', 'ml', 2000)
-  const vasoMini = ing('Vaso mini 250 ml', 'pza', 25)
   const vasoCh = ing('Vaso chico 350 ml', 'pza', 25)
   const vasoMd = ing('Vaso mediano 500 ml', 'pza', 25)
   const vasoGd = ing('Vaso grande 700 ml', 'pza', 25)
@@ -55,7 +54,7 @@ export async function seed() {
   const proteina = ing('Proteína natural', 'g', 500, { groups: ba(), portion: 10 })
 
   const ingredients = [
-    fresa, crema, yogurt, vasoMini, vasoCh, vasoMd, vasoGd, cuchara, botellaAgua, cafeFrio, miel, frutaTemp,
+    fresa, crema, yogurt, vasoCh, vasoMd, vasoGd, cuchara, botellaAgua, cafeFrio, miel, frutaTemp,
     granolaArt, cajeta, chocolate, lechera, chocoChips, lotus, oreo, brownie, galletaMaria,
     coco, almendra, nuez,
     granolaProt, chia, amaranto, pistache, cacaoNibs, semCalabaza, linaza, tahini, proteina,
@@ -75,11 +74,9 @@ export async function seed() {
     [r(fresa, fresaG), r(yogurt, yogurtMl), r(proteina, 20), r(vaso, 1), r(cuchara, 1)]
 
   const products = [
-    prod('Clásica · Mini 250 ml', '🍓', 59, clasica(vasoMini, 120, 100), 'clasica'),
     prod('Clásica · Chica 350 ml', '🍓', 79, clasica(vasoCh, 170, 140), 'clasica'),
     prod('Clásica · Mediana 500 ml', '🍓', 99, clasica(vasoMd, 250, 200), 'clasica'),
     prod('Clásica · Grande 700 ml', '🍓', 129, clasica(vasoGd, 350, 280), 'clasica'),
-    prod('Balance · Mini 250 ml', '🌿', 69, balance(vasoMini, 120, 100), 'balance'),
     prod('Balance · Chica 350 ml', '🌿', 89, balance(vasoCh, 170, 140), 'balance'),
     prod('Balance · Mediana 500 ml', '🌿', 109, balance(vasoMd, 250, 200), 'balance'),
     prod('Balance · Grande 700 ml', '🌿', 139, balance(vasoGd, 350, 280), 'balance'),

@@ -18,7 +18,7 @@ function rng(seed: number) {
 /** costo unitario realista por insumo (MXN por g/ml/pza) para la demo */
 const DEMO_COSTS: Record<string, number> = {
   'Fresa': 0.085, 'Crema tradicional': 0.055, 'Yogurt griego': 0.09,
-  'Vaso mini 250 ml': 3.2, 'Vaso chico 350 ml': 3.8, 'Vaso mediano 500 ml': 4.5, 'Vaso grande 700 ml': 5.2,
+  'Vaso chico 350 ml': 3.8, 'Vaso mediano 500 ml': 4.5, 'Vaso grande 700 ml': 5.2,
   'Cuchara': 0.4, 'Agua del día (botella)': 7, 'Café frío (preparado)': 12,
   'Miel de abeja natural': 0.15, 'Fruta de temporada': 0.06,
   'Granola artesanal': 0.12, 'Cajeta': 0.09, 'Chocolate': 0.11, 'Lechera': 0.07,
