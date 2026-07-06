@@ -36,9 +36,11 @@ function lineUnitCost(line: CartLine, ingredients: Map<string, Ingredient>): num
  * o mermas.
  */
 export async function checkout(cart: CartLine[], payment: Payment): Promise<string> {
-  return db.transaction('rw', [db.sales, db.ingredients, db.cashSessions, db.outbox], async () => {
+  return db.transaction('rw', [db.sales, db.ingredients, db.cashSessions, db.outbox, db.meta, db.employees], async () => {
     const ingredients = new Map((await db.ingredients.toArray()).map(i => [i.id, i]))
     const session = await db.cashSessions.filter(s => s.closeTs === undefined).last()
+    const activeId = (await db.meta.get('activeEmployeeId'))?.value
+    const employee = activeId ? await db.employees.get(activeId) : undefined
 
     const items: SaleItem[] = cart.map(line => ({
       productId: line.product.id,
@@ -73,6 +75,7 @@ export async function checkout(cart: CartLine[], payment: Payment): Promise<stri
       cost: round2(items.reduce((s, i) => s + i.cost * i.qty, 0)),
       payment,
       sessionId: session?.id,
+      employeeName: employee?.name,
     }
     await db.sales.add(sale)
     await enqueue('sales', 'upsert', sale)

@@ -59,6 +59,16 @@ export interface Sale {
   cost: number
   payment: Payment
   sessionId?: string
+  /** quién atendió la venta */
+  employeeName?: string
+}
+
+/** personal que atiende; el PIN firma ventas y cortes */
+export interface Employee {
+  id: string
+  name: string
+  pin: string
+  active: boolean
 }
 
 export interface Purchase {
@@ -97,14 +107,16 @@ export interface CashSession {
   closeAmount?: number
   /** efectivo esperado al cierre (fondo + ventas efectivo − gastos) */
   expected?: number
+  /** quién abrió el turno */
+  employeeName?: string
 }
 
 /** tablas del dominio que se sincronizan con la nube */
 export type SyncTable =
-  | 'ingredients' | 'products' | 'sales' | 'purchases' | 'wastes' | 'expenses' | 'cashSessions'
+  | 'ingredients' | 'products' | 'sales' | 'purchases' | 'wastes' | 'expenses' | 'cashSessions' | 'employees'
 
 export const DOMAIN_TABLES: SyncTable[] = [
-  'ingredients', 'products', 'sales', 'purchases', 'wastes', 'expenses', 'cashSessions',
+  'ingredients', 'products', 'sales', 'purchases', 'wastes', 'expenses', 'cashSessions', 'employees',
 ]
 
 /** cola de cambios pendientes de subir a Supabase */

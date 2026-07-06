@@ -7,7 +7,7 @@ import Vender from './pages/Vender'
 import Productos from './pages/Productos'
 import Inventario from './pages/Inventario'
 import Caja from './pages/Caja'
-import Reportes from './pages/Reportes'
+import Dashboard from './pages/Dashboard'
 import Ajustes from './pages/Ajustes'
 
 export default function App() {
@@ -23,7 +23,7 @@ export default function App() {
             <Route path="/productos" element={<Productos />} />
             <Route path="/inventario" element={<Inventario />} />
             <Route path="/caja" element={<Caja />} />
-            <Route path="/reportes" element={<Reportes />} />
+            <Route path="/reportes" element={<Dashboard />} />
             <Route path="/ajustes" element={<Ajustes />} />
           </Routes>
         </main>

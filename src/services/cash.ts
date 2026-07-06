@@ -4,8 +4,10 @@ import type { CashSession, Expense } from '../data/types'
 import { enqueue } from './outbox'
 
 export async function openCash(openAmount: number) {
-  return db.transaction('rw', [db.cashSessions, db.outbox], async () => {
-    const row: CashSession = { id: uid(), openTs: Date.now(), openAmount }
+  return db.transaction('rw', [db.cashSessions, db.outbox, db.meta, db.employees], async () => {
+    const activeId = (await db.meta.get('activeEmployeeId'))?.value
+    const employee = activeId ? await db.employees.get(activeId) : undefined
+    const row: CashSession = { id: uid(), openTs: Date.now(), openAmount, employeeName: employee?.name }
     await db.cashSessions.add(row)
     await enqueue('cashSessions', 'upsert', row)
   })

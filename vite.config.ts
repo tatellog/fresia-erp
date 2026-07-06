@@ -15,9 +15,9 @@ export default defineConfig({
         navigateFallback: '/index.html',
       },
       manifest: {
-        name: 'Fresia ERP',
-        short_name: 'Fresia',
-        description: 'Ventas, inventario, costos y caja de Fresia — fresas con crema',
+        name: 'Frésia OS',
+        short_name: 'Frésia',
+        description: 'Ventas, inventario, costos, caja y dashboard de Frésia · fresas con crema',
         lang: 'es-MX',
         display: 'standalone',
         orientation: 'any',

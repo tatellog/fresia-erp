@@ -9,6 +9,7 @@ import { ProductCard } from '../features/vender/ProductCard'
 import { CartLines } from '../features/vender/CartLines'
 import { PaymentPicker } from '../features/vender/PaymentPicker'
 import { ToppingPickerSheet } from '../features/vender/ToppingPickerSheet'
+import { AttendantChip } from '../features/vender/AttendantChip'
 
 export default function Vender() {
   const products = useLiveQuery(() => db.products.orderBy('sort').toArray())
@@ -61,6 +62,7 @@ export default function Vender() {
   return (
     <div className="pt-2 lg:flex lg:items-start lg:gap-6 lg:pt-0">
       <div className="min-w-0 flex-1">
+        <AttendantChip />
         {active.length === 0 && <Empty text="Agrega productos en la pestaña Menú para empezar a vender." />}
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
