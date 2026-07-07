@@ -98,12 +98,17 @@ export interface Waste {
   reason: string
 }
 
+/** salida de dinero: gasto operativo o retiro de efectivo (a banco/caja fuerte) */
+export type ExpenseKind = 'gasto' | 'retiro'
+
 export interface Expense {
   id: string
   ts: number
   concept: string
   amount: number
   sessionId?: string
+  /** ausente = gasto (compatibilidad con registros previos) */
+  kind?: ExpenseKind
 }
 
 export interface CashSession {
@@ -113,10 +118,12 @@ export interface CashSession {
   openAmount: number
   /** efectivo contado al cierre */
   closeAmount?: number
-  /** efectivo esperado al cierre (fondo + ventas efectivo − gastos) */
+  /** efectivo esperado al cierre (fondo + ventas efectivo − gastos − retiros) */
   expected?: number
   /** quién abrió el turno */
   employeeName?: string
+  /** justificación cuando el contado no cuadró con lo esperado */
+  note?: string
 }
 
 /** tablas del dominio que se sincronizan con la nube */

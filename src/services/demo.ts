@@ -132,16 +132,26 @@ export async function loadDemoData() {
       let spent = 0
       if (rand() < 0.6) {
         const amount = round2(25 + rand() * 60)
-        spent = amount
-        const e: Expense = { id: uid(), ts: open + 2 * 3600_000, concept: pick(['Hielo', 'Bolsas', 'Servilletas', 'Gasolina reparto']), amount, sessionId }
+        spent += amount
+        const e: Expense = { id: uid(), ts: open + 2 * 3600_000, concept: pick(['Hielo', 'Bolsas', 'Servilletas', 'Gasolina reparto']), amount, sessionId, kind: 'gasto' }
         await db.expenses.add(e)
       }
 
+      // retiro de efectivo en días fuertes
+      if (cashTotal > 1200) {
+        const amount = Math.floor(cashTotal * 0.6 / 100) * 100
+        spent += amount
+        await db.expenses.add({ id: uid(), ts: open + 6 * 3600_000, concept: 'Depósito al banco', amount, sessionId, kind: 'retiro' })
+      }
+
       const expected = round2(500 + cashTotal - spent)
-      const diff = rand() < 0.75 ? 0 : round2((rand() - 0.5) * 40)
+      // ayer queda una diferencia sin justificar (muestra la alerta); otros días, justificada
+      const conDiff = day === 1 || rand() < 0.2
+      const diff = conDiff ? round2((rand() < 0.5 ? -1 : 1) * (20 + rand() * 30)) : 0
       await db.cashSessions.add({
         id: sessionId, openTs: open, closeTs: open + 9 * 3600_000,
         openAmount: 500, expected, closeAmount: round2(expected + diff), employeeName: emp?.name,
+        note: diff !== 0 && day !== 1 ? pick(['Cambio de más en una venta', 'Propina quedó en el cajón', 'Billete no aceptado']) : undefined,
       })
     }
 

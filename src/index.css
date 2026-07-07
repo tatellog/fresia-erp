@@ -13,14 +13,14 @@
   --color-berry-100: #f9dcda;
   --color-berry-200: #f0b3af;
   --color-berry-300: #e2807a;
-  --color-berry-400: #cd534c;
-  --color-berry-500: #ae3028;
-  --color-berry-600: #952921;
+  --color-berry-400: #e0564e;
+  --color-berry-500: #d93a32;
+  --color-berry-600: #b52d26;
   --color-berry-700: #7a211b;
   --color-berry-800: #5c1914;
-  --color-berry-900: #3e110e;
+  --color-berry-900: #3e2a25;
   --color-cream-50: #fffdfa;
-  --color-cream-100: #fdf6ee;
+  --color-cream-100: #fff8f2;
   --color-cream-200: #f7ead9;
   --color-cream-300: #eed9bd;
   --color-leaf-600: #5f6f3a;
@@ -28,6 +28,7 @@
 
 /* tokens de acento por línea (chips y gráficas) */
 :root {
+  --color-blush: #f4c7c2;
   --chip-choco-bg: #f3e9de;
   --chip-choco-fg: #8b5e34;
   --chip-leaf-bg: #f1f4e4;
@@ -76,6 +77,7 @@
   --color-red-600: #f07a72;
   --color-red-700: #f39a93;
 
+  --color-blush: #40292b;
   --chip-choco-bg: #2c2620;
   --chip-choco-fg: #d3ab80;
   --chip-leaf-bg: #23291a;
