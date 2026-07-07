@@ -1,4 +1,5 @@
 import { AppearanceCard } from '../features/ajustes/AppearanceCard'
+import { CatalogUpdateCard } from '../features/ajustes/CatalogUpdateCard'
 import { CloudCard } from '../features/ajustes/CloudCard'
 import { EmployeesCard } from '../features/ajustes/EmployeesCard'
 import { DemoCard } from '../features/ajustes/DemoCard'
@@ -10,6 +11,7 @@ export default function Ajustes() {
   return (
     <div className="mx-auto max-w-2xl pt-2 lg:pt-0">
       <h1 className="mb-3 text-2xl font-bold">Ajustes</h1>
+      <CatalogUpdateCard />
       <AppearanceCard />
       <EmployeesCard />
       <CloudCard />

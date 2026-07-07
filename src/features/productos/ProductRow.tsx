@@ -17,12 +17,15 @@ export function ProductRow({ product, ingredients, onEdit }: {
         <div className="min-w-0 flex-1">
           <div className="truncate font-display text-lg font-semibold">{product.name}</div>
           <div className="text-xs text-berry-700/60">
-            Costo {money(cost)} · Margen {margin.toFixed(0)}%{!product.active && ' · pausado'}
+            {cost > 0
+              ? `Costo ${money(cost)} · Margen ${margin.toFixed(0)}%`
+              : 'Costo pendiente: registra compras de insumos'}
+            {!product.active && ' · pausado'}
           </div>
         </div>
         <div className="text-right">
           <div className="font-bold text-berry-500">{money(product.price)}</div>
-          <div className="text-xs font-medium text-green-700">+{money(product.price - cost)}</div>
+          {cost > 0 && <div className="text-xs font-medium text-green-700">+{money(product.price - cost)}</div>}
         </div>
       </div>
     </Card>

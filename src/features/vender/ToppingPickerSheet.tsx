@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
 import type { Ingredient, Product } from '../../data/types'
 import { EXTRA_TOPPING_PRICE, INCLUDED_TOPPINGS } from '../../services/sales'
+import { productLine } from '../../services/catalog'
 import { money, round2 } from '../../lib/format'
 import { Button, Sheet } from '../../components/ui'
 
@@ -19,9 +20,10 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
     () => db.ingredients.filter(i => (i.toppingGroups ?? []).includes(product.toppingGroup!)).toArray(),
     [product.toppingGroup],
   )
+  const line = productLine(product)
   const extrasDisponibles = useLiveQuery(
-    () => db.products.filter(p => p.active && !!product.line && (p.extraScope ?? []).includes(product.line)).toArray(),
-    [product.line],
+    () => db.products.filter(p => p.active && !!line && (p.extraScope ?? []).includes(line)).toArray(),
+    [line],
   )
   const [selected, setSelected] = useState<Map<string, Ingredient>>(new Map())
   const [extras, setExtras] = useState<Map<string, Product>>(new Map())

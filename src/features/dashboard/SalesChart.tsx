@@ -27,7 +27,7 @@ export function SalesChart({ days }: { days: DayPoint[] }) {
   const y = (v: number) => PAD.top + innerH * (1 - v / max)
 
   return (
-    <div className="relative">
+    <div className="relative" onMouseLeave={() => setHover(null)} onTouchEnd={() => setTimeout(() => setHover(null), 1600)}>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Ventas de los últimos 14 días">
         {[0.5, 1].map(f => (
           <line key={f} x1={PAD.left} x2={W - PAD.right} y1={y(max * f)} y2={y(max * f)}
@@ -39,9 +39,7 @@ export function SalesChart({ days }: { days: DayPoint[] }) {
           const h = Math.max(2, innerH * (d.total / max))
           const showLabel = (i === iMax || isToday) && d.total > 0
           return (
-            <g key={d.ts}
-              onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
-              onTouchStart={() => setHover(i)}>
+            <g key={d.ts} onMouseEnter={() => setHover(i)} onTouchStart={() => setHover(i)}>
               {/* zona de toque más amplia que la barra */}
               <rect x={PAD.left + i * step} y={PAD.top} width={step} height={innerH + PAD.bottom} fill="transparent" />
               <rect

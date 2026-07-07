@@ -44,10 +44,10 @@
 .dark {
   color-scheme: dark;
 
-  --color-cream-50: #231715;   /* superficies (tarjetas, hojas, sidebar) */
-  --color-cream-100: #171009;  /* fondo */
-  --color-cream-200: #342522;  /* rellenos suaves y bordes */
-  --color-cream-300: #4b3531;  /* bordes marcados */
+  --color-cream-50: #2a1c18;   /* superficies (tarjetas, hojas, sidebar) */
+  --color-cream-100: #160f0a;  /* fondo */
+  --color-cream-200: #3d2b26;  /* rellenos suaves y bordes */
+  --color-cream-300: #553d36;  /* bordes marcados */
 
   --color-berry-900: #f5e9e3;  /* texto principal */
   --color-berry-800: #ecd8cf;
@@ -85,6 +85,15 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* foco accesible en color de marca (nada de anillos azules del sistema) */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--color-berry-400);
+  outline-offset: 2px;
 }
 
 body {

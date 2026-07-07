@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Ingredient, Payment, Product } from '../data/types'
 import { checkout, lineUnitPrice, type CartLine } from '../services/sales'
+import { productLine } from '../services/catalog'
 import { money } from '../lib/format'
 import { Button, Empty, Sheet } from '../components/ui'
 import { ProductCard } from '../features/vender/ProductCard'
@@ -17,9 +18,10 @@ const COCOA = 'var(--line-choco)'
 /** agrupa el menú en secciones: las tres líneas primero, extras al final */
 function sections(products: Product[]) {
   const grupo = (p: Product) => {
-    if (p.line === 'clasica') return 'Frésia Clásica'
-    if (p.line === 'chocolate') return 'Frésia con Chocolate'
-    if (p.line === 'balance') return 'Frésia Balance'
+    const line = productLine(p)
+    if (line === 'clasica') return 'Frésia Clásica'
+    if (line === 'chocolate') return 'Frésia con Chocolate'
+    if (line === 'balance') return 'Frésia Balance'
     return 'Extras'
   }
   const defs = [
@@ -95,7 +97,7 @@ export default function Vender() {
               {sec.title}
             </h2>
             <p className="mb-3 mt-0.5 text-xs text-berry-900/50">{sec.desc}</p>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] lg:gap-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] lg:gap-4">
               {sec.items.map(p => (
                 <ProductCard key={p.id} product={p} qty={qtyByProduct.get(p.id) ?? 0} onTap={() => tapProduct(p)} />
               ))}

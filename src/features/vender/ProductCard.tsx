@@ -1,10 +1,11 @@
 import type { Product } from '../../data/types'
+import { productLine } from '../../services/catalog'
 import { money } from '../../lib/format'
 
 /** descompone el nombre en etiqueta de línea, título grande y subtítulo */
 function parts(p: Product): { eyebrow: string | null; main: string; sub: string | null } {
   const i = p.name.indexOf('·')
-  const eyebrow = i >= 0 ? p.name.slice(0, i).trim() : p.line ?? null
+  const eyebrow = i >= 0 ? p.name.slice(0, i).trim() : productLine(p) ?? null
   const rest = i >= 0 ? p.name.slice(i + 1).trim() : p.name
   const size = rest.match(/^(.+?)\s+(\d+\s*ml)$/)          // "Chica 350 ml" → Chica / 350 ml
   if (size) return { eyebrow, main: size[1], sub: size[2] }
@@ -36,7 +37,7 @@ export function ProductCard({ product, qty, onTap }: { product: Product; qty: nu
       <div className="flex items-start justify-between gap-1">
         {eyebrow ? (
           <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${
-            selected ? 'bg-white/20 text-white' : chipStyles[product.line ?? 'clasica']
+            selected ? 'bg-white/20 text-white' : chipStyles[productLine(product) ?? 'clasica']
           }`}>
             {eyebrow}
           </span>

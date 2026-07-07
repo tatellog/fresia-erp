@@ -12,9 +12,10 @@ type Action = { kind: 'compra' | 'merma'; ing: Ingredient } | { kind: 'editar'; 
 
 export default function Inventario() {
   const ingredients = useLiveQuery(() => db.ingredients.orderBy('name').toArray())
+  const hasPurchases = useLiveQuery(async () => (await db.purchases.count()) > 0)
   const [action, setAction] = useState<Action>(null)
 
-  if (!ingredients) return null
+  if (!ingredients || hasPurchases === undefined) return null
   const low = ingredients.filter(i => i.stock <= i.minStock)
 
   return (
@@ -26,9 +27,14 @@ export default function Inventario() {
         </Button>
       </div>
 
-      {low.length > 0 && (
+      {!hasPurchases ? (
+        <div className="mb-3 rounded-2xl bg-cream-200/70 px-4 py-3 text-sm text-berry-700/80">
+          Empieza registrando tus <b>compras iniciales</b> (botón Compra en cada insumo): con eso se cargan las
+          existencias y se calculan los costos y márgenes reales.
+        </div>
+      ) : low.length > 0 && (
         <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-          ⚠️ Stock bajo: {low.map(i => i.name).join(', ')}
+          Stock bajo: {low.slice(0, 4).map(i => i.name).join(', ')}{low.length > 4 && ` y ${low.length - 4} más`}
         </div>
       )}
 

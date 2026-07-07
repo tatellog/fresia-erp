@@ -32,6 +32,7 @@ export default function Dashboard() {
   const chartSales = useLiveQuery(() => db.sales.where('ts').aboveOrEqual(chartFrom).toArray(), [chartFrom])
   const expenses = useLiveQuery(() => db.expenses.where('ts').aboveOrEqual(from).toArray(), [from])
   const ingredients = useLiveQuery(() => db.ingredients.toArray())
+  const hasPurchases = useLiveQuery(async () => (await db.purchases.count()) > 0)
 
   const kpis = useMemo(() => {
     if (!sales) return null
@@ -46,6 +47,8 @@ export default function Dashboard() {
       tickets: today.length,
       avg: today.length ? tTotal / today.length : 0,
       profit: round2(today.reduce((s, x) => s + x.total - x.cost, 0)),
+      /** sin compras registradas, el margen sería igual a la venta: mejor no presumirlo */
+      costsKnown: today.some(x => x.cost > 0) || tTotal === 0,
     }
   }, [sales])
 
@@ -119,7 +122,11 @@ export default function Dashboard() {
         />
         <StatCard label="Tickets hoy" value={String(kpis.tickets)} />
         <StatCard label="Ticket promedio" value={money(kpis.avg)} />
-        <StatCard label="Margen bruto hoy" value={money(kpis.profit)} accent="text-green-700" />
+        <StatCard
+          label={kpis.costsKnown ? 'Margen bruto hoy' : 'Margen (faltan costos)'}
+          value={kpis.costsKnown ? money(kpis.profit) : '·'}
+          accent={kpis.costsKnown ? 'text-green-700' : ''}
+        />
       </div>
       {kpis.delta !== null && (
         <p className="mb-4 -mt-1 px-1 text-xs text-berry-700/60">
@@ -174,9 +181,9 @@ export default function Dashboard() {
               <span>{p}</span><b className="tabular-nums">{money(t)}</b>
             </div>
           ))}
-          {low.length > 0 && (
+          {hasPurchases && low.length > 0 && (
             <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-              Stock bajo: {low.slice(0, 5).map(i => i.name).join(', ')}{low.length > 5 && ` y ${low.length - 5} más`}
+              Stock bajo: {low.slice(0, 3).map(i => i.name).join(', ')}{low.length > 3 && ` y ${low.length - 3} más`}
             </div>
           )}
         </Card>
