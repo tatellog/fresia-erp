@@ -2,8 +2,10 @@
 
 export type Unit = 'g' | 'ml' | 'pza'
 export type Payment = 'efectivo' | 'tarjeta' | 'transferencia'
-/** línea de producto a la que pertenece un topping elegible */
+/** conjunto de toppings elegibles (la línea Chocolate usa los clásicos) */
 export type ToppingGroup = 'clasica' | 'balance'
+/** líneas de producto del menú */
+export type Line = 'clasica' | 'chocolate' | 'balance'
 
 export interface Ingredient {
   id: string
@@ -37,6 +39,10 @@ export interface Product {
   sort: number
   /** si el producto lleva toppings elegibles, de qué grupo se ofrecen */
   toppingGroup?: ToppingGroup
+  /** línea del menú a la que pertenece (vasos) */
+  line?: Line
+  /** si es un extra, en qué líneas se ofrece dentro del armado del vaso */
+  extraScope?: Line[]
 }
 
 export interface SaleItem {
@@ -49,6 +55,8 @@ export interface SaleItem {
   cost: number
   /** nombres de los toppings elegidos */
   toppings?: string[]
+  /** nombres de los extras agregados al vaso */
+  extras?: string[]
 }
 
 export interface Sale {

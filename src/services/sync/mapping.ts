@@ -12,7 +12,7 @@ export const toCloud: Record<SyncTable, { table: string; map: (r: CloudRow, bran
   },
   products: {
     table: 'products',
-    map: (r, branch) => ({ id: r.id, name: r.name, emoji: r.emoji, price: r.price, recipe: r.recipe, active: r.active, sort: r.sort, topping_group: r.toppingGroup ?? null, branch, updated_at: new Date().toISOString() }),
+    map: (r, branch) => ({ id: r.id, name: r.name, emoji: r.emoji, price: r.price, recipe: r.recipe, active: r.active, sort: r.sort, topping_group: r.toppingGroup ?? null, line: r.line ?? null, extra_scope: r.extraScope ?? null, branch, updated_at: new Date().toISOString() }),
   },
   sales: {
     table: 'sales',

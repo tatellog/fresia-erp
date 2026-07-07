@@ -15,7 +15,8 @@ export default function Ajustes() {
       <BackupCard />
       <InstallCard />
       <DangerZoneCard />
-      <p className="mt-6 text-center text-xs text-berry-700/40">Frésia OS v0.4 · hecho con amor</p>
+      <p className="mt-6 text-center font-display text-sm italic text-berry-700/45">Fresas, momentos y sonrisas.</p>
+      <p className="mt-1 text-center text-xs text-berry-700/35">Frésia OS v0.5</p>
     </div>
   )
 }

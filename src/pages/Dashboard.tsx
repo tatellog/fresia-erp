@@ -16,8 +16,9 @@ const ranges = [
 const CHART_DAYS = 14
 
 /** clasifica un renglón de venta en la línea de producto que reporta */
-function lineOf(name: string): 'Clásica' | 'Balance' | 'Extras' {
+function lineOf(name: string): 'Clásica' | 'Chocolate' | 'Balance' | 'Extras' {
   if (name.includes('Balance')) return 'Balance'
+  if (name.startsWith('Chocolate ·')) return 'Chocolate'
   if (name.includes('Clásic')) return 'Clásica'
   return 'Extras'
 }
@@ -56,7 +57,7 @@ export default function Dashboard() {
     const cost = inRange.reduce((s, x) => s + x.cost, 0)
     const byProduct = new Map<string, { qty: number; total: number }>()
     const byPayment = new Map<string, number>()
-    const byLine = new Map<string, number>([['Clásica', 0], ['Balance', 0], ['Extras', 0]])
+    const byLine = new Map<string, number>([['Clásica', 0], ['Chocolate', 0], ['Balance', 0], ['Extras', 0]])
     for (const sale of inRange) {
       byPayment.set(sale.payment, (byPayment.get(sale.payment) ?? 0) + sale.total)
       for (const it of sale.items) {
@@ -74,7 +75,7 @@ export default function Dashboard() {
       byLine: [...byLine.entries()].map(([label, t]) => ({
         label,
         total: round2(t),
-        color: label === 'Balance' ? '#6C8A1E' : label === 'Clásica' ? 'var(--color-berry-500)' : 'var(--color-berry-200)',
+        color: label === 'Balance' ? '#6C8A1E' : label === 'Chocolate' ? '#8B5E34' : label === 'Clásica' ? 'var(--color-berry-500)' : 'var(--color-berry-200)',
       })),
       last: [...inRange].sort((a, b) => b.ts - a.ts).slice(0, 12),
     }

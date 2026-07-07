@@ -17,16 +17,15 @@ function rng(seed: number) {
 
 /** costo unitario realista por insumo (MXN por g/ml/pza) para la demo */
 const DEMO_COSTS: Record<string, number> = {
-  'Fresa': 0.085, 'Crema tradicional': 0.055, 'Yogurt griego': 0.09,
-  'Vaso chico 350 ml': 3.8, 'Vaso mediano 500 ml': 4.5, 'Vaso grande 700 ml': 5.2,
-  'Cuchara': 0.4, 'Agua del día (botella)': 7,
-  'Miel de abeja natural': 0.15, 'Fruta de temporada': 0.06,
+  'Fresa fresca': 0.085, 'Crema tradicional': 0.055, 'Yogurt griego': 0.09,
+  'Proteína en polvo': 0.6, 'Salsa de chocolate': 0.12,
+  'Vaso PET 250 ml': 3.2, 'Vaso PET 350 ml': 3.8, 'Vaso PET 500 ml': 4.5, 'Vaso PET 700 ml': 5.2,
+  'Tapa plana': 0.9, 'Tapa domo': 1.4, 'Cuchara': 0.4, 'Servilleta': 0.15, 'Sticker / sello Frésia': 0.8,
   'Granola artesanal': 0.12, 'Cajeta': 0.09, 'Chocolate': 0.11, 'Lechera': 0.07,
-  'Chispas de chocolate': 0.15, 'Galleta Lotus': 0.22, 'Oreo triturada': 0.14, 'Brownie': 0.18,
-  'Galleta María': 0.08, 'Coco rallado': 0.12, 'Almendra fileteada': 0.28, 'Nuez picada': 0.3,
+  'Chocolate chips': 0.15, 'Oreo triturada': 0.14, 'Brownie': 0.18,
+  'Coco rallado': 0.12, 'Almendra fileteada': 0.28, 'Nuez picada': 0.3,
   'Granola proteica': 0.18, 'Chía': 0.15, 'Amaranto inflado': 0.1, 'Pistache': 0.45,
-  'Cacao nibs': 0.3, 'Semillas de calabaza': 0.18, 'Linaza molida': 0.08, 'Tahini': 0.2,
-  'Proteína natural': 0.6,
+  'Coco sin azúcar': 0.14, 'Cacao nibs': 0.3,
 }
 
 export async function hasDemoOrActivity(): Promise<boolean> {
@@ -79,7 +78,7 @@ export async function loadDemoData() {
     }
 
     const vasos = products.filter(p => p.toppingGroup)
-    const otros = products.filter(p => !p.toppingGroup)
+    const otros = products.filter(p => !p.toppingGroup && !p.extraScope?.length).concat(products.filter(p => p.extraScope?.length))
     const payments: Payment[] = ['efectivo', 'efectivo', 'efectivo', 'tarjeta', 'tarjeta', 'transferencia']
 
     for (let day = 13; day >= 0; day--) {

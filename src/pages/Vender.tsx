@@ -12,20 +12,21 @@ import { ToppingPickerSheet } from '../features/vender/ToppingPickerSheet'
 import { AttendantChip } from '../features/vender/AttendantChip'
 
 const OLIVE = '#6C8A1E'
+const COCOA = '#8B5E34'
 
-/** agrupa el menú en secciones como el impreso: Clásica, Balance, combos/bebidas y extras */
+/** agrupa el menú en secciones: las tres líneas primero, extras al final */
 function sections(products: Product[]) {
   const grupo = (p: Product) => {
-    if (p.name.includes('Combo')) return 'Combos'
-    if (p.toppingGroup === 'clasica') return 'Clásica'
-    if (p.toppingGroup === 'balance') return 'Balance'
+    if (p.line === 'clasica') return 'Frésia Clásica'
+    if (p.line === 'chocolate') return 'Frésia con Chocolate'
+    if (p.line === 'balance') return 'Frésia Balance'
     return 'Extras'
   }
   const defs = [
-    { title: 'Clásica', dot: 'var(--color-berry-500)' },
-    { title: 'Balance', dot: OLIVE },
-    { title: 'Combos', dot: 'var(--color-berry-300)' },
-    { title: 'Extras', dot: 'var(--color-cream-300)' },
+    { title: 'Frésia Clásica', dot: 'var(--color-berry-500)', desc: 'Con crema tradicional. Dulce, cremosa y hecha para consentirte. · 2 toppings incluidos' },
+    { title: 'Frésia con Chocolate', dot: COCOA, desc: 'Con crema tradicional + salsa de chocolate. · 2 toppings incluidos' },
+    { title: 'Frésia Balance', dot: OLIVE, desc: 'Con yogurt griego natural + proteína. Fresca, ligera y nutritiva. · 2 toppings Balance incluidos' },
+    { title: 'Extras', dot: 'var(--color-cream-300)', desc: 'También se pueden vender sueltos; dentro del vaso se ofrecen al armarlo.' },
   ]
   return defs
     .map(d => ({ ...d, items: products.filter(p => grupo(p) === d.title) }))
@@ -50,19 +51,20 @@ export default function Vender() {
     return m
   }, [cart])
 
-  /** agrega una unidad; funde con una línea existente si es el mismo producto y toppings */
-  const addLine = (product: Product, toppings: Ingredient[]) => {
-    const key = toppings.map(t => t.id).sort().join(',')
+  /** agrega una unidad; funde con una línea existente si coinciden producto, toppings y extras */
+  const addLine = (product: Product, toppings: Ingredient[], extras: Product[]) => {
+    const key = [...toppings.map(t => t.id), '|', ...extras.map(e => e.id)].sort().join(',')
+    const keyOf = (l: CartLine) => [...l.toppings.map(t => t.id), '|', ...l.extras.map(e => e.id)].sort().join(',')
     setCart(prev => {
-      const i = prev.findIndex(l => l.product.id === product.id && l.toppings.map(t => t.id).sort().join(',') === key)
+      const i = prev.findIndex(l => l.product.id === product.id && keyOf(l) === key)
       if (i >= 0) return prev.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l))
-      return [...prev, { product, qty: 1, toppings }]
+      return [...prev, { product, qty: 1, toppings, extras }]
     })
   }
 
   const tapProduct = (p: Product) => {
     if (p.toppingGroup) setPicking(p)
-    else addLine(p, [])
+    else addLine(p, [], [])
   }
 
   const setQty = (index: number, qty: number) => {
@@ -88,10 +90,11 @@ export default function Vender() {
 
         {sections(active).map(sec => (
           <section key={sec.title} className="mb-7">
-            <h2 className="mb-3 flex items-center gap-2 text-xl font-semibold">
+            <h2 className="flex items-center gap-2 text-xl font-semibold">
               <span className="h-2 w-2 rounded-full" style={{ background: sec.dot }} />
               {sec.title}
             </h2>
+            <p className="mb-3 mt-0.5 text-xs text-berry-900/50">{sec.desc}</p>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] lg:gap-4">
               {sec.items.map(p => (
                 <ProductCard key={p.id} product={p} qty={qtyByProduct.get(p.id) ?? 0} onTap={() => tapProduct(p)} />
@@ -106,7 +109,7 @@ export default function Vender() {
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(174,48,40,0.08)]">
           <h2 className="mb-3 text-lg font-bold">Ticket</h2>
           {cart.length === 0 ? (
-            <p className="py-8 text-center text-sm text-berry-700/50">Toca productos para agregarlos</p>
+            <p className="py-8 text-center font-display text-lg italic text-berry-700/45">Para ti, bombón.</p>
           ) : (
             <>
               <CartLines lines={cart} setQty={setQty} />
@@ -114,6 +117,7 @@ export default function Vender() {
               <Button className="w-full text-lg" onClick={cobrar}>
                 Cobrar · {money(total)}
               </Button>
+              <p className="mt-3 text-center text-[11px] uppercase tracking-[0.18em] text-berry-900/35">Hechas al momento</p>
             </>
           )}
         </div>
@@ -137,8 +141,8 @@ export default function Vender() {
       {picking && (
         <ToppingPickerSheet
           product={picking}
-          onConfirm={toppings => {
-            addLine(picking, toppings)
+          onConfirm={(toppings, extras) => {
+            addLine(picking, toppings, extras)
             setPicking(null)
           }}
           onClose={() => setPicking(null)}

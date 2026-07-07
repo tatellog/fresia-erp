@@ -15,25 +15,29 @@ export interface CartLine {
   qty: number
   /** toppings elegidos (solo productos con toppingGroup) */
   toppings: Ingredient[]
+  /** extras agregados al vaso (productos con extraScope) */
+  extras: Product[]
 }
 
-/** precio unitario cobrado: base + toppings adicionales */
+/** precio unitario cobrado: base + toppings adicionales + extras */
 export function lineUnitPrice(line: CartLine): number {
-  const extra = Math.max(0, line.toppings.length - INCLUDED_TOPPINGS)
-  return round2(line.product.price + extra * EXTRA_TOPPING_PRICE)
+  const extraToppings = Math.max(0, line.toppings.length - INCLUDED_TOPPINGS)
+  const extrasTotal = line.extras.reduce((s, e) => s + e.price, 0)
+  return round2(line.product.price + extraToppings * EXTRA_TOPPING_PRICE + extrasTotal)
 }
 
-/** costo unitario de insumos: receta base + porción de cada topping elegido */
+/** costo unitario de insumos: receta base + porciones de toppings + recetas de extras */
 function lineUnitCost(line: CartLine, ingredients: Map<string, Ingredient>): number {
   const toppingsCost = line.toppings.reduce((s, t) => s + t.cost * (t.portion ?? 0), 0)
-  return round2(productCost(line.product, ingredients) + toppingsCost)
+  const extrasCost = line.extras.reduce((s, e) => s + productCost(e, ingredients), 0)
+  return round2(productCost(line.product, ingredients) + toppingsCost + extrasCost)
 }
 
 /**
- * Registra la venta y descuenta insumos (receta base + toppings) en una sola
- * transacción. El stock puede quedar negativo a propósito: en el punto de
- * venta nunca se bloquea una venta real; el faltante se corrige con compras
- * o mermas.
+ * Registra la venta y descuenta insumos (receta base + toppings + extras)
+ * en una sola transacción. El stock puede quedar negativo a propósito: en
+ * el punto de venta nunca se bloquea una venta real; el faltante se
+ * corrige con compras o mermas.
  */
 export async function checkout(cart: CartLine[], payment: Payment): Promise<string> {
   return db.transaction('rw', [db.sales, db.ingredients, db.cashSessions, db.outbox, db.meta, db.employees], async () => {
@@ -49,15 +53,18 @@ export async function checkout(cart: CartLine[], payment: Payment): Promise<stri
       price: lineUnitPrice(line),
       cost: lineUnitCost(line, ingredients),
       toppings: line.toppings.length ? line.toppings.map(t => t.name) : undefined,
+      extras: line.extras.length ? line.extras.map(e => e.name) : undefined,
     }))
 
-    // consumo de insumos: receta base + porciones de toppings
+    // consumo de insumos: receta base + porciones de toppings + recetas de extras
     const usage = new Map<string, number>()
     const use = (ingredientId: string, qty: number) =>
       usage.set(ingredientId, (usage.get(ingredientId) ?? 0) + qty)
     for (const line of cart) {
       for (const r of line.product.recipe) use(r.ingredientId, r.qty * line.qty)
       for (const t of line.toppings) use(t.id, (t.portion ?? 0) * line.qty)
+      for (const e of line.extras)
+        for (const r of e.recipe) use(r.ingredientId, r.qty * line.qty)
     }
     for (const [ingredientId, qty] of usage) {
       const ing = ingredients.get(ingredientId)
