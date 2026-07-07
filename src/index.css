@@ -44,43 +44,44 @@
 .dark {
   color-scheme: dark;
 
-  --color-cream-50: #2a1c18;   /* superficies (tarjetas, hojas, sidebar) */
-  --color-cream-100: #160f0a;  /* fondo */
-  --color-cream-200: #3d2b26;  /* rellenos suaves y bordes */
-  --color-cream-300: #553d36;  /* bordes marcados */
+  /* grafito neutro: fondo casi negro, tarjetas carbón; el rojo es el único acento */
+  --color-cream-50: #1b1b20;   /* superficies (tarjetas, hojas, sidebar) */
+  --color-cream-100: #101013;  /* fondo */
+  --color-cream-200: #28282f;  /* rellenos suaves y bordes */
+  --color-cream-300: #3a3a44;  /* bordes marcados */
 
-  --color-berry-900: #f5e9e3;  /* texto principal */
-  --color-berry-800: #ecd8cf;
-  --color-berry-700: #dcb4a7;  /* texto secundario */
+  --color-berry-900: #f2f0f1;  /* texto principal */
+  --color-berry-800: #e3dfe1;
+  --color-berry-700: #b6aeb2;  /* texto secundario */
   --color-berry-600: #c14a40;
-  --color-berry-500: #d65a4f;  /* acción / marca */
-  --color-berry-400: #e27a6e;
-  --color-berry-300: #8f4d44;
-  --color-berry-200: #61362f;
-  --color-berry-100: #482823;
-  --color-berry-50: #34201c;
+  --color-berry-500: #d95c50;  /* acción / marca */
+  --color-berry-400: #e57f74;
+  --color-berry-300: #6f4a4b;
+  --color-berry-200: #3d3237;
+  --color-berry-100: #35292d;
+  --color-berry-50: #2a2226;
 
   --color-leaf-600: #adc465;
 
   /* estados (avisos, éxito, error) en versión nocturna */
-  --color-amber-50: #33260e;
+  --color-amber-50: #2c2413;
   --color-amber-600: #e3b341;
   --color-amber-700: #e8bd55;
   --color-amber-800: #efcc79;
-  --color-green-100: #1e3323;
+  --color-green-100: #1c2b20;
   --color-green-600: #4ca263;
   --color-green-700: #74c288;
-  --color-red-50: #3a1d1e;
-  --color-red-100: #4a2526;
+  --color-red-50: #32201f;
+  --color-red-100: #402727;
   --color-red-600: #f07a72;
   --color-red-700: #f39a93;
 
-  --chip-choco-bg: #3a2c1e;
-  --chip-choco-fg: #d9ae7e;
-  --chip-leaf-bg: #2a3218;
-  --chip-leaf-fg: #bccf78;
-  --line-choco: #c89b6a;
-  --line-olive: #a9c25d;
+  --chip-choco-bg: #2c2620;
+  --chip-choco-fg: #d3ab80;
+  --chip-leaf-bg: #23291a;
+  --chip-leaf-fg: #b9cc80;
+  --line-choco: #c39a6e;
+  --line-olive: #a5bd62;
 }
 
 html {
