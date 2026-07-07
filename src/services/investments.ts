@@ -6,6 +6,25 @@ import { enqueue } from './outbox'
 /** nombres de quienes invierten; las iniciales se guardan en cada gasto */
 export const INVESTORS: Record<string, string> = { T: 'Tania', A: 'Angel', M: 'Monse' }
 
+/**
+ * Cuánto ha aportado cada persona, sobre lo YA PAGADO de cada gasto
+ * (monto − resta). Los gastos compartidos se reparten en partes iguales
+ * entre sus pagadores; los que no tienen pagador van a la cubeta 'sin'.
+ * Invariante: la suma de aportaciones es igual al total pagado.
+ */
+export function investorShares(investments: Investment[]): Record<string, number> {
+  const shares: Record<string, number> = { T: 0, A: 0, M: 0, sin: 0 }
+  for (const inv of investments) {
+    const paid = inv.amount - inv.pending
+    if (paid <= 0) continue
+    const payers = inv.paidBy.split('').filter(p => p in INVESTORS)
+    if (payers.length === 0) shares.sin += paid
+    else for (const p of payers) shares[p] += paid / payers.length
+  }
+  for (const k of Object.keys(shares)) shares[k] = Math.round(shares[k] * 100) / 100
+  return shares
+}
+
 export async function saveInvestment(data: Omit<Investment, 'id' | 'ts'>, existing?: Investment) {
   return db.transaction('rw', [db.investments, db.outbox], async () => {
     const row: Investment = existing ? { ...existing, ...data } : { ...data, id: uid(), ts: Date.now() }
