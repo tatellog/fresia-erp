@@ -20,7 +20,6 @@ export async function seed() {
   const vasoGd = ing('Vaso grande 700 ml', 'pza', 25)
   const cuchara = ing('Cuchara', 'pza', 50)
   const botellaAgua = ing('Agua del día (botella)', 'pza', 12)
-  const cafeFrio = ing('Café frío (preparado)', 'pza', 10)
   const miel = ing('Miel de abeja natural', 'ml', 300)
   const frutaTemp = ing('Fruta de temporada', 'g', 500)
 
@@ -54,7 +53,7 @@ export async function seed() {
   const proteina = ing('Proteína natural', 'g', 500, { groups: ba(), portion: 10 })
 
   const ingredients = [
-    fresa, crema, yogurt, vasoCh, vasoMd, vasoGd, cuchara, botellaAgua, cafeFrio, miel, frutaTemp,
+    fresa, crema, yogurt, vasoCh, vasoMd, vasoGd, cuchara, botellaAgua, miel, frutaTemp,
     granolaArt, cajeta, chocolate, lechera, chocoChips, lotus, oreo, brownie, galletaMaria,
     coco, almendra, nuez,
     granolaProt, chia, amaranto, pistache, cacaoNibs, semCalabaza, linaza, tahini, proteina,
@@ -82,8 +81,6 @@ export async function seed() {
     prod('Balance · Grande 700 ml', '🌿', 139, balance(vasoGd, 350, 280), 'balance'),
     prod('Combo Clásico (mediana + agua)', '🎀', 109, [...clasica(vasoMd, 250, 200), r(botellaAgua, 1)], 'clasica'),
     prod('Combo Balance (mediana + agua)', '🎀', 119, [...balance(vasoMd, 250, 200), r(botellaAgua, 1)], 'balance'),
-    prod('Agua del día', '💧', 25, [r(botellaAgua, 1)]),
-    prod('Café frío', '☕', 45, [r(cafeFrio, 1)]),
     prod('Fresa extra', '🍓', 20, [r(fresa, 60)]),
     prod('Extra crema', '🍦', 15, [r(crema, 60)]),
     prod('Extra granola', '🥣', 15, [r(granolaArt, 30)]),

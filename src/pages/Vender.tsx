@@ -16,7 +16,7 @@ const OLIVE = '#6C8A1E'
 /** agrupa el menú en secciones como el impreso: Clásica, Balance, combos/bebidas y extras */
 function sections(products: Product[]) {
   const grupo = (p: Product) => {
-    if (p.name.includes('Combo') || ['Agua del día', 'Café frío'].includes(p.name)) return 'Combos y bebidas'
+    if (p.name.includes('Combo')) return 'Combos'
     if (p.toppingGroup === 'clasica') return 'Clásica'
     if (p.toppingGroup === 'balance') return 'Balance'
     return 'Extras'
@@ -24,7 +24,7 @@ function sections(products: Product[]) {
   const defs = [
     { title: 'Clásica', dot: 'var(--color-berry-500)' },
     { title: 'Balance', dot: OLIVE },
-    { title: 'Combos y bebidas', dot: 'var(--color-berry-300)' },
+    { title: 'Combos', dot: 'var(--color-berry-300)' },
     { title: 'Extras', dot: 'var(--color-cream-300)' },
   ]
   return defs

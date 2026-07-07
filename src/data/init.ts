@@ -3,7 +3,7 @@ import { migrateFromV1 } from './migrate'
 import { seed } from './seed'
 
 /** versión del catálogo sembrado; subirla reemplaza catálogos viejos sin movimientos */
-const SEED_VERSION = '3'
+const SEED_VERSION = '4'
 
 /** arranque de la base: migra desde la v1 si existe, o siembra el catálogo real */
 export async function initDb() {
