@@ -75,7 +75,7 @@ export default function Dashboard() {
       byLine: [...byLine.entries()].map(([label, t]) => ({
         label,
         total: round2(t),
-        color: label === 'Balance' ? '#6C8A1E' : label === 'Chocolate' ? '#8B5E34' : label === 'Clásica' ? 'var(--color-berry-500)' : 'var(--color-berry-200)',
+        color: label === 'Balance' ? 'var(--line-olive)' : label === 'Chocolate' ? 'var(--line-choco)' : label === 'Clásica' ? 'var(--color-berry-500)' : 'var(--color-berry-200)',
       })),
       last: [...inRange].sort((a, b) => b.ts - a.ts).slice(0, 12),
     }
@@ -102,7 +102,7 @@ export default function Dashboard() {
             <button
               key={r.id}
               onClick={() => setRange(r.id)}
-              className={`rounded-full px-3.5 py-1 text-xs font-semibold ${range === r.id ? 'bg-berry-500 text-cream-50' : 'text-berry-700'}`}
+              className={`rounded-full px-3.5 py-1 text-xs font-semibold ${range === r.id ? 'bg-berry-500 text-white' : 'text-berry-700'}`}
             >
               {r.label}
             </button>
@@ -186,7 +186,7 @@ export default function Dashboard() {
       {period.last.length === 0 && <Empty text="Aún no hay ventas en este periodo." />}
       <div className="space-y-1.5">
         {period.last.map(s => (
-          <div key={s.id} className="flex items-center justify-between rounded-xl border border-cream-200 bg-white px-3 py-2 text-sm">
+          <div key={s.id} className="flex items-center justify-between rounded-xl border border-cream-200 bg-cream-50 px-3 py-2 text-sm">
             <div className="min-w-0 flex-1">
               <div className="truncate">{s.items.map(i => `${i.qty}× ${i.name}`).join(', ')}</div>
               <div className="text-xs text-berry-700/50">

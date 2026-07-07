@@ -15,8 +15,8 @@ function parts(p: Product): { eyebrow: string | null; main: string; sub: string 
 
 const chipStyles: Record<string, string> = {
   clasica: 'bg-berry-50 text-berry-500',
-  chocolate: 'bg-[#F3E9DE] text-[#8B5E34]',
-  balance: 'bg-[#F1F4E4] text-[#5F6F3A]',
+  chocolate: 'bg-[var(--chip-choco-bg)] text-[var(--chip-choco-fg)]',
+  balance: 'bg-[var(--chip-leaf-bg)] text-[var(--chip-leaf-fg)]',
 }
 
 /** tarjeta de producto del punto de venta */
@@ -29,14 +29,14 @@ export function ProductCard({ product, qty, onTap }: { product: Product; qty: nu
       onClick={onTap}
       className={`relative flex min-h-[10rem] flex-col rounded-3xl border p-5 text-left transition-all active:scale-[0.97] ${
         selected
-          ? 'border-berry-500 bg-berry-500 text-cream-50 shadow-lg'
-          : 'border-cream-200 bg-white shadow-[0_2px_8px_rgba(174,48,40,0.06)] hover:border-berry-200'
+          ? 'border-berry-500 bg-berry-500 text-white shadow-lg'
+          : 'border-cream-200 bg-cream-50 shadow-[0_2px_8px_rgba(174,48,40,0.06)] hover:border-berry-200'
       }`}
     >
       <div className="flex items-start justify-between gap-1">
         {eyebrow ? (
           <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${
-            selected ? 'bg-white/20 text-cream-50' : chipStyles[product.line ?? 'clasica']
+            selected ? 'bg-white/20 text-white' : chipStyles[product.line ?? 'clasica']
           }`}>
             {eyebrow}
           </span>
@@ -53,11 +53,11 @@ export function ProductCard({ product, qty, onTap }: { product: Product; qty: nu
       <div className="mt-auto pt-4">
         <div className="font-display text-[26px] font-semibold leading-none">{main}</div>
         {sub && (
-          <div className={`mt-1 text-[13px] font-medium tracking-wide ${selected ? 'text-cream-50/70' : 'text-berry-900/45'}`}>
+          <div className={`mt-1 text-[13px] font-medium tracking-wide ${selected ? 'text-white/70' : 'text-berry-900/45'}`}>
             {sub}
           </div>
         )}
-        <div className={`mt-2 font-display text-xl font-bold ${selected ? 'text-cream-50' : 'text-berry-500'}`}>
+        <div className={`mt-2 font-display text-xl font-bold ${selected ? 'text-white' : 'text-berry-500'}`}>
           {money(product.price)}
         </div>
       </div>

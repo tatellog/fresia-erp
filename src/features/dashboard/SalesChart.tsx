@@ -66,7 +66,7 @@ export function SalesChart({ days }: { days: DayPoint[] }) {
       </svg>
       {hover !== null && (
         <div
-          className="pointer-events-none absolute -top-1 rounded-lg bg-berry-900 px-2.5 py-1.5 text-xs font-medium text-cream-50 shadow-lg"
+          className="pointer-events-none absolute -top-1 rounded-lg bg-berry-900 px-2.5 py-1.5 text-xs font-medium text-cream-100 shadow-lg"
           style={{ left: `${((hover + 0.5) / days.length) * 100}%`, transform: 'translateX(-50%)' }}
         >
           {fmtDate(days[hover].ts)} · {money(days[hover].total)}

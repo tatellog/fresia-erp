@@ -5,7 +5,7 @@ import { fmtDateTime, money, round2 } from '../../lib/format'
 export function HistoryRow({ s }: { s: CashSession }) {
   const diff = round2((s.closeAmount ?? 0) - (s.expected ?? 0))
   return (
-    <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
+    <div className="flex items-center justify-between rounded-xl bg-cream-50 px-3 py-2 text-sm">
       <span className="text-berry-700/70">{fmtDateTime(s.openTs)}</span>
       <span className="tabular-nums">
         contado <b>{money(s.closeAmount ?? 0)}</b>{' '}

@@ -59,7 +59,7 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
               key={t.id}
               onClick={() => toggle(t)}
               className={`rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${
-                on ? 'bg-berry-500 text-cream-50' : 'bg-cream-200 text-berry-700'
+                on ? 'bg-berry-500 text-white' : 'bg-cream-200 text-berry-700'
               }`}
             >
               {t.name}
@@ -82,10 +82,10 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
                   key={e.id}
                   onClick={() => toggleExtra(e)}
                   className={`rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors ${
-                    on ? 'border-berry-500 bg-berry-500 text-cream-50' : 'border-cream-300 bg-white text-berry-700'
+                    on ? 'border-berry-500 bg-berry-500 text-white' : 'border-cream-300 bg-cream-50 text-berry-700'
                   }`}
                 >
-                  {e.name} <span className={on ? 'text-cream-50/80' : 'text-berry-500'}>+{money(e.price)}</span>
+                  {e.name} <span className={on ? 'text-white/80' : 'text-berry-500'}>+{money(e.price)}</span>
                 </button>
               )
             })}

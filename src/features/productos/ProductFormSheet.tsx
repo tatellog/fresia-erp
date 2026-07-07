@@ -64,7 +64,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
         {ingredients.map(ing => {
           const qty = recipe.find(r => r.ingredientId === ing.id)?.qty ?? 0
           return (
-            <div key={ing.id} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2">
+            <div key={ing.id} className="flex items-center gap-2 rounded-xl bg-cream-50 px-3 py-2">
               <div className="min-w-0 flex-1 text-sm font-medium">{ing.name}</div>
               <Input
                 type="number"

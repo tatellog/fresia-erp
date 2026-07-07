@@ -11,8 +11,8 @@ import { PaymentPicker } from '../features/vender/PaymentPicker'
 import { ToppingPickerSheet } from '../features/vender/ToppingPickerSheet'
 import { AttendantChip } from '../features/vender/AttendantChip'
 
-const OLIVE = '#6C8A1E'
-const COCOA = '#8B5E34'
+const OLIVE = 'var(--line-olive)'
+const COCOA = 'var(--line-choco)'
 
 /** agrupa el menú en secciones: las tres líneas primero, extras al final */
 function sections(products: Product[]) {
@@ -106,7 +106,7 @@ export default function Vender() {
 
       {/* carrito fijo: iPad horizontal y pantallas grandes */}
       <aside className="sticky top-6 hidden w-80 shrink-0 lg:block xl:w-[22rem]">
-        <div className="rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(174,48,40,0.08)]">
+        <div className="rounded-2xl bg-cream-50 p-4 shadow-[0_1px_3px_rgba(174,48,40,0.08)]">
           <h2 className="mb-3 text-lg font-bold">Ticket</h2>
           {cart.length === 0 ? (
             <p className="py-8 text-center font-display text-lg italic text-berry-700/45">Para ti, bombón.</p>

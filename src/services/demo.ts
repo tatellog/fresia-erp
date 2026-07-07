@@ -22,7 +22,7 @@ const DEMO_COSTS: Record<string, number> = {
   'Vaso PET 250 ml': 3.2, 'Vaso PET 350 ml': 3.8, 'Vaso PET 500 ml': 4.5, 'Vaso PET 700 ml': 5.2,
   'Tapa plana': 0.9, 'Tapa domo': 1.4, 'Cuchara': 0.4, 'Servilleta': 0.15, 'Sticker / sello Frésia': 0.8,
   'Granola artesanal': 0.12, 'Cajeta': 0.09, 'Chocolate': 0.11, 'Lechera': 0.07,
-  'Chocolate chips': 0.15, 'Oreo triturada': 0.14, 'Brownie': 0.18,
+  'Chocolate chips': 0.15, 'Oreo triturada': 0.14,
   'Coco rallado': 0.12, 'Almendra fileteada': 0.28, 'Nuez picada': 0.3,
   'Granola proteica': 0.18, 'Chía': 0.15, 'Amaranto inflado': 0.1, 'Pistache': 0.45,
   'Coco sin azúcar': 0.14, 'Cacao nibs': 0.3,

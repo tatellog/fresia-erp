@@ -39,7 +39,6 @@ export async function seed() {
   const lechera = ing('Lechera', 'ml', 300, { groups: cl, portion: 20 })
   const chocoChips = ing('Chocolate chips', 'g', 300, { groups: cl, portion: 15 })
   const oreo = ing('Oreo triturada', 'g', 300, { groups: cl, portion: 15 })
-  const brownie = ing('Brownie', 'g', 300, { groups: cl, portion: 20 })
   const cocoRallado = ing('Coco rallado', 'g', 250, { groups: cl, portion: 10 })
   const almendra = ing('Almendra fileteada', 'g', 250, { groups: ambos, portion: 12 })
   const nuez = ing('Nuez picada', 'g', 250, { groups: ambos, portion: 12 })
@@ -56,7 +55,7 @@ export async function seed() {
   const ingredients = [
     fresa, crema, yogurt, proteina, salsaChoco,
     vaso250, vaso350, vaso500, vaso700, tapaPlana, tapaDomo, cuchara, servilleta, sticker,
-    granolaArt, cajeta, chocolate, lechera, chocoChips, oreo, brownie, cocoRallado, almendra, nuez,
+    granolaArt, cajeta, chocolate, lechera, chocoChips, oreo, cocoRallado, almendra, nuez,
     granolaProt, chia, amaranto, pistache, cocoSinAzucar, cacaoNibs,
   ]
 

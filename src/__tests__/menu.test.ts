@@ -33,11 +33,12 @@ describe('catálogo (menú v2)', () => {
     }
   })
 
-  it('10 toppings clásicos y 8 Balance elegibles', () => {
+  it('9 toppings clásicos (sin Brownie) y 8 Balance elegibles', () => {
     const clasicos = ingredients.filter(i => i.toppingGroups?.includes('clasica'))
     const balance = ingredients.filter(i => i.toppingGroups?.includes('balance'))
-    expect(clasicos).toHaveLength(10)
+    expect(clasicos).toHaveLength(9)
     expect(balance).toHaveLength(8)
+    expect(ingredients.some(i => i.name === 'Brownie')).toBe(false)
     // almendra y nuez compartidas; los cocos son insumos distintos
     expect(ing('Almendra fileteada').toppingGroups).toEqual(['clasica', 'balance'])
     expect(ing('Coco rallado').toppingGroups).toEqual(['clasica'])
@@ -79,8 +80,8 @@ describe('precios en el punto de venta', () => {
   })
 
   it('cobra desde el tercer topping', () => {
-    expect(lineUnitPrice(linea([ing('Cajeta'), ing('Lechera'), ing('Brownie')]))).toBe(109 + EXTRA_TOPPING_PRICE)
-    expect(lineUnitPrice(linea([ing('Cajeta'), ing('Lechera'), ing('Brownie'), ing('Oreo triturada')]))).toBe(109 + 2 * EXTRA_TOPPING_PRICE)
+    expect(lineUnitPrice(linea([ing('Cajeta'), ing('Lechera'), ing('Coco rallado')]))).toBe(109 + EXTRA_TOPPING_PRICE)
+    expect(lineUnitPrice(linea([ing('Cajeta'), ing('Lechera'), ing('Coco rallado'), ing('Oreo triturada')]))).toBe(109 + 2 * EXTRA_TOPPING_PRICE)
   })
 
   it('extras se suman al precio', () => {

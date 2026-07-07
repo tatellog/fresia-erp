@@ -30,7 +30,7 @@ export function EmployeesCard() {
               key={e.id}
               onClick={() => setEditing(e)}
               className={`rounded-full border px-3.5 py-1.5 text-sm font-medium ${
-                e.active ? 'border-cream-300 bg-white' : 'border-cream-200 bg-cream-200/50 text-berry-900/40'
+                e.active ? 'border-cream-300 bg-cream-50' : 'border-cream-200 bg-cream-200/50 text-berry-900/40'
               }`}
             >
               {e.name}

@@ -16,7 +16,7 @@ export function PaymentPicker({ payment, setPayment }: { payment: Payment; setPa
           onClick={() => setPayment(p.id)}
           className={`rounded-full border py-2.5 text-center text-[13px] font-medium tracking-wide transition-colors ${
             payment === p.id
-              ? 'border-berry-500 bg-berry-500 text-cream-50'
+              ? 'border-berry-500 bg-berry-500 text-white'
               : 'border-cream-300 bg-transparent text-berry-700'
           }`}
         >

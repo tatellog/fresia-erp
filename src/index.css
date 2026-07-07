@@ -26,6 +26,63 @@
   --color-leaf-600: #5f6f3a;
 }
 
+/* tokens de acento por línea (chips y gráficas) */
+:root {
+  --chip-choco-bg: #f3e9de;
+  --chip-choco-fg: #8b5e34;
+  --chip-leaf-bg: #f1f4e4;
+  --chip-leaf-fg: #5f6f3a;
+  --line-choco: #8b5e34;
+  --line-olive: #6c8a1e;
+}
+
+/*
+ * Modo oscuro: se redefinen los tokens de color, así toda la interfaz
+ * cambia sin tocar componentes. Paleta cálida (café/ciruela) para
+ * mantener el carácter de la marca sin deslumbrar.
+ */
+.dark {
+  color-scheme: dark;
+
+  --color-cream-50: #231715;   /* superficies (tarjetas, hojas, sidebar) */
+  --color-cream-100: #171009;  /* fondo */
+  --color-cream-200: #342522;  /* rellenos suaves y bordes */
+  --color-cream-300: #4b3531;  /* bordes marcados */
+
+  --color-berry-900: #f5e9e3;  /* texto principal */
+  --color-berry-800: #ecd8cf;
+  --color-berry-700: #dcb4a7;  /* texto secundario */
+  --color-berry-600: #c14a40;
+  --color-berry-500: #d65a4f;  /* acción / marca */
+  --color-berry-400: #e27a6e;
+  --color-berry-300: #8f4d44;
+  --color-berry-200: #61362f;
+  --color-berry-100: #482823;
+  --color-berry-50: #34201c;
+
+  --color-leaf-600: #adc465;
+
+  /* estados (avisos, éxito, error) en versión nocturna */
+  --color-amber-50: #33260e;
+  --color-amber-600: #e3b341;
+  --color-amber-700: #e8bd55;
+  --color-amber-800: #efcc79;
+  --color-green-100: #1e3323;
+  --color-green-600: #4ca263;
+  --color-green-700: #74c288;
+  --color-red-50: #3a1d1e;
+  --color-red-100: #4a2526;
+  --color-red-600: #f07a72;
+  --color-red-700: #f39a93;
+
+  --chip-choco-bg: #3a2c1e;
+  --chip-choco-fg: #d9ae7e;
+  --chip-leaf-bg: #2a3218;
+  --chip-leaf-fg: #bccf78;
+  --line-choco: #c89b6a;
+  --line-olive: #a9c25d;
+}
+
 html {
   -webkit-tap-highlight-color: transparent;
 }

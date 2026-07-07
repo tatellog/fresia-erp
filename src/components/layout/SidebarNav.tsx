@@ -21,7 +21,7 @@ export function SidebarNav({ online }: { online: boolean }) {
               end={t.to === '/'}
               className={({ isActive }) =>
                 `flex items-center gap-3.5 rounded-full px-4 py-2.5 text-[15px] font-medium tracking-wide transition-colors ${
-                  isActive ? 'bg-berry-500 text-cream-50 shadow-sm' : 'text-berry-900/55 hover:bg-cream-200/70'
+                  isActive ? 'bg-berry-500 text-white shadow-sm' : 'text-berry-900/55 hover:bg-cream-200/70'
                 }`
               }
             >

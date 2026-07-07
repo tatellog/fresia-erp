@@ -66,7 +66,7 @@ export default function Caja() {
               <h2 className="mb-2 text-sm font-bold text-berry-700/70">Gastos del turno</h2>
               <div className="space-y-1.5">
                 {(expenses ?? []).map(e => (
-                  <div key={e.id} className="flex justify-between rounded-xl bg-white px-3 py-2 text-sm">
+                  <div key={e.id} className="flex justify-between rounded-xl bg-cream-50 px-3 py-2 text-sm">
                     <span>{e.concept} <span className="text-berry-700/50">· {fmtTime(e.ts)}</span></span>
                     <b className="tabular-nums">−{money(e.amount)}</b>
                   </div>

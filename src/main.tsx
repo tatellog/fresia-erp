@@ -4,9 +4,11 @@ import { HashRouter } from 'react-router-dom'
 import './index.css'
 import App from './App'
 import { initDb } from './data/init'
+import { initTheme } from './hooks/useTheme'
 import { startSync } from './services/sync/engine'
 
-initDb().then(() => {
+initDb().then(async () => {
+  await initTheme()
   startSync()
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

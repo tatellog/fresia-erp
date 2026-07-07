@@ -34,7 +34,7 @@ export function AttendantChip() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="mb-3 inline-flex items-center gap-2 rounded-full border border-cream-300 bg-white px-3.5 py-1.5 text-xs font-medium tracking-wide text-berry-700"
+        className="mb-3 inline-flex items-center gap-2 rounded-full border border-cream-300 bg-cream-50 px-3.5 py-1.5 text-xs font-medium tracking-wide text-berry-700"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-berry-500" />
         {active ? `Atiende · ${active.name}` : '¿Quién atiende?'}
@@ -48,7 +48,7 @@ export function AttendantChip() {
                 key={e.id}
                 onClick={() => setWho(e)}
                 className={`rounded-2xl border px-4 py-5 font-display text-lg font-semibold ${
-                  e.id === activeId ? 'border-berry-500 bg-berry-500 text-cream-50' : 'border-cream-200 bg-white'
+                  e.id === activeId ? 'border-berry-500 bg-berry-500 text-white' : 'border-cream-200 bg-cream-50'
                 }`}
               >
                 {e.name}
