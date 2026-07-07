@@ -116,6 +116,25 @@ export const ArrowDownCircleIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const CupIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M5.5 3h13l-1.6 18h-9.8Z" />
+    <path d="M4 7h16" />
+  </svg>
+)
+
+export const StarIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="m12 2.5 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.3l6.5-.9Z" />
+  </svg>
+)
+
+export const PlusIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+)
+
 export const icons = {
   bag: BagIcon,
   box: BoxIcon,

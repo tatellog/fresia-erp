@@ -1,219 +1,171 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
-import { money, round2, startOfDay, fmtTime, fmtDate } from '../lib/format'
-import { Card, Empty } from '../components/ui'
-import { StatCard } from '../features/reportes/StatCard'
+import {
+  cupsBySize, delta, hourlySales, profit, salesByLine, salesSummary, stockStatus, topProduct, topToppings,
+} from '../services/analytics'
+import { money, round2, startOfDay } from '../lib/format'
+import { BagIcon, BanknoteIcon, BoxIcon, CupIcon, PlusIcon, ReceiptIcon, StarIcon, WalletIcon } from '../components/ui/icons'
+import { CashStatusBadge } from '../features/caja/CashStatusBadge'
+import { QuickActionButton } from '../features/caja/QuickActionButton'
+import { DashboardHero } from '../features/dashboard/DashboardHero'
+import { KpiCard } from '../features/dashboard/KpiCard'
+import { GoalProgress } from '../features/dashboard/GoalProgress'
+import { SalesCard } from '../features/dashboard/SalesCard'
+import { TopSellingCard } from '../features/dashboard/TopSellingCard'
+import { TopToppingsCard } from '../features/dashboard/TopToppingsCard'
+import { InventoryAlert } from '../features/dashboard/InventoryAlert'
+import { ProfitCard } from '../features/dashboard/ProfitCard'
+import { HourlySalesChart } from '../features/dashboard/HourlySalesChart'
+import { AlertBanner } from '../features/dashboard/AlertBanner'
+import { ComparisonCard } from '../features/dashboard/ComparisonCard'
 import { SalesChart } from '../features/dashboard/SalesChart'
-import { LineSplit } from '../features/dashboard/LineSplit'
-
-const ranges = [
-  { id: 0, label: 'Hoy' },
-  { id: 6, label: '7 días' },
-  { id: 29, label: '30 días' },
-] as const
 
 const CHART_DAYS = 14
 
-/** clasifica un renglón de venta en la línea de producto que reporta */
-function lineOf(name: string): 'Clásica' | 'Chocolate' | 'Balance' | 'Extras' {
-  if (name.includes('Balance')) return 'Balance'
-  if (name.startsWith('Chocolate ·')) return 'Chocolate'
-  if (name.includes('Clásic')) return 'Clásica'
-  return 'Extras'
+function saludo() {
+  const h = new Date().getHours()
+  return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'
 }
 
 export default function Dashboard() {
-  const [range, setRange] = useState<number>(0)
-  const from = startOfDay(range)
-  const chartFrom = startOfDay(CHART_DAYS - 1)
+  const navigate = useNavigate()
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(t)
+  }, [])
 
-  const sales = useLiveQuery(() => db.sales.where('ts').aboveOrEqual(Math.min(from, startOfDay(1))).toArray(), [from])
-  const chartSales = useLiveQuery(() => db.sales.where('ts').aboveOrEqual(chartFrom).toArray(), [chartFrom])
-  const expenses = useLiveQuery(() => db.expenses.where('ts').aboveOrEqual(from).toArray(), [from])
+  const sales14 = useLiveQuery(() => db.sales.where('ts').aboveOrEqual(startOfDay(CHART_DAYS - 1)).toArray())
   const ingredients = useLiveQuery(() => db.ingredients.toArray())
   const hasPurchases = useLiveQuery(async () => (await db.purchases.count()) > 0)
+  const openSession = useLiveQuery(async () => (await db.cashSessions.filter(s => s.closeTs === undefined).last()) ?? null)
+  const lastClosed = useLiveQuery(() => db.cashSessions.orderBy('openTs').reverse().filter(s => s.closeTs !== undefined).first())
+  const branch = useLiveQuery(async () => (await db.meta.get('branch'))?.value || 'Principal')
+  const activeEmployee = useLiveQuery(async () => {
+    const id = (await db.meta.get('activeEmployeeId'))?.value
+    return id ? (await db.employees.get(id))?.name : undefined
+  })
+  const goalMoney = useLiveQuery(async () => Number((await db.meta.get('goalMoney'))?.value) || 2500)
+  const goalCups = useLiveQuery(async () => Number((await db.meta.get('goalCups'))?.value) || 30)
 
-  const kpis = useMemo(() => {
-    if (!sales) return null
-    const today = sales.filter(s => s.ts >= startOfDay(0))
-    const yesterday = sales.filter(s => s.ts >= startOfDay(1) && s.ts < startOfDay(0))
-    const tTotal = today.reduce((s, x) => s + x.total, 0)
-    const yTotal = yesterday.reduce((s, x) => s + x.total, 0)
-    const delta = yTotal > 0 ? ((tTotal - yTotal) / yTotal) * 100 : null
+  const data = useMemo(() => {
+    if (!sales14) return null
+    const today = sales14.filter(s => s.ts >= startOfDay(0))
+    const yesterday = sales14.filter(s => s.ts >= startOfDay(1) && s.ts < startOfDay(0))
+    const weekAgo = sales14.filter(s => s.ts >= startOfDay(7) && s.ts < startOfDay(6))
+    const week = sales14.filter(s => s.ts >= startOfDay(6))
+    const resumen = salesSummary(today)
     return {
-      total: tTotal,
-      delta,
-      tickets: today.length,
-      avg: today.length ? tTotal / today.length : 0,
-      profit: round2(today.reduce((s, x) => s + x.total - x.cost, 0)),
-      /** sin compras registradas, el margen sería igual a la venta: mejor no presumirlo */
-      costsKnown: today.some(x => x.cost > 0) || tTotal === 0,
+      resumen,
+      ayer: salesSummary(yesterday).total,
+      semanaPasada: salesSummary(weekAgo).total,
+      deltaAyer: delta(resumen.total, salesSummary(yesterday).total),
+      lineas: salesByLine(today),
+      tamanos: cupsBySize(today),
+      toppings: topToppings(week, 5),
+      top: topProduct(today),
+      utilidad: profit(today),
+      costsKnown: today.some(s => s.cost > 0) || today.length === 0,
+      horas: hourlySales(week),
+      dias: Array.from({ length: CHART_DAYS }, (_, i) => {
+        const ts = startOfDay(CHART_DAYS - 1 - i)
+        const end = ts + 24 * 3600_000
+        return { ts, total: round2(sales14.filter(s => s.ts >= ts && s.ts < end).reduce((x, s) => x + s.total, 0)) }
+      }),
     }
-  }, [sales])
+  }, [sales14])
 
-  const period = useMemo(() => {
-    if (!sales) return null
-    const inRange = sales.filter(s => s.ts >= from)
-    const spent = (expenses ?? []).reduce((s, x) => s + x.amount, 0)
-    const total = inRange.reduce((s, x) => s + x.total, 0)
-    const cost = inRange.reduce((s, x) => s + x.cost, 0)
-    const byProduct = new Map<string, { qty: number; total: number }>()
-    const byPayment = new Map<string, number>()
-    const byLine = new Map<string, number>([['Clásica', 0], ['Chocolate', 0], ['Balance', 0], ['Extras', 0]])
-    for (const sale of inRange) {
-      byPayment.set(sale.payment, (byPayment.get(sale.payment) ?? 0) + sale.total)
-      for (const it of sale.items) {
-        const cur = byProduct.get(it.name) ?? { qty: 0, total: 0 }
-        byProduct.set(it.name, { qty: cur.qty + it.qty, total: cur.total + it.price * it.qty })
-        byLine.set(lineOf(it.name), (byLine.get(lineOf(it.name)) ?? 0) + it.price * it.qty)
-      }
-    }
-    return {
-      total, cost, spent,
-      profit: round2(total - cost - spent),
-      tickets: inRange.length,
-      top: [...byProduct.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 5),
-      byPayment: [...byPayment.entries()],
-      byLine: [...byLine.entries()].map(([label, t]) => ({
-        label,
-        total: round2(t),
-        color: label === 'Balance' ? 'var(--line-olive)' : label === 'Chocolate' ? 'var(--line-choco)' : label === 'Clásica' ? 'var(--color-berry-500)' : 'var(--color-berry-200)',
-      })),
-      last: [...inRange].sort((a, b) => b.ts - a.ts).slice(0, 12),
-    }
-  }, [sales, expenses, from])
+  const stocks = useMemo(
+    () => (ingredients && hasPurchases ? stockStatus(ingredients).slice(0, 6) : []),
+    [ingredients, hasPurchases],
+  )
 
-  const days = useMemo(() => {
-    if (!chartSales) return null
-    return Array.from({ length: CHART_DAYS }, (_, i) => {
-      const ts = startOfDay(CHART_DAYS - 1 - i)
-      const end = ts + 24 * 3600_000
-      return { ts, total: round2(chartSales.filter(s => s.ts >= ts && s.ts < end).reduce((x, s) => x + s.total, 0)) }
-    })
-  }, [chartSales])
+  if (!data || !ingredients || hasPurchases === undefined || openSession === undefined) return null
 
-  if (!sales || !kpis || !period || !days || !ingredients) return null
-  const low = ingredients.filter(i => i.stock <= i.minStock)
+  const alerts: string[] = []
+  for (const st of stocks.filter(s => s.level === 'critico').slice(0, 3))
+    alerts.push(`Quedan ${round2(st.ingredient.stock)} ${st.ingredient.unit} de ${st.ingredient.name}: comprar hoy.`)
+  if (openSession && Date.now() - openSession.openTs > 10 * 3600_000)
+    alerts.push('La caja lleva abierta más tiempo de lo habitual: haz el corte.')
+  if (!openSession && data.resumen.tickets === 0 && now.getHours() >= 10 && now.getHours() < 20)
+    alerts.push('La caja sigue cerrada: ábrela para empezar el día.')
+  if (lastClosed && (lastClosed.closeAmount ?? 0) !== (lastClosed.expected ?? 0) && !lastClosed.note)
+    alerts.push('El último corte tiene una diferencia pendiente de justificar.')
 
   return (
-    <div className="mx-auto max-w-4xl pt-2 lg:pt-0">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <div className="flex gap-1 rounded-full bg-cream-200 p-1">
-          {ranges.map(r => (
-            <button
-              key={r.id}
-              onClick={() => setRange(r.id)}
-              className={`rounded-full px-3.5 py-1 text-xs font-semibold ${range === r.id ? 'bg-berry-500 text-white' : 'text-berry-700'}`}
-            >
-              {r.label}
-            </button>
-          ))}
+    <div className="mx-auto max-w-5xl space-y-4 pb-6 pt-2 lg:pt-0">
+      {/* encabezado */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">{saludo()}{activeEmployee ? `, ${activeEmployee}` : ''}</h1>
+          <p className="mt-0.5 text-sm text-berry-700/60">Sucursal {branch}</p>
+        </div>
+        <div className="text-right">
+          <CashStatusBadge open={!!openSession} />
+          <p className="mt-2 text-xs capitalize text-berry-700/55">
+            {now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })} · {now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+          </p>
         </div>
       </div>
 
-      {/* hoy, siempre visible */}
-      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-        <StatCard
-          label="Ventas de hoy"
-          value={money(kpis.total)}
-          accent={kpis.delta === null ? '' : kpis.delta >= 0 ? 'text-green-700' : 'text-red-600'}
+      {/* accesos rápidos */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <QuickActionButton icon={PlusIcon} label="Nueva venta" primary onClick={() => navigate('/')} />
+        <QuickActionButton icon={BoxIcon} label="Comprar insumos" onClick={() => navigate('/inventario')} />
+        <QuickActionButton icon={WalletIcon} label="Ir a Caja" onClick={() => navigate('/caja')} />
+        <QuickActionButton icon={BagIcon} label="Ver menú" onClick={() => navigate('/productos')} />
+      </div>
+
+      <DashboardHero total={data.resumen.total} cups={data.resumen.cups} deltaPct={data.deltaAyer} goalMoney={goalMoney ?? 2500} />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <KpiCard icon={BanknoteIcon} value={money(data.resumen.total)} label="Ventas del día" />
+        <KpiCard icon={CupIcon} value={String(data.resumen.cups)} label="Vasos vendidos" />
+        <KpiCard icon={ReceiptIcon} value={money(data.resumen.avgTicket)} label="Ticket promedio" />
+        <KpiCard
+          icon={StarIcon}
+          value={data.top ? data.top.name.split('·')[1]?.trim().split(' ')[0] ?? data.top.name : '·'}
+          label="Más vendido hoy"
+          sub={data.top ? `${data.top.name.split('·')[0].trim()} · ${data.top.count} vasos` : 'aún sin ventas'}
         />
-        <StatCard label="Tickets hoy" value={String(kpis.tickets)} />
-        <StatCard label="Ticket promedio" value={money(kpis.avg)} />
-        <StatCard
-          label={kpis.costsKnown ? 'Margen bruto hoy' : 'Margen (faltan costos)'}
-          value={kpis.costsKnown ? money(kpis.profit) : '·'}
-          accent={kpis.costsKnown ? 'text-green-700' : ''}
-        />
       </div>
-      {kpis.delta !== null && (
-        <p className="mb-4 -mt-1 px-1 text-xs text-berry-700/60">
-          {kpis.delta >= 0 ? '▲' : '▼'} {Math.abs(kpis.delta).toFixed(0)}% vs. ayer a cierre de día
-        </p>
-      )}
 
-      <Card className="mb-3">
-        <h2 className="mb-2 text-lg font-semibold">Ventas · últimos 14 días</h2>
-        <SalesChart days={days} />
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SalesCard lines={data.lineas} />
+        <TopSellingCard sizes={data.tamanos} />
+      </div>
 
-      <div className="mb-3 grid gap-3 md:grid-cols-2">
-        <Card>
-          <h2 className="mb-3 text-lg font-semibold">Por línea · {ranges.find(r => r.id === range)!.label.toLowerCase()}</h2>
-          <LineSplit lines={period.byLine} />
-        </Card>
-        <Card>
-          <h2 className="mb-2 text-lg font-semibold">Resumen del periodo</h2>
-          <div className="space-y-1 text-sm">
-            <Row k="Ventas" v={money(period.total)} />
-            <Row k={`Tickets (${period.tickets})`} v={period.tickets ? money(period.total / period.tickets) + ' prom.' : '·'} />
-            <Row k="Costo de insumos" v={'−' + money(period.cost)} />
-            <Row k="Gastos" v={'−' + money(period.spent)} />
-            <div className="border-t border-cream-200 pt-1">
-              <Row k="Utilidad estimada" v={money(period.profit)} strong />
-            </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <TopToppingsCard toppings={data.toppings} />
+        <ProfitCard {...data.utilidad} costsKnown={data.costsKnown} />
+      </div>
+
+      <InventoryAlert statuses={stocks} />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <HourlySalesChart hours={data.horas} subtitle="Suma de los últimos 7 días · para saber cuándo necesitas más manos" />
+        <div className="space-y-4">
+          <div className="rounded-3xl border border-cream-200 bg-cream-50 p-6">
+            <h2 className="mb-4 text-xl font-semibold">Objetivo del día</h2>
+            <GoalProgress
+              label={`Meta · ${goalCups} vasos`}
+              valueLabel={`${data.resumen.cups} vendidos · faltan ${Math.max(0, (goalCups ?? 30) - data.resumen.cups)}`}
+              pct={goalCups ? Math.round((data.resumen.cups / goalCups) * 100) : 0}
+            />
           </div>
-        </Card>
+          <ComparisonCard today={data.resumen.total} yesterday={data.ayer} weekAgo={data.semanaPasada} />
+        </div>
       </div>
 
-      <div className="mb-3 grid gap-3 md:grid-cols-2">
-        <Card>
-          <h2 className="mb-2 text-lg font-semibold">Más vendidos</h2>
-          {period.top.length === 0 && <p className="py-4 text-sm text-berry-700/50">Sin ventas en el periodo.</p>}
-          {period.top.map(([name, v], i) => (
-            <div key={name} className="flex items-center justify-between py-1 text-sm">
-              <span className="min-w-0 flex-1 truncate">
-                <span className="mr-1.5 font-semibold text-berry-300">{i + 1}.</span>
-                {name}
-              </span>
-              <span className="ml-2 text-berry-700/60">×{v.qty}</span>
-              <b className="ml-3 w-20 text-right tabular-nums">{money(v.total)}</b>
-            </div>
-          ))}
-        </Card>
-        <Card>
-          <h2 className="mb-2 text-lg font-semibold">Métodos de pago</h2>
-          {period.byPayment.length === 0 && <p className="py-4 text-sm text-berry-700/50">Sin ventas en el periodo.</p>}
-          {period.byPayment.map(([p, t]) => (
-            <div key={p} className="flex justify-between py-1 text-sm capitalize">
-              <span>{p}</span><b className="tabular-nums">{money(t)}</b>
-            </div>
-          ))}
-          {hasPurchases && low.length > 0 && (
-            <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-              Stock bajo: {low.slice(0, 3).map(i => i.name).join(', ')}{low.length > 3 && ` y ${low.length - 3} más`}
-            </div>
-          )}
-        </Card>
-      </div>
+      <AlertBanner alerts={alerts} />
 
-      <h2 className="mb-2 px-1 text-lg font-semibold">Últimas ventas</h2>
-      {period.last.length === 0 && <Empty text="Aún no hay ventas en este periodo." />}
-      <div className="space-y-1.5">
-        {period.last.map(s => (
-          <div key={s.id} className="flex items-center justify-between rounded-xl border border-cream-200 bg-cream-50 px-3 py-2 text-sm">
-            <div className="min-w-0 flex-1">
-              <div className="truncate">{s.items.map(i => `${i.qty}× ${i.name}`).join(', ')}</div>
-              <div className="text-xs text-berry-700/50">
-                {range === 0 ? fmtTime(s.ts) : `${fmtDate(s.ts)} ${fmtTime(s.ts)}`} · {s.payment}
-                {s.employeeName && ` · ${s.employeeName}`}
-              </div>
-            </div>
-            <b className="ml-2 tabular-nums">{money(s.total)}</b>
-          </div>
-        ))}
+      <div className="rounded-3xl border border-cream-200 bg-cream-50 p-6">
+        <h2 className="mb-2 text-xl font-semibold">Tendencia · últimos 14 días</h2>
+        <SalesChart days={data.dias} />
       </div>
-    </div>
-  )
-}
-
-function Row({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
-  return (
-    <div className={`flex justify-between py-0.5 ${strong ? 'text-base font-bold' : ''}`}>
-      <span>{k}</span>
-      <span className="tabular-nums">{v}</span>
     </div>
   )
 }
