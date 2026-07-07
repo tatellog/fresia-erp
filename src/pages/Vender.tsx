@@ -11,6 +11,27 @@ import { PaymentPicker } from '../features/vender/PaymentPicker'
 import { ToppingPickerSheet } from '../features/vender/ToppingPickerSheet'
 import { AttendantChip } from '../features/vender/AttendantChip'
 
+const OLIVE = '#6C8A1E'
+
+/** agrupa el menú en secciones como el impreso: Clásica, Balance, combos/bebidas y extras */
+function sections(products: Product[]) {
+  const grupo = (p: Product) => {
+    if (p.name.includes('Combo') || ['Agua del día', 'Café frío'].includes(p.name)) return 'Combos y bebidas'
+    if (p.toppingGroup === 'clasica') return 'Clásica'
+    if (p.toppingGroup === 'balance') return 'Balance'
+    return 'Extras'
+  }
+  const defs = [
+    { title: 'Clásica', dot: 'var(--color-berry-500)' },
+    { title: 'Balance', dot: OLIVE },
+    { title: 'Combos y bebidas', dot: 'var(--color-berry-300)' },
+    { title: 'Extras', dot: 'var(--color-cream-300)' },
+  ]
+  return defs
+    .map(d => ({ ...d, items: products.filter(p => grupo(p) === d.title) }))
+    .filter(d => d.items.length > 0)
+}
+
 export default function Vender() {
   const products = useLiveQuery(() => db.products.orderBy('sort').toArray())
   const [cart, setCart] = useState<CartLine[]>([])
@@ -65,15 +86,23 @@ export default function Vender() {
         <AttendantChip />
         {active.length === 0 && <Empty text="Agrega productos en la pestaña Menú para empezar a vender." />}
 
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-          {active.map(p => (
-            <ProductCard key={p.id} product={p} qty={qtyByProduct.get(p.id) ?? 0} onTap={() => tapProduct(p)} />
-          ))}
-        </div>
+        {sections(active).map(sec => (
+          <section key={sec.title} className="mb-7">
+            <h2 className="mb-3 flex items-center gap-2 text-xl font-semibold">
+              <span className="h-2 w-2 rounded-full" style={{ background: sec.dot }} />
+              {sec.title}
+            </h2>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] lg:gap-4">
+              {sec.items.map(p => (
+                <ProductCard key={p.id} product={p} qty={qtyByProduct.get(p.id) ?? 0} onTap={() => tapProduct(p)} />
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
 
       {/* carrito fijo: iPad horizontal y pantallas grandes */}
-      <aside className="sticky top-6 hidden w-80 shrink-0 lg:block">
+      <aside className="sticky top-6 hidden w-80 shrink-0 lg:block xl:w-[22rem]">
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(174,48,40,0.08)]">
           <h2 className="mb-3 text-lg font-bold">Ticket</h2>
           {cart.length === 0 ? (
