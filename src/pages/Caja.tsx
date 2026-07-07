@@ -67,6 +67,7 @@ export default function Caja() {
   const expected = session ? expectedCash(session, sessionSales ?? [], sessionExpenses ?? []) : 0
   const cardTotal = todaySales.filter(s => s.payment === 'tarjeta').reduce((s, x) => s + x.total, 0)
   const transferTotal = todaySales.filter(s => s.payment === 'transferencia').reduce((s, x) => s + x.total, 0)
+  const deliveryTotal = todaySales.filter(s => s.payment === 'rappi' || s.payment === 'uber').reduce((s, x) => s + x.total, 0)
   const dayTotal = todaySales.reduce((s, x) => s + x.total, 0)
 
   const openTooLong = session && Date.now() - session.openTs > DIEZ_HORAS
@@ -107,7 +108,7 @@ export default function Caja() {
       )}
 
       {/* hero */}
-      <DailyTotals expected={expected} card={cardTotal} transfer={transferTotal} total={dayTotal} open={!!session} />
+      <DailyTotals expected={expected} card={cardTotal} transfer={transferTotal} delivery={deliveryTotal} total={dayTotal} open={!!session} />
 
       {/* acciones */}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">

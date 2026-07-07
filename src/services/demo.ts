@@ -79,7 +79,7 @@ export async function loadDemoData() {
 
     const vasos = products.filter(p => p.toppingGroup)
     const otros = products.filter(p => !p.toppingGroup && !p.extraScope?.length).concat(products.filter(p => p.extraScope?.length))
-    const payments: Payment[] = ['efectivo', 'efectivo', 'efectivo', 'tarjeta', 'tarjeta', 'transferencia']
+    const payments: Payment[] = ['efectivo', 'efectivo', 'efectivo', 'tarjeta', 'tarjeta', 'transferencia', 'rappi', 'uber']
 
     for (let day = 13; day >= 0; day--) {
       const open = startOfDay(day) + 11 * 3600_000

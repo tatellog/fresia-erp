@@ -23,6 +23,8 @@ describe('caja: dinero del día', () => {
       sale(155, 'tarjeta', session.id),      // no cuenta para efectivo
       sale(89, 'efectivo', session.id),
       sale(125, 'transferencia', session.id), // tampoco
+      sale(119, 'rappi', session.id),         // delivery: la app cobra, no entra a caja
+      sale(139, 'uber', session.id),
     ]
     await addExpense('Hielo', 120, session.id)             // gasto
     await addExpense('Depósito al banco', 100, session.id, 'retiro')
