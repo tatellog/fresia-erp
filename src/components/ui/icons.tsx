@@ -140,6 +140,7 @@ export const icons = {
   box: BoxIcon,
   menu: MenuBookIcon,
   wallet: WalletIcon,
+  bank: BankIcon,
   chart: ChartIcon,
   gear: GearIcon,
 } as const

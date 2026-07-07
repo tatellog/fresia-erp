@@ -22,6 +22,10 @@ export const toCloud: Record<SyncTable, { table: string; map: (r: CloudRow, bran
     table: 'employees',
     map: (r, branch) => ({ id: r.id, name: r.name, active: r.active, branch, updated_at: new Date().toISOString() }),
   },
+  investments: {
+    table: 'investments',
+    map: (r, branch) => ({ id: r.id, ts: iso(r.ts), concept: r.concept, amount: r.amount, paid_by: r.paidBy || null, pending: r.pending, branch, updated_at: new Date().toISOString() }),
+  },
   purchases: {
     table: 'purchases',
     map: (r, branch) => ({ id: r.id, ts: iso(r.ts), ingredient_id: r.ingredientId, ingredient_name: r.ingredientName, qty: r.qty, total_cost: r.totalCost, note: r.note ?? null, branch }),

@@ -126,12 +126,24 @@ export interface CashSession {
   note?: string
 }
 
+/** gasto de inversión/apertura del negocio (no es gasto operativo de caja) */
+export interface Investment {
+  id: string
+  ts: number
+  concept: string
+  amount: number
+  /** iniciales de quien pagó, p. ej. "TA" = Tania y Angel */
+  paidBy: string
+  /** cuánto resta por pagar de este gasto */
+  pending: number
+}
+
 /** tablas del dominio que se sincronizan con la nube */
 export type SyncTable =
-  | 'ingredients' | 'products' | 'sales' | 'purchases' | 'wastes' | 'expenses' | 'cashSessions' | 'employees'
+  | 'ingredients' | 'products' | 'sales' | 'purchases' | 'wastes' | 'expenses' | 'cashSessions' | 'employees' | 'investments'
 
 export const DOMAIN_TABLES: SyncTable[] = [
-  'ingredients', 'products', 'sales', 'purchases', 'wastes', 'expenses', 'cashSessions', 'employees',
+  'ingredients', 'products', 'sales', 'purchases', 'wastes', 'expenses', 'cashSessions', 'employees', 'investments',
 ]
 
 /** cola de cambios pendientes de subir a Supabase */

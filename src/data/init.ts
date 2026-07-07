@@ -1,6 +1,8 @@
 import { db } from './db'
+import { uid } from './ids'
 import { migrateFromV1 } from './migrate'
 import { seed } from './seed'
+import { INITIAL_INVESTMENTS } from '../services/investments'
 
 /** versión del catálogo sembrado; subirla reemplaza catálogos viejos sin movimientos */
 export const SEED_VERSION = '6'
@@ -33,6 +35,13 @@ export async function initDb() {
     if (oldDbs.some(d => d.name === 'fresia')) await migrateFromV1()
     else if ((await db.products.count()) === 0) await seed()
     await db.meta.put({ key: 'initialized', value: '1' })
+  }
+
+  // gastos de apertura reales: se cargan una sola vez en cada dispositivo
+  if (!(await db.meta.get('investmentsSeeded')) && (await db.investments.count()) === 0) {
+    const base = Date.now()
+    await db.investments.bulkAdd(INITIAL_INVESTMENTS.map((inv, i) => ({ ...inv, id: uid(), ts: base + i })))
+    await db.meta.put({ key: 'investmentsSeeded', value: '1' })
   }
 
   // catálogo de versión anterior y sin movimientos: reemplazar automáticamente.

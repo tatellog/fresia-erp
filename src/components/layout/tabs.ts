@@ -6,5 +6,6 @@ export const tabs: { to: string; label: string; icon: IconName }[] = [
   { to: '/inventario', label: 'Insumos', icon: 'box' },
   { to: '/productos', label: 'Menú', icon: 'menu' },
   { to: '/caja', label: 'Caja', icon: 'wallet' },
+  { to: '/inversion', label: 'Inversión', icon: 'bank' },
   { to: '/reportes', label: 'Dashboard', icon: 'chart' },
 ]
