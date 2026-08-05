@@ -2,10 +2,11 @@ import { db } from './db'
 import { uid } from './ids'
 import { migrateFromV1 } from './migrate'
 import { seed } from './seed'
+import { deleteProduct } from '../services/catalog'
 import { INITIAL_INVESTMENTS } from '../services/investments'
 
 /** versión del catálogo sembrado; subirla reemplaza catálogos viejos sin movimientos */
-export const SEED_VERSION = '6'
+export const SEED_VERSION = '9'
 
 /**
  * Reemplaza menú e insumos por el catálogo oficial vigente, conservando
@@ -36,6 +37,10 @@ export async function initDb() {
     else if ((await db.products.count()) === 0) await seed()
     await db.meta.put({ key: 'initialized', value: '1' })
   }
+
+  // los combos salieron del menú: limpiar catálogos viejos que aún los tengan
+  const combos = await db.products.filter(p => /combo/i.test(p.name)).toArray()
+  for (const c of combos) await deleteProduct(c.id)
 
   // gastos de apertura reales: se cargan una sola vez en cada dispositivo
   if (!(await db.meta.get('investmentsSeeded')) && (await db.investments.count()) === 0) {

@@ -3,8 +3,9 @@ import { money } from '../../lib/format'
 
 const colors: Record<LineShare['line'], string> = {
   'Clásica': 'var(--color-berry-500)',
-  'Chocolate': 'var(--line-choco)',
   'Balance': 'var(--line-olive)',
+  'Chocolate': 'var(--line-choco)',
+  'Brûlée': 'var(--line-brulee)',
 }
 
 /** ventas por línea con porcentaje y barra horizontal */

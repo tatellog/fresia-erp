@@ -42,7 +42,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
         <Input type="number" inputMode="decimal" value={price} onChange={e => setPrice(e.target.value)} />
       </Field>
 
-      <Field label="¿Lleva toppings elegibles? (2 incluidos, adicionales $15)">
+      <Field label="¿Lleva toppings elegibles? (2 incluidos, adicionales $18)">
         <div className="grid grid-cols-3 gap-2">
           {([undefined, 'clasica', 'balance'] as (ToppingGroup | undefined)[]).map(g => (
             <button

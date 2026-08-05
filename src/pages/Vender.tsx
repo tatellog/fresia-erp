@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Ingredient, Payment, Product } from '../data/types'
-import { checkout, lineUnitPrice, type CartLine } from '../services/sales'
+import { checkout, lineUnitPrice, voidSale, type CartLine } from '../services/sales'
 import { productLine } from '../services/catalog'
 import { money } from '../lib/format'
 import { Button, Empty, Sheet } from '../components/ui'
@@ -28,9 +28,10 @@ function sections(products: Product[]): Section[] {
     return line ?? 'extras'
   }
   const defs: Omit<Section, 'items'>[] = [
-    { key: 'clasica', title: 'Frésia Clásica', dot: 'var(--color-berry-500)', desc: 'Con crema tradicional. Dulce, cremosa y hecha para consentirte. · 2 toppings incluidos' },
-    { key: 'chocolate', title: 'Frésia con Chocolate', dot: 'var(--line-choco)', desc: 'Con crema tradicional + salsa de chocolate. · 2 toppings incluidos' },
-    { key: 'balance', title: 'Frésia Balance', dot: 'var(--line-olive)', desc: 'Con yogurt griego natural + proteína. Fresca, ligera y nutritiva. · 2 toppings Balance incluidos' },
+    { key: 'clasica', title: 'Frésia Clásica', dot: 'var(--color-berry-500)', desc: 'Fresas frescas + nuestra crema Frèsia. · 2 toppings incluidos' },
+    { key: 'balance', title: 'Frésia Balance', dot: 'var(--line-olive)', desc: 'Yogurt griego natural + fresas frescas. Fresca y ligera. · 2 toppings incluidos' },
+    { key: 'chocolate', title: 'Frésia Chocolate', dot: 'var(--line-choco)', desc: 'Chocolate Turín + fresas frescas. · 2 toppings incluidos' },
+    { key: 'brulee', title: 'Frèsia Brûlée', dot: 'var(--line-brulee)', desc: 'Crema caramelizada al momento con azúcar brûlée, finalizada con soplete. Exclusiva en tienda.' },
     { key: 'extras', title: 'Extras', dot: 'var(--color-blush)', desc: 'Se venden sueltos; dentro del vaso se ofrecen al armarlo.' },
   ]
   return defs
@@ -45,7 +46,7 @@ export default function Vender() {
   const [picking, setPicking] = useState<Product | null>(null)
   const [paying, setPaying] = useState(false)
   const [payment, setPayment] = useState<Payment>('efectivo')
-  const [done, setDone] = useState<number | null>(null)
+  const [done, setDone] = useState<{ total: number; saleId: string } | null>(null)
 
   const active = useMemo(() => (products ?? []).filter(p => p.active), [products])
   const secs = useMemo(() => sections(active), [active])
@@ -82,11 +83,18 @@ export default function Vender() {
 
   const cobrar = async () => {
     const t = total
-    await checkout(cart, payment)
+    const saleId = await checkout(cart, payment)
     setCart([])
     setPaying(false)
-    setDone(t)
-    setTimeout(() => setDone(null), 2400)
+    setDone({ total: t, saleId })
+    setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), 6000)
+  }
+
+  /** anula la venta recién cobrada (cobro equivocado): repone insumos y sale del corte */
+  const deshacer = async () => {
+    if (!done) return
+    await voidSale(done.saleId)
+    setDone(null)
   }
 
   if (!products) return null
@@ -148,12 +156,18 @@ export default function Vender() {
         </div>
       </aside>
 
-      {done !== null && (
+      {done && (
         <div className="fixed inset-x-4 top-16 z-50 mx-auto max-w-sm rounded-3xl border border-green-600/25 bg-cream-50 px-6 py-5 text-center shadow-2xl lg:top-8">
           <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-xl text-green-700">✓</div>
-          <div className="font-display text-2xl font-bold tabular-nums">{money(done)}</div>
+          <div className="font-display text-2xl font-bold tabular-nums">{money(done.total)}</div>
           <div className="mt-0.5 text-sm text-berry-700/60">Venta registrada</div>
           <div className="mt-1 font-display text-sm italic text-berry-700/45">Para ti, bombón.</div>
+          <button
+            onClick={deshacer}
+            className="mt-3 rounded-full border border-cream-300 px-4 py-1.5 text-sm font-semibold text-berry-700 active:bg-cream-100"
+          >
+            Deshacer
+          </button>
         </div>
       )}
 

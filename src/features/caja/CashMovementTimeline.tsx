@@ -7,6 +7,8 @@ export interface CashMovement {
   /** verde entradas, rojo salidas, gris informativos */
   tone: 'in' | 'out' | 'info'
   tag?: string
+  /** presente cuando el movimiento se puede abrir (ventas: corregir o anular) */
+  onTap?: () => void
 }
 
 const toneText = { in: 'text-green-700', out: 'text-red-600', info: 'text-berry-700/50' }
@@ -21,21 +23,30 @@ export function CashMovementTimeline({ movements }: { movements: CashMovement[] 
         <p className="py-6 text-center text-sm text-berry-700/50">Aún no hay movimientos en este turno.</p>
       )}
       <div className="space-y-0">
-        {movements.map((m, i) => (
-          <div key={i} className={`flex items-center gap-4 py-3.5 ${i > 0 ? 'border-t border-cream-200/70' : ''}`}>
-            <span className="w-14 shrink-0 text-sm tabular-nums text-berry-700/55">{fmtTime(m.ts)}</span>
-            <span className={`h-2 w-2 shrink-0 rounded-full ${toneDot[m.tone]}`} />
-            <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{m.label}</span>
-            {m.tag && (
-              <span className="rounded-full bg-cream-200/70 px-2.5 py-0.5 text-xs capitalize text-berry-700/70">{m.tag}</span>
-            )}
-            {m.amount !== null && (
-              <span className={`w-24 shrink-0 text-right font-semibold tabular-nums ${toneText[m.tone]}`}>
-                {m.tone === 'out' ? '−' : m.tone === 'in' ? '+' : ''}{money(Math.abs(m.amount))}
-              </span>
-            )}
-          </div>
-        ))}
+        {movements.map((m, i) => {
+          const Row = m.onTap ? 'button' : 'div'
+          return (
+            <Row
+              key={i}
+              onClick={m.onTap}
+              className={`flex w-full items-center gap-4 py-3.5 text-left ${i > 0 ? 'border-t border-cream-200/70' : ''} ${
+                m.onTap ? 'cursor-pointer transition-colors hover:bg-cream-100/60 active:bg-cream-100' : ''
+              }`}
+            >
+              <span className="w-14 shrink-0 text-sm tabular-nums text-berry-700/55">{fmtTime(m.ts)}</span>
+              <span className={`h-2 w-2 shrink-0 rounded-full ${toneDot[m.tone]}`} />
+              <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{m.label}</span>
+              {m.tag && (
+                <span className="rounded-full bg-cream-200/70 px-2.5 py-0.5 text-xs capitalize text-berry-700/70">{m.tag}</span>
+              )}
+              {m.amount !== null && (
+                <span className={`w-24 shrink-0 text-right font-semibold tabular-nums ${toneText[m.tone]}`}>
+                  {m.tone === 'out' ? '−' : m.tone === 'in' ? '+' : ''}{money(Math.abs(m.amount))}
+                </span>
+              )}
+            </Row>
+          )
+        })}
       </div>
     </div>
   )

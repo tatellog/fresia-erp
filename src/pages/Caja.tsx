@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
+import type { Sale } from '../data/types'
 import { expectedCash } from '../services/cash'
 import { fmtTime, startOfDay } from '../lib/format'
 import { Empty } from '../components/ui'
@@ -16,6 +17,7 @@ import { HistoryRow } from '../features/caja/HistoryRow'
 import { AbrirSheet } from '../features/caja/AbrirSheet'
 import { GastoSheet } from '../features/caja/GastoSheet'
 import { RetiroSheet } from '../features/caja/RetiroSheet'
+import { SaleSheet } from '../features/caja/SaleSheet'
 
 const DIEZ_HORAS = 10 * 3600_000
 
@@ -36,6 +38,7 @@ export default function Caja() {
   )
   const branch = useLiveQuery(async () => (await db.meta.get('branch'))?.value || 'Principal')
   const [sheet, setSheet] = useState<'abrir' | 'gasto' | 'retiro' | null>(null)
+  const [saleDetail, setSaleDetail] = useState<Sale | null>(null)
 
   const gastos = useMemo(() => (sessionExpenses ?? []).filter(e => (e.kind ?? 'gasto') === 'gasto'), [sessionExpenses])
   const retiros = useMemo(() => (sessionExpenses ?? []).filter(e => e.kind === 'retiro'), [sessionExpenses])
@@ -50,6 +53,7 @@ export default function Caja() {
         amount: s.total,
         tone: 'in' as const,
         tag: s.payment,
+        onTap: () => setSaleDetail(s),
       })),
       ...(sessionExpenses ?? []).map(e => ({
         ts: e.ts,
@@ -150,6 +154,7 @@ export default function Caja() {
       {sheet === 'abrir' && <AbrirSheet onClose={() => setSheet(null)} />}
       {sheet === 'gasto' && session && <GastoSheet sessionId={session.id} onClose={() => setSheet(null)} />}
       {sheet === 'retiro' && session && <RetiroSheet sessionId={session.id} onClose={() => setSheet(null)} />}
+      {saleDetail && <SaleSheet sale={saleDetail} onClose={() => setSaleDetail(null)} />}
     </div>
   )
 }

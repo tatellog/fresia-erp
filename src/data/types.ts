@@ -2,10 +2,10 @@
 
 export type Unit = 'g' | 'ml' | 'pza'
 export type Payment = 'efectivo' | 'tarjeta' | 'transferencia' | 'rappi' | 'uber'
-/** conjunto de toppings elegibles (la línea Chocolate usa los clásicos) */
+/** conjunto de toppings elegibles (desde el menú v3 la lista es única: todos llevan ambos grupos) */
 export type ToppingGroup = 'clasica' | 'balance'
 /** líneas de producto del menú */
-export type Line = 'clasica' | 'chocolate' | 'balance'
+export type Line = 'clasica' | 'chocolate' | 'balance' | 'brulee'
 
 export interface Ingredient {
   id: string
@@ -21,6 +21,8 @@ export interface Ingredient {
   toppingGroups?: ToppingGroup[]
   /** porción que consume una selección de topping, en `unit` */
   portion?: number
+  /** topping premium (Pistache, Lotus): siempre se cobra este precio y no gasta un incluido */
+  premiumPrice?: number
 }
 
 export interface RecipeItem {

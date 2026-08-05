@@ -3,7 +3,7 @@ import { uid } from '../data/ids'
 import type { Employee, Expense, Ingredient, Payment, Product, Sale, SaleItem } from '../data/types'
 import { round2, startOfDay } from '../lib/format'
 import { productCost } from './costing'
-import { EXTRA_TOPPING_PRICE, INCLUDED_TOPPINGS } from './sales'
+import { toppingsCharge } from './sales'
 
 /** generador determinista para que la demo sea reproducible */
 function rng(seed: number) {
@@ -18,14 +18,12 @@ function rng(seed: number) {
 /** costo unitario realista por insumo (MXN por g/ml/pza) para la demo */
 const DEMO_COSTS: Record<string, number> = {
   'Fresa fresca': 0.085, 'Crema tradicional': 0.055, 'Yogurt griego': 0.09,
-  'Proteína en polvo': 0.6, 'Salsa de chocolate': 0.12,
-  'Vaso PET 250 ml': 3.2, 'Vaso PET 350 ml': 3.8, 'Vaso PET 500 ml': 4.5, 'Vaso PET 700 ml': 5.2,
+  'Chocolate Turín': 0.22, 'Azúcar para brûlée': 0.04,
+  'Vaso PET 12 oz': 3.8, 'Vaso PET 16 oz': 4.5, 'Vaso PET 20 oz': 5.2,
   'Tapa plana': 0.9, 'Tapa domo': 1.4, 'Cuchara': 0.4, 'Servilleta': 0.15, 'Sticker / sello Frésia': 0.8,
-  'Granola artesanal': 0.12, 'Cajeta': 0.09, 'Chocolate': 0.11, 'Lechera': 0.07,
-  'Chocolate chips': 0.15, 'Oreo triturada': 0.14,
+  'Granola artesanal': 0.12, 'Cajeta': 0.09, 'Oreo triturada': 0.14,
   'Coco rallado': 0.12, 'Almendra fileteada': 0.28, 'Nuez picada': 0.3,
-  'Granola proteica': 0.18, 'Chía': 0.15, 'Amaranto inflado': 0.1, 'Pistache': 0.45,
-  'Coco sin azúcar': 0.14, 'Cacao nibs': 0.3,
+  'Mazapán': 0.18, 'Arándano': 0.25, 'Pistache': 0.45, 'Lotus': 0.35,
 }
 
 export async function hasDemoOrActivity(): Promise<boolean> {
@@ -93,11 +91,10 @@ export async function loadDemoData() {
         const ts = open + (s / nSales) * 8 * 3600_000 + rand() * 1200_000
         const items: SaleItem[] = []
         const addItem = (p: Product, toppings: Ingredient[]) => {
-          const extra = Math.max(0, toppings.length - INCLUDED_TOPPINGS)
           const tCost = toppings.reduce((sum, t) => sum + t.cost * (t.portion ?? 0), 0)
           items.push({
             productId: p.id, name: p.name, qty: 1,
-            price: round2(p.price + extra * EXTRA_TOPPING_PRICE),
+            price: round2(p.price + toppingsCharge(toppings)),
             cost: round2(productCost(p, ingMap) + tCost),
             toppings: toppings.length ? toppings.map(t => t.name) : undefined,
           })

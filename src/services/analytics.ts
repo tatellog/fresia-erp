@@ -30,18 +30,19 @@ export function profit(sales: Sale[]): { income: number; cost: number; profit: n
 }
 
 export interface LineShare {
-  line: 'Clásica' | 'Chocolate' | 'Balance'
+  line: 'Clásica' | 'Balance' | 'Chocolate' | 'Brûlée'
   total: number
   pct: number
 }
 
 export function salesByLine(sales: Sale[]): LineShare[] {
-  const acc = new Map<LineShare['line'], number>([['Clásica', 0], ['Chocolate', 0], ['Balance', 0]])
+  const acc = new Map<LineShare['line'], number>([['Clásica', 0], ['Balance', 0], ['Chocolate', 0], ['Brûlée', 0]])
   for (const s of sales)
     for (const i of s.items) {
       if (i.name.startsWith('Clásica')) acc.set('Clásica', acc.get('Clásica')! + i.price * i.qty)
-      else if (i.name.startsWith('Chocolate ·')) acc.set('Chocolate', acc.get('Chocolate')! + i.price * i.qty)
       else if (i.name.startsWith('Balance')) acc.set('Balance', acc.get('Balance')! + i.price * i.qty)
+      else if (i.name.startsWith('Chocolate ·')) acc.set('Chocolate', acc.get('Chocolate')! + i.price * i.qty)
+      else if (i.name.startsWith('Frèsia Brûlée')) acc.set('Brûlée', acc.get('Brûlée')! + i.price * i.qty)
     }
   const sum = [...acc.values()].reduce((a, b) => a + b, 0)
   return [...acc.entries()].map(([line, total]) => ({
@@ -51,7 +52,9 @@ export function salesByLine(sales: Sale[]): LineShare[] {
   }))
 }
 
-const SIZES = ['Mini', 'Chica', 'Mediana', 'Grande'] as const
+const SIZES = ['Chico', 'Mediano', 'Grande'] as const
+/** tamaños del menú anterior (ml) contados en el vaso equivalente actual */
+const LEGACY_SIZES: Record<string, (typeof SIZES)[number]> = { Mini: 'Chico', Chica: 'Chico', Mediana: 'Mediano' }
 
 export function cupsBySize(sales: Sale[]): { size: string; count: number }[] {
   const acc = new Map<string, number>(SIZES.map(s => [s, 0]))
@@ -59,6 +62,7 @@ export function cupsBySize(sales: Sale[]): { size: string; count: number }[] {
     for (const i of s.items) {
       if (!esVaso(i.name)) continue
       const size = SIZES.find(z => i.name.includes(z))
+        ?? Object.entries(LEGACY_SIZES).find(([old]) => i.name.includes(old))?.[1]
       if (size) acc.set(size, acc.get(size)! + i.qty)
     }
   return [...acc.entries()].map(([size, count]) => ({ size, count }))

@@ -2,14 +2,69 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
 import type { Ingredient, Product } from '../../data/types'
-import { EXTRA_TOPPING_PRICE, INCLUDED_TOPPINGS } from '../../services/sales'
+import { EXTRA_TOPPING_PRICE, INCLUDED_TOPPINGS, toppingsCharge } from '../../services/sales'
 import { productLine } from '../../services/catalog'
+import { toppingPhoto } from '../../services/photos'
 import { money, round2 } from '../../lib/format'
 import { Button, Sheet } from '../../components/ui'
 
+/** tarjeta de topping con foto a toda la card y su precio */
+function ToppingCard({ t, on, label, labelIncluded, disabled, onTap }: {
+  t: Ingredient
+  on: boolean
+  label: string
+  labelIncluded?: boolean
+  disabled?: boolean
+  onTap: () => void
+}) {
+  const photo = toppingPhoto(t.name)
+  return (
+    <button
+      onClick={onTap}
+      disabled={disabled}
+      className={`relative aspect-square overflow-hidden rounded-2xl text-left transition-all active:scale-[0.96] ${
+        on
+          ? 'shadow-lg ring-2 ring-berry-500'
+          : photo
+            ? 'border border-black/10 shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
+            : 'border border-cream-300 bg-cream-200'
+      } ${disabled ? 'opacity-35' : ''}`}
+    >
+      {photo && <img src={photo} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+      {/* degradado para que el nombre y el precio lean sobre la foto */}
+      {photo && <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />}
+      {on && <span aria-hidden className={`absolute inset-0 ${photo ? 'bg-berry-500/35' : 'bg-berry-500/15'}`} />}
+      {on && (
+        <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-berry-500 text-sm font-bold text-white shadow">
+          ✓
+        </span>
+      )}
+      {!!t.premiumPrice && !on && (
+        <span className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] ${
+          photo ? 'bg-black/40 text-amber-300 backdrop-blur-sm' : 'bg-berry-50 text-berry-500'
+        }`}>
+          Premium
+        </span>
+      )}
+      <span className={`absolute inset-x-0 bottom-0 p-2.5 ${photo ? 'text-white' : 'text-berry-700'}`}>
+        <span className={`block text-[13px] font-semibold leading-tight ${photo ? 'drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]' : ''}`}>
+          {t.name}
+        </span>
+        <span className={`block text-[11px] font-bold ${
+          photo
+            ? labelIncluded ? 'text-emerald-300' : 'text-white/85'
+            : labelIncluded ? 'text-emerald-700' : 'text-berry-500'
+        }`}>
+          {label}
+        </span>
+      </span>
+    </button>
+  )
+}
+
 /**
- * Armado del vaso: toppings de la línea (2 incluidos, adicionales con
- * cargo) y extras disponibles solo para esa línea.
+ * Armado del vaso en dos pasos: los 2 toppings incluidos (premium siempre
+ * con cargo), luego toppings extra con cargo y extras de la línea.
  */
 export function ToppingPickerSheet({ product, onConfirm, onClose }: {
   product: Product
@@ -25,16 +80,18 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
     () => db.products.filter(p => p.active && !!line && (p.extraScope ?? []).includes(line)).toArray(),
     [line],
   )
-  const [selected, setSelected] = useState<Map<string, Ingredient>>(new Map())
+  const [incluidos, setIncluidos] = useState<Map<string, Ingredient>>(new Map())
+  const [extraTops, setExtraTops] = useState<Map<string, Ingredient>>(new Map())
   const [extras, setExtras] = useState<Map<string, Product>>(new Map())
 
   if (!toppings || !extrasDisponibles) return null
 
-  const toggle = (t: Ingredient) => {
-    const next = new Map(selected)
+  const toggleIn = (map: Map<string, Ingredient>, set: typeof setIncluidos, t: Ingredient, cap?: number) => {
+    const next = new Map(map)
     if (next.has(t.id)) next.delete(t.id)
-    else next.set(t.id, t)
-    setSelected(next)
+    else if (cap === undefined || next.size < cap) next.set(t.id, t)
+    else return
+    set(next)
   }
   const toggleExtra = (e: Product) => {
     const next = new Map(extras)
@@ -43,35 +100,64 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
     setExtras(next)
   }
 
-  const extraToppings = Math.max(0, selected.size - INCLUDED_TOPPINGS)
+  // el precio se calcula sobre el conjunto: premium siempre con cargo,
+  // normales después de los 2 incluidos a EXTRA_TOPPING_PRICE
+  const chosen = [...incluidos.values(), ...extraTops.values()]
+  const toppingsTotal = toppingsCharge(chosen)
+  const extraToppings = Math.max(0, chosen.filter(t => !t.premiumPrice).length - INCLUDED_TOPPINGS)
+  const premiumCount = chosen.filter(t => t.premiumPrice).length
+  const premiumTotal = chosen.reduce((s, t) => s + (t.premiumPrice ?? 0), 0)
   const extrasTotal = [...extras.values()].reduce((s, e) => s + e.price, 0)
-  const price = round2(product.price + extraToppings * EXTRA_TOPPING_PRICE + extrasTotal)
+  const price = round2(product.price + toppingsTotal + extrasTotal)
+  const ordered = [...toppings].sort((a, b) => a.name.localeCompare(b.name))
+  const llenos = incluidos.size >= INCLUDED_TOPPINGS
 
   return (
     <Sheet open onClose={onClose} title={product.name}>
-      <p className="mb-3 text-sm text-berry-700/70">
-        Elige tus toppings · <b>{INCLUDED_TOPPINGS} incluidos</b>, adicionales {money(EXTRA_TOPPING_PRICE)} c/u
-      </p>
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        {toppings.sort((a, b) => a.name.localeCompare(b.name)).map(t => {
-          const on = selected.has(t.id)
-          return (
-            <button
-              key={t.id}
-              onClick={() => toggle(t)}
-              className={`rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${
-                on ? 'bg-berry-500 text-white' : 'bg-cream-200 text-berry-700'
-              }`}
-            >
-              {t.name}
-            </button>
-          )
-        })}
+      <div className="mb-2 flex items-baseline justify-between">
+        <p className="text-sm font-medium text-berry-700">Tus {INCLUDED_TOPPINGS} toppings incluidos</p>
+        <span className={`text-xs font-bold tabular-nums ${llenos ? 'text-emerald-700' : 'text-berry-700/50'}`}>
+          {incluidos.size}/{INCLUDED_TOPPINGS}
+        </span>
+      </div>
+      <div className="mb-5 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
+        {ordered.map(t => (
+          <ToppingCard
+            key={t.id}
+            t={t}
+            on={incluidos.has(t.id)}
+            label={t.premiumPrice ? `+${money(t.premiumPrice)}` : 'Incluido'}
+            labelIncluded={!t.premiumPrice}
+            disabled={llenos && !incluidos.has(t.id)}
+            onTap={() => toggleIn(incluidos, setIncluidos, t, INCLUDED_TOPPINGS)}
+          />
+        ))}
         {toppings.length === 0 && (
-          <p className="text-sm text-berry-700/60">No hay toppings de esta línea en Insumos.</p>
+          <p className="col-span-full text-sm text-berry-700/60">No hay toppings de esta línea en Insumos.</p>
         )}
       </div>
+
+      {toppings.length > 0 && (
+        <>
+          <p className="mb-2 text-sm font-medium text-berry-700">
+            Topping extra <span className="font-normal text-berry-700/60">
+              · {money(EXTRA_TOPPING_PRICE)} c/u
+              {ordered.some(t => t.premiumPrice) && <>, premium {money(Math.max(...ordered.map(t => t.premiumPrice ?? 0)))}</>}
+            </span>
+          </p>
+          <div className="mb-5 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
+            {ordered.map(t => (
+              <ToppingCard
+                key={t.id}
+                t={t}
+                on={extraTops.has(t.id)}
+                label={`+${money(t.premiumPrice ?? EXTRA_TOPPING_PRICE)}`}
+                onTap={() => toggleIn(extraTops, setExtraTops, t)}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {extrasDisponibles.length > 0 && (
         <>
@@ -96,12 +182,13 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
       )}
 
       <div className="mb-3 rounded-xl bg-cream-200 px-4 py-3 text-sm">
-        {selected.size} {selected.size === 1 ? 'topping' : 'toppings'}
-        {extraToppings > 0 && <> · {extraToppings} adicional{extraToppings > 1 && 'es'} (+{money(extraToppings * EXTRA_TOPPING_PRICE)})</>}
-        {extras.size > 0 && <> · {extras.size} extra{extras.size > 1 && 's'} (+{money(extrasTotal)})</>}
+        {chosen.length} {chosen.length === 1 ? 'topping' : 'toppings'}
+        {extraToppings > 0 && <> · {extraToppings} extra{extraToppings > 1 && 's'} (+{money(extraToppings * EXTRA_TOPPING_PRICE)})</>}
+        {premiumCount > 0 && <> · {premiumCount} premium (+{money(premiumTotal)})</>}
+        {extras.size > 0 && <> · {extras.size} extra{extras.size > 1 && 's'} de la línea (+{money(extrasTotal)})</>}
       </div>
 
-      <Button className="w-full text-lg" onClick={() => onConfirm([...selected.values()], [...extras.values()])}>
+      <Button className="w-full text-lg" onClick={() => onConfirm(chosen, [...extras.values()])}>
         Agregar · {money(price)}
       </Button>
     </Sheet>

@@ -11,6 +11,7 @@ export function productLine(p: Product): Line | undefined {
   if (p.line) return p.line
   if (p.extraScope?.length) return undefined
   const n = p.name.toLowerCase()
+  if (n.includes('brûlée') || n.includes('brulee')) return 'brulee'
   if (n.startsWith('balance')) return 'balance'
   if (n.startsWith('chocolate')) return 'chocolate'
   if (n.startsWith('clásica') || n.startsWith('clasica')) return 'clasica'
