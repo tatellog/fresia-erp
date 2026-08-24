@@ -9,6 +9,7 @@ import { Button, Empty, Sheet } from '../components/ui'
 import { ProductCard } from '../features/vender/ProductCard'
 import { CartLines } from '../features/vender/CartLines'
 import { PaymentPicker } from '../features/vender/PaymentPicker'
+import { CashChange } from '../features/vender/CashChange'
 import { ToppingPickerSheet } from '../features/vender/ToppingPickerSheet'
 import { AttendantChip } from '../features/vender/AttendantChip'
 import { LineTabs, type LineFilter } from '../features/vender/LineTabs'
@@ -46,7 +47,9 @@ export default function Vender() {
   const [picking, setPicking] = useState<Product | null>(null)
   const [paying, setPaying] = useState(false)
   const [payment, setPayment] = useState<Payment>('efectivo')
-  const [done, setDone] = useState<{ total: number; saleId: string } | null>(null)
+  /** con cuánto pagan en efectivo; null = sin capturar */
+  const [paid, setPaid] = useState<number | null>(null)
+  const [done, setDone] = useState<{ total: number; saleId: string; change?: number } | null>(null)
 
   const active = useMemo(() => (products ?? []).filter(p => p.active), [products])
   const secs = useMemo(() => sections(active), [active])
@@ -81,13 +84,20 @@ export default function Vender() {
     setCart(prev => (qty <= 0 ? prev.filter((_, i) => i !== index) : prev.map((l, i) => (i === index ? { ...l, qty } : l))))
   }
 
+  const pickPayment = (p: Payment) => {
+    setPayment(p)
+    if (p !== 'efectivo') setPaid(null)
+  }
+
   const cobrar = async () => {
     const t = total
+    const change = payment === 'efectivo' && paid != null && paid > t ? paid - t : undefined
     const saleId = await checkout(cart, payment)
     setCart([])
     setPaying(false)
-    setDone({ total: t, saleId })
-    setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), 6000)
+    setPaid(null)
+    setDone({ total: t, saleId, change })
+    setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), change ? 12000 : 6000)
   }
 
   /** anula la venta recién cobrada (cobro equivocado): repone insumos y sale del corte */
@@ -146,7 +156,8 @@ export default function Vender() {
                 <span className="text-sm font-medium text-berry-700/70">Total</span>
                 <span className="font-display text-[30px] font-bold tabular-nums">{money(total)}</span>
               </div>
-              <PaymentPicker payment={payment} setPayment={setPayment} />
+              <PaymentPicker payment={payment} setPayment={pickPayment} />
+              {payment === 'efectivo' && <CashChange total={total} paid={paid} setPaid={setPaid} />}
               <Button className="w-full py-4 text-lg" onClick={cobrar}>
                 Cobrar · {money(total)}
               </Button>
@@ -161,6 +172,12 @@ export default function Vender() {
           <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-xl text-green-700">✓</div>
           <div className="font-display text-2xl font-bold tabular-nums">{money(done.total)}</div>
           <div className="mt-0.5 text-sm text-berry-700/60">Venta registrada</div>
+          {done.change != null && (
+            <div className="mt-2 rounded-xl bg-berry-50 px-4 py-2 text-berry-700">
+              <span className="text-sm font-medium">Cambio a devolver: </span>
+              <span className="font-display text-lg font-bold tabular-nums">{money(done.change)}</span>
+            </div>
+          )}
           <div className="mt-1 font-display text-sm italic text-berry-700/45">Para ti, bombón.</div>
           <button
             onClick={deshacer}
@@ -197,7 +214,8 @@ export default function Vender() {
           <span className="text-sm font-medium text-berry-700/70">Total</span>
           <span className="font-display text-[30px] font-bold tabular-nums">{money(total)}</span>
         </div>
-        <PaymentPicker payment={payment} setPayment={setPayment} />
+        <PaymentPicker payment={payment} setPayment={pickPayment} />
+        {payment === 'efectivo' && <CashChange total={total} paid={paid} setPaid={setPaid} />}
         <Button className="w-full py-4 text-lg" disabled={count === 0} onClick={cobrar}>
           Confirmar · {money(total)}
         </Button>
