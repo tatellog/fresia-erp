@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Ingredient, Payment, Product } from '../data/types'
 import { checkout, lineUnitPrice, voidSale, type CartLine } from '../services/sales'
+import { cancelTerminalOrder, chargeOnTerminal, waitForPayment } from '../services/mp'
 import { productLine } from '../services/catalog'
 import { money } from '../lib/format'
 import { Button, Empty, Sheet } from '../components/ui'
@@ -51,6 +52,11 @@ export default function Vender() {
   /** con cuánto pagan en efectivo; null = sin capturar */
   const [paid, setPaid] = useState<number | null>(null)
   const [done, setDone] = useState<{ total: number; saleId: string; change?: number } | null>(null)
+  /** cobro en curso en la terminal Mercado Pago */
+  const [terminal, setTerminal] = useState<{ msg: string; error?: boolean; orderId?: string } | null>(null)
+  const terminalOrder = useRef<string | null>(null)
+
+  const mpTerminalId = useLiveQuery(async () => (await db.meta.get('mpTerminalId'))?.value)
 
   const active = useMemo(() => (products ?? []).filter(p => p.active), [products])
   const secs = useMemo(() => sections(active), [active])
@@ -90,7 +96,7 @@ export default function Vender() {
     if (p !== 'efectivo') setPaid(null)
   }
 
-  const cobrar = async () => {
+  const registrar = async () => {
     const t = total
     const change = payment === 'efectivo' && paid != null && paid > t ? paid - t : undefined
     const saleId = await checkout(cart, payment)
@@ -99,6 +105,45 @@ export default function Vender() {
     setPaid(null)
     setDone({ total: t, saleId, change })
     setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), change ? 12000 : 6000)
+  }
+
+  /** manda el cobro a la Point y registra la venta cuando el pago se confirma */
+  const cobrarEnTerminal = async () => {
+    setTerminal({ msg: 'Enviando el cobro a la terminal…' })
+    try {
+      const orderId = await chargeOnTerminal(total, `venta-${Date.now()}`)
+      terminalOrder.current = orderId
+      setTerminal({ msg: 'Esperando el pago en la terminal…', orderId })
+      const result = await waitForPayment(orderId)
+      if (terminalOrder.current !== orderId) return // se canceló desde el POS
+      terminalOrder.current = null
+      if (result === 'paid') {
+        setTerminal(null)
+        await registrar()
+      } else {
+        const msgs = {
+          canceled: 'Cobro cancelado en la terminal',
+          expired: 'El cobro expiró sin completarse',
+          failed: 'El pago no se completó',
+        } as const
+        setTerminal({ msg: msgs[result], error: true })
+      }
+    } catch (e) {
+      terminalOrder.current = null
+      setTerminal({ msg: e instanceof Error ? e.message : String(e), error: true })
+    }
+  }
+
+  const cobrar = async () => {
+    if (payment === 'tarjeta' && mpTerminalId && navigator.onLine) return cobrarEnTerminal()
+    await registrar()
+  }
+
+  const cancelarTerminal = async () => {
+    const orderId = terminalOrder.current
+    terminalOrder.current = null
+    setTerminal(null)
+    if (orderId) await cancelTerminalOrder(orderId).catch(() => {})
   }
 
   /** anula la venta recién cobrada (cobro equivocado): repone insumos y sale del corte */
@@ -159,6 +204,9 @@ export default function Vender() {
               </div>
               <PaymentPicker payment={payment} setPayment={pickPayment} />
               {payment === 'efectivo' && <CashChange total={total} paid={paid} setPaid={setPaid} />}
+              {payment === 'tarjeta' && mpTerminalId && (
+                <p className="mb-3 -mt-1 text-xs text-berry-700/50">El cobro se manda solo a la terminal Point.</p>
+              )}
               <Button className="w-full py-4 text-lg" onClick={cobrar}>
                 Cobrar · {money(total)}
               </Button>
@@ -167,6 +215,31 @@ export default function Vender() {
           )}
         </div>
       </aside>
+
+      {terminal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
+          <div className="w-full max-w-sm rounded-3xl bg-cream-50 px-6 py-6 text-center shadow-2xl">
+            {!terminal.error && (
+              <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-[3px] border-berry-200 border-t-berry-500" />
+            )}
+            <div className="font-display text-xl font-semibold">{terminal.error ? 'No se cobró' : money(total)}</div>
+            <p className={`mt-1 text-sm ${terminal.error ? 'text-red-700' : 'text-berry-700/70'}`}>{terminal.msg}</p>
+            {!terminal.error && terminal.orderId && (
+              <p className="mt-1 text-xs text-berry-700/45">También puedes cancelar desde la terminal.</p>
+            )}
+            <div className="mt-4 flex justify-center gap-2">
+              {terminal.error ? (
+                <>
+                  <Button variant="soft" onClick={() => setTerminal(null)}>Cerrar</Button>
+                  <Button onClick={cobrarEnTerminal}>Reintentar</Button>
+                </>
+              ) : (
+                <Button variant="soft" onClick={cancelarTerminal}>Cancelar cobro</Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {done && (
         <div className="fixed inset-x-4 top-16 z-50 mx-auto max-w-sm rounded-3xl border border-green-600/25 bg-cream-50 px-6 py-5 text-center shadow-2xl lg:top-8">
@@ -217,6 +290,9 @@ export default function Vender() {
         </div>
         <PaymentPicker payment={payment} setPayment={pickPayment} />
         {payment === 'efectivo' && <CashChange total={total} paid={paid} setPaid={setPaid} />}
+        {payment === 'tarjeta' && mpTerminalId && (
+          <p className="mb-3 -mt-1 text-xs text-berry-700/50">El cobro se manda solo a la terminal Point.</p>
+        )}
         <Button className="w-full py-4 text-lg" disabled={count === 0} onClick={cobrar}>
           Confirmar · {money(total)}
         </Button>
