@@ -27,8 +27,23 @@ export async function catalogOutdated(): Promise<boolean> {
   return (await db.meta.get('seedVersion'))?.value !== SEED_VERSION
 }
 
+/**
+ * Pide al navegador conservar los datos locales aunque el dispositivo ande
+ * corto de espacio. Sin esto, IndexedDB puede borrarse bajo presión de disco.
+ * Devuelve si la persistencia quedó garantizada.
+ */
+export async function ensurePersistentStorage(): Promise<boolean> {
+  try {
+    if (!navigator.storage?.persist) return false
+    return (await navigator.storage.persisted()) || (await navigator.storage.persist())
+  } catch {
+    return false
+  }
+}
+
 /** arranque de la base: migra desde la v1 si existe, o siembra el catálogo real */
 export async function initDb() {
+  void ensurePersistentStorage()
   await db.open()
 
   if (!(await db.meta.get('initialized'))) {

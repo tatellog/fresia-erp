@@ -5,6 +5,7 @@ import { db } from '../../data/db'
 import { fullResync } from '../../services/outbox'
 import { cloudEnabled, supabase } from '../../services/sync/client'
 import { flushOutbox } from '../../services/sync/engine'
+import { restoreFromCloud } from '../../services/sync/restore'
 import { getBranch, setBranch } from '../../services/sync/settings'
 import { fmtDateTime } from '../../lib/format'
 import { Button, Card, Field, Input } from '../../components/ui'
@@ -49,8 +50,22 @@ export function CloudCard() {
       setBusy(false)
       return
     }
-    // primer inicio de sesión en este dispositivo: sube todo lo local
+    // primer inicio de sesión en este dispositivo: sube todo lo local,
+    // salvo que sea un dispositivo nuevo (sin movimientos) en una sucursal
+    // que ya tiene datos en la nube; ahí lo correcto es restaurar, no subir
+    // el catálogo sembrado encima.
     if (!(await db.meta.get('didFirstPush'))) {
+      const hasActivity = (await db.sales.count()) + (await db.purchases.count()) > 0
+      const { count } = await supabase
+        .from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('branch', (branch ?? '').trim() || 'Principal')
+      if (!hasActivity && (count ?? 0) > 0) {
+        await db.meta.put({ key: 'didFirstPush', value: '1' })
+        setStatus('✓ Conectado. La sucursal ya tiene datos en la nube: usa «Restaurar desde la nube» para traerlos')
+        setBusy(false)
+        return
+      }
       await fullResync()
       await db.meta.put({ key: 'didFirstPush', value: '1' })
     }
@@ -63,6 +78,15 @@ export function CloudCard() {
     setBusy(true)
     const r = await flushOutbox()
     setStatus(r.error ? `✗ ${r.error}` : `✓ Sincronizado (${r.pushed} cambios subidos)`)
+    setBusy(false)
+  }
+
+  const restore = async () => {
+    const name = branch.trim() || 'Principal'
+    if (!confirm(`Esto reemplaza TODOS los datos de este dispositivo con lo guardado en la nube de la sucursal «${name}». ¿Continuar?`)) return
+    setBusy(true)
+    const r = await restoreFromCloud()
+    setStatus(r.error ? `✗ ${r.error}` : `✓ Restaurado desde la nube (${r.restored} registros)`)
     setBusy(false)
   }
 
@@ -110,6 +134,13 @@ export function CloudCard() {
               Cerrar sesión
             </Button>
           </div>
+          <Button variant="soft" className="mt-2 w-full" disabled={busy} onClick={restore}>
+            Restaurar desde la nube
+          </Button>
+          <p className="mt-1 text-xs text-berry-700/50">
+            Para estrenar dispositivo o recuperar datos: baja todo lo de esta sucursal y reemplaza lo local. Los PIN no viajan a la nube: los empleados
+            recuperados quedan sin PIN hasta asignarles uno en «Personal».
+          </p>
         </>
       )}
       {status && <p className="mt-2 text-sm font-semibold">{status}</p>}
