@@ -9,7 +9,7 @@ import { money, round2, startOfDay } from '../lib/format'
 import { BagIcon, BanknoteIcon, BoxIcon, CupIcon, PlusIcon, ReceiptIcon, StarIcon, WalletIcon } from '../components/ui/icons'
 import { CashStatusBadge } from '../features/caja/CashStatusBadge'
 import { QuickActionButton } from '../features/caja/QuickActionButton'
-import { DashboardHero } from '../features/dashboard/DashboardHero'
+import { MoneyHero } from '../features/dashboard/MoneyHero'
 import { KpiCard } from '../features/dashboard/KpiCard'
 import { GoalProgress } from '../features/dashboard/GoalProgress'
 import { SalesCard } from '../features/dashboard/SalesCard'
@@ -22,7 +22,6 @@ import { AlertBanner } from '../features/dashboard/AlertBanner'
 import { ComparisonCard } from '../features/dashboard/ComparisonCard'
 import { SalesChart } from '../features/dashboard/SalesChart'
 import { PastDaysCard } from '../features/dashboard/PastDaysCard'
-import { ChannelsCard } from '../features/dashboard/ChannelsCard'
 
 const CHART_DAYS = 14
 
@@ -120,14 +119,7 @@ export default function Dashboard() {
         <QuickActionButton icon={BagIcon} label="Ver menú" onClick={() => navigate('/productos')} />
       </div>
 
-      <DashboardHero
-        total={data.resumen.total}
-        cups={data.resumen.cups}
-        deltaPct={data.deltaAyer}
-        goalMoney={goalMoney ?? 2500}
-        profit={data.utilidad.profit}
-        costsKnown={data.costsKnown}
-      />
+      <MoneyHero goalMoney={goalMoney ?? 2500} />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -143,16 +135,14 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChannelsCard />
         <ProfitCard {...data.utilidad} costsKnown={data.costsKnown} />
+        <SalesCard lines={data.lineas} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SalesCard lines={data.lineas} />
         <TopSellingCard sizes={data.tamanos} />
+        <TopToppingsCard toppings={data.toppings} />
       </div>
-
-      <TopToppingsCard toppings={data.toppings} />
 
       <InventoryAlert statuses={stocks} />
 
