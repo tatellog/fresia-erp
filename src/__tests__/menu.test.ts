@@ -92,6 +92,13 @@ describe('precios en el punto de venta', () => {
     expect(lineUnitPrice(linea([ing('Cajeta'), ing('Oreo triturada'), ing('Coco rallado'), ing('Mazapán')]))).toBe(115 + 2 * EXTRA_TOPPING_PRICE)
   })
 
+  it('topping doble: dos porciones del mismo cuentan como dos toppings', () => {
+    // doble cajeta sola usa los 2 incluidos; con otro más, la repetición cobra extra
+    expect(lineUnitPrice(linea([ing('Cajeta'), ing('Cajeta')]))).toBe(115)
+    expect(lineUnitPrice(linea([ing('Cajeta'), ing('Cajeta'), ing('Oreo triturada')]))).toBe(115 + EXTRA_TOPPING_PRICE)
+    expect(lineUnitPrice(linea([ing('Pistache'), ing('Pistache')]))).toBe(115 + 2 * 25)
+  })
+
   it('premium siempre se cobra a $25 y no gasta un incluido', () => {
     expect(lineUnitPrice(linea([ing('Pistache')]))).toBe(115 + 25)
     expect(lineUnitPrice(linea([ing('Cajeta'), ing('Oreo triturada'), ing('Pistache')]))).toBe(115 + 25)

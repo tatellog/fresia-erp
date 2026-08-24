@@ -8,14 +8,21 @@ import { toppingPhoto } from '../../services/photos'
 import { money, round2 } from '../../lib/format'
 import { Button, Sheet } from '../../components/ui'
 
-/** tarjeta de topping con foto a toda la card y su precio */
-function ToppingCard({ t, on, label, labelIncluded, disabled, onTap }: {
+/**
+ * Tarjeta de topping con foto a toda la card y su precio. Con `qty` la
+ * tarjeta funciona como contador: cada toque suma una porción (doble
+ * cajeta = ×2) y el botón − resta una.
+ */
+function ToppingCard({ t, on, label, labelIncluded, disabled, onTap, qty, onMinus }: {
   t: Ingredient
   on: boolean
   label: string
   labelIncluded?: boolean
   disabled?: boolean
   onTap: () => void
+  /** porciones elegidas (modo contador); sin definir = selección simple con ✓ */
+  qty?: number
+  onMinus?: () => void
 }) {
   const photo = toppingPhoto(t.name)
   return (
@@ -35,8 +42,17 @@ function ToppingCard({ t, on, label, labelIncluded, disabled, onTap }: {
       {photo && <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />}
       {on && <span aria-hidden className={`absolute inset-0 ${photo ? 'bg-berry-500/35' : 'bg-berry-500/15'}`} />}
       {on && (
-        <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-berry-500 text-sm font-bold text-white shadow">
-          ✓
+        <span className="absolute right-1.5 top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-berry-500 px-1.5 text-sm font-bold text-white shadow">
+          {qty !== undefined ? `×${qty}` : '✓'}
+        </span>
+      )}
+      {on && onMinus && (
+        <span
+          role="button"
+          onClick={e => { e.stopPropagation(); onMinus() }}
+          className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-lg font-bold text-white shadow backdrop-blur-sm active:bg-black/70"
+        >
+          −
         </span>
       )}
       {!!t.premiumPrice && !on && (
@@ -81,17 +97,33 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
     [line],
   )
   const [incluidos, setIncluidos] = useState<Map<string, Ingredient>>(new Map())
-  const [extraTops, setExtraTops] = useState<Map<string, Ingredient>>(new Map())
+  /** toppings extra por porciones: doble cajeta = qty 2 */
+  const [extraTops, setExtraTops] = useState<Map<string, { t: Ingredient; qty: number }>>(new Map())
   const [extras, setExtras] = useState<Map<string, Product>>(new Map())
 
   if (!toppings || !extrasDisponibles) return null
 
-  const toggleIn = (map: Map<string, Ingredient>, set: typeof setIncluidos, t: Ingredient, cap?: number) => {
-    const next = new Map(map)
+  const toggleIn = (t: Ingredient) => {
+    const next = new Map(incluidos)
     if (next.has(t.id)) next.delete(t.id)
-    else if (cap === undefined || next.size < cap) next.set(t.id, t)
+    else if (next.size < INCLUDED_TOPPINGS) next.set(t.id, t)
     else return
-    set(next)
+    setIncluidos(next)
+  }
+
+  /** cada toque suma una porción del topping extra */
+  const masExtra = (t: Ingredient) => {
+    const next = new Map(extraTops)
+    next.set(t.id, { t, qty: (next.get(t.id)?.qty ?? 0) + 1 })
+    setExtraTops(next)
+  }
+
+  const menosExtra = (t: Ingredient) => {
+    const next = new Map(extraTops)
+    const qty = (next.get(t.id)?.qty ?? 0) - 1
+    if (qty <= 0) next.delete(t.id)
+    else next.set(t.id, { t, qty })
+    setExtraTops(next)
   }
   const toggleExtra = (e: Product) => {
     const next = new Map(extras)
@@ -101,8 +133,12 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
   }
 
   // el precio se calcula sobre el conjunto: premium siempre con cargo,
-  // normales después de los 2 incluidos a EXTRA_TOPPING_PRICE
-  const chosen = [...incluidos.values(), ...extraTops.values()]
+  // normales después de los 2 incluidos a EXTRA_TOPPING_PRICE.
+  // Cada porción extra es una entrada más (doble cajeta = 2 entradas).
+  const chosen = [
+    ...incluidos.values(),
+    ...[...extraTops.values()].flatMap(({ t, qty }) => Array.from({ length: qty }, () => t)),
+  ]
   const toppingsTotal = toppingsCharge(chosen)
   const extraToppings = Math.max(0, chosen.filter(t => !t.premiumPrice).length - INCLUDED_TOPPINGS)
   const premiumCount = chosen.filter(t => t.premiumPrice).length
@@ -129,7 +165,7 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
             label={t.premiumPrice ? `+${money(t.premiumPrice)}` : 'Incluido'}
             labelIncluded={!t.premiumPrice}
             disabled={llenos && !incluidos.has(t.id)}
-            onTap={() => toggleIn(incluidos, setIncluidos, t, INCLUDED_TOPPINGS)}
+            onTap={() => toggleIn(t)}
           />
         ))}
         {toppings.length === 0 && (
@@ -143,18 +179,24 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
             Topping extra <span className="font-normal text-berry-700/60">
               · {money(EXTRA_TOPPING_PRICE)} c/u
               {ordered.some(t => t.premiumPrice) && <>, premium {money(Math.max(...ordered.map(t => t.premiumPrice ?? 0)))}</>}
+              · toca de nuevo para doble
             </span>
           </p>
           <div className="mb-5 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
-            {ordered.map(t => (
-              <ToppingCard
-                key={t.id}
-                t={t}
-                on={extraTops.has(t.id)}
-                label={`+${money(t.premiumPrice ?? EXTRA_TOPPING_PRICE)}`}
-                onTap={() => toggleIn(extraTops, setExtraTops, t)}
-              />
-            ))}
+            {ordered.map(t => {
+              const qty = extraTops.get(t.id)?.qty ?? 0
+              return (
+                <ToppingCard
+                  key={t.id}
+                  t={t}
+                  on={qty > 0}
+                  qty={qty > 0 ? qty : undefined}
+                  label={`+${money(t.premiumPrice ?? EXTRA_TOPPING_PRICE)}`}
+                  onTap={() => masExtra(t)}
+                  onMinus={() => menosExtra(t)}
+                />
+              )
+            })}
           </div>
         </>
       )}
