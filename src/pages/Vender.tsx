@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Ingredient, Payment, Product } from '../data/types'
 import { checkout, lineUnitPrice, voidSale, type CartLine } from '../services/sales'
-import { cancelTerminalOrder, chargeOnTerminal, waitForPayment } from '../services/mp'
+import { cancelTerminalOrder, chargeOnTerminal, printTicket, waitForPayment } from '../services/mp'
+import { renderTicket } from '../services/ticket'
 import { productLine } from '../services/catalog'
 import { money } from '../lib/format'
 import { Button, Empty, Sheet } from '../components/ui'
@@ -34,7 +35,7 @@ function sections(products: Product[]): Section[] {
     { key: 'uvas', title: 'Uvas con Crema', dot: 'var(--line-uva)', desc: 'Uva verde fresca + nuestra crema Frèsia. · 2 toppings incluidos' },
     { key: 'balance', title: 'Frésia Balance', dot: 'var(--line-olive)', desc: 'Yogurt griego natural + fresas frescas. Fresca y ligera. · 2 toppings incluidos' },
     { key: 'chocolate', title: 'Frésia Chocolate', dot: 'var(--line-choco)', desc: 'Chocolate Turín + fresas frescas. · 2 toppings incluidos' },
-    { key: 'brulee', title: 'Frèsia Brûlée', dot: 'var(--line-brulee)', desc: 'Crema caramelizada al momento con azúcar brûlée, finalizada con soplete. Exclusiva en tienda.' },
+    { key: 'brulee', title: 'Frèsia Brûlée', dot: 'var(--line-brulee)', desc: 'Crema caramelizada al momento con azúcar brûlée, finalizada con soplete. Exclusiva en tienda. · 2 toppings incluidos' },
     { key: 'extras', title: 'Extras', dot: 'var(--color-blush)', desc: 'Se venden sueltos; dentro del vaso se ofrecen al armarlo.' },
   ]
   return defs
@@ -98,6 +99,8 @@ export default function Vender() {
 
   const registrar = async () => {
     const t = total
+    const lines = cart
+    const pagoRecibido = payment === 'efectivo' && paid != null ? paid : undefined
     const change = payment === 'efectivo' && paid != null && paid > t ? paid - t : undefined
     const saleId = await checkout(cart, payment)
     setCart([])
@@ -105,6 +108,22 @@ export default function Vender() {
     setPaid(null)
     setDone({ total: t, saleId, change })
     setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), change ? 12000 : 6000)
+    void imprimirTicket(lines, t, pagoRecibido, change, saleId)
+  }
+
+  /** imprime el ticket en la Point vinculada; nunca frena ni deshace la venta */
+  const imprimirTicket = async (lines: CartLine[], t: number, pagoRecibido: number | undefined, change: number | undefined, saleId: string) => {
+    if (!mpTerminalId || !navigator.onLine) return
+    try {
+      const activeId = (await db.meta.get('activeEmployeeId'))?.value
+      const attendant = activeId ? (await db.employees.get(activeId))?.name : undefined
+      const content = await renderTicket({
+        lines, total: t, payment, paid: pagoRecibido, change, attendant, ts: Date.now(),
+      })
+      await printTicket(content, `ticket-${saleId}`)
+    } catch {
+      // sin ticket no pasa nada: la venta ya quedó registrada y la fila sigue
+    }
   }
 
   /** manda el cobro a la Point y registra la venta cuando el pago se confirma */

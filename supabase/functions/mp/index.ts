@@ -92,6 +92,21 @@ Deno.serve(async req => {
         return json({ status: data.status })
       }
 
+      // imprime el ticket de la venta (imagen base64) en la impresora de la Point
+      case 'print': {
+        if (typeof body.content !== 'string' || !body.content) return json({ error: 'Falta el contenido del ticket' }, 400)
+        const data = await mp('/terminals/v1/actions', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'print',
+            external_reference: String(body.reference ?? crypto.randomUUID()).slice(0, 64),
+            config: { point: { terminal_id: body.terminal_id, subtype: 'image' } },
+            content: body.content,
+          }),
+        })
+        return json({ action_id: data.id, status: data.status })
+      }
+
       default:
         return json({ error: 'Acción no reconocida' }, 400)
     }

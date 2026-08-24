@@ -49,6 +49,18 @@ export async function chargeOnTerminal(amount: number, reference: string): Promi
 
 export const cancelTerminalOrder = (orderId: string) => call({ action: 'cancel', order_id: orderId })
 
+/** manda a imprimir el ticket de venta (imagen PNG en base64) en la terminal */
+export async function printTicket(contentBase64: string, reference: string): Promise<void> {
+  const terminalId = await getLinkedTerminal()
+  if (!terminalId) throw new Error('No hay terminal vinculada (Ajustes → Terminal Mercado Pago)')
+  await call({
+    action: 'print',
+    terminal_id: terminalId,
+    content: contentBase64,
+    reference: reference.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64),
+  })
+}
+
 /**
  * Espera el resultado del pago consultando la orden cada 2.5 s hasta que
  * termina o pasan ~5.5 min (la orden expira sola a los 5).
