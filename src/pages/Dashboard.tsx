@@ -21,6 +21,7 @@ import { HourlySalesChart } from '../features/dashboard/HourlySalesChart'
 import { AlertBanner } from '../features/dashboard/AlertBanner'
 import { ComparisonCard } from '../features/dashboard/ComparisonCard'
 import { SalesChart } from '../features/dashboard/SalesChart'
+import { PastDaysCard } from '../features/dashboard/PastDaysCard'
 
 const CHART_DAYS = 14
 
@@ -173,6 +174,8 @@ export default function Dashboard() {
         <h2 className="mb-2 text-xl font-semibold">Tendencia · últimos 14 días</h2>
         <SalesChart days={data.dias} />
       </div>
+
+      <PastDaysCard />
     </div>
   )
 }
