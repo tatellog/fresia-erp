@@ -34,6 +34,7 @@ const productSize = (p: Product) =>
 /** foto del producto según su línea (Chocolate tiene foto por tamaño) */
 export function productPhoto(p: Product): string | undefined {
   switch (productLine(p)) {
+    case 'uvas': return '/images/uvas.jpg'
     case 'brulee': return '/images/brulee.jpg'
     case 'chocolate': return `/images/chocolate-${productSize(p)}.jpg`
     case 'balance': return '/images/balance.jpg'

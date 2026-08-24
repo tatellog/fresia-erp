@@ -10,6 +10,7 @@ import { ProductFormSheet } from '../features/productos/ProductFormSheet'
 
 const lineDefs: { key: string; title: string; dot: string }[] = [
   { key: 'clasica', title: 'Frésia Clásica', dot: 'var(--color-berry-500)' },
+  { key: 'uvas', title: 'Uvas con Crema', dot: 'var(--line-uva)' },
   { key: 'balance', title: 'Frésia Balance', dot: 'var(--line-olive)' },
   { key: 'chocolate', title: 'Frésia Chocolate', dot: 'var(--line-choco)' },
   { key: 'brulee', title: 'Frèsia Brûlée', dot: 'var(--line-brulee)' },

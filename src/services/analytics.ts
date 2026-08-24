@@ -30,16 +30,17 @@ export function profit(sales: Sale[]): { income: number; cost: number; profit: n
 }
 
 export interface LineShare {
-  line: 'Clásica' | 'Balance' | 'Chocolate' | 'Brûlée'
+  line: 'Clásica' | 'Uvas' | 'Balance' | 'Chocolate' | 'Brûlée'
   total: number
   pct: number
 }
 
 export function salesByLine(sales: Sale[]): LineShare[] {
-  const acc = new Map<LineShare['line'], number>([['Clásica', 0], ['Balance', 0], ['Chocolate', 0], ['Brûlée', 0]])
+  const acc = new Map<LineShare['line'], number>([['Clásica', 0], ['Uvas', 0], ['Balance', 0], ['Chocolate', 0], ['Brûlée', 0]])
   for (const s of sales)
     for (const i of s.items) {
       if (i.name.startsWith('Clásica')) acc.set('Clásica', acc.get('Clásica')! + i.price * i.qty)
+      else if (i.name.startsWith('Uvas')) acc.set('Uvas', acc.get('Uvas')! + i.price * i.qty)
       else if (i.name.startsWith('Balance')) acc.set('Balance', acc.get('Balance')! + i.price * i.qty)
       else if (i.name.startsWith('Chocolate ·')) acc.set('Chocolate', acc.get('Chocolate')! + i.price * i.qty)
       else if (i.name.startsWith('Frèsia Brûlée')) acc.set('Brûlée', acc.get('Brûlée')! + i.price * i.qty)

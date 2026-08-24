@@ -3,6 +3,7 @@ import { money } from '../../lib/format'
 
 const colors: Record<LineShare['line'], string> = {
   'Clásica': 'var(--color-berry-500)',
+  'Uvas': 'var(--line-uva)',
   'Balance': 'var(--line-olive)',
   'Chocolate': 'var(--line-choco)',
   'Brûlée': 'var(--line-brulee)',

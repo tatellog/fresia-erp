@@ -35,9 +35,12 @@
   --chip-leaf-fg: #5f6f3a;
   --chip-brulee-bg: #f9eed7;
   --chip-brulee-fg: #a4701d;
+  --chip-uva-bg: #e9f2df;
+  --chip-uva-fg: #4a7a35;
   --line-choco: #8b5e34;
   --line-olive: #6c8a1e;
   --line-brulee: #c9942e;
+  --line-uva: #6aa84f;
 }
 
 /*
@@ -87,9 +90,12 @@
   --chip-leaf-fg: #b9cc80;
   --chip-brulee-bg: #2e2718;
   --chip-brulee-fg: #e0b86a;
+  --chip-uva-bg: #24301f;
+  --chip-uva-fg: #a8cf8e;
   --line-choco: #c39a6e;
   --line-olive: #a5bd62;
   --line-brulee: #d9a94f;
+  --line-uva: #8fbf72;
 }
 
 html {

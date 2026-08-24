@@ -3,8 +3,8 @@ import { uid } from './ids'
 import type { Ingredient, Line, Product, RecipeItem, ToppingGroup, Unit } from './types'
 
 /**
- * Catálogo oficial de Frèsia (menú v3, agosto 2026): cuatro experiencias
- * (Clásica, Balance, Chocolate y Frèsia Brûlée), tres tamaños en onzas y
+ * Catálogo oficial de Frèsia (menú v3, agosto 2026): cinco experiencias
+ * (Clásica, Uvas con Crema, Balance, Chocolate y Frèsia Brûlée), tres tamaños en onzas y
  * una lista única de toppings para todas las líneas: 2 incluidos,
  * adicionales con cargo y premium (Pistache, Lotus) siempre con cargo.
  * Sin extras sueltos. Los costos inician en 0 y se calculan con las compras.
@@ -21,6 +21,7 @@ export async function seed() {
 
   // ── Bases ──
   const fresa = ing('Fresa fresca', 'g', 3000)
+  const uva = ing('Uva verde', 'g', 2000)
   const crema = ing('Crema tradicional', 'ml', 2000)
   const yogurt = ing('Yogurt griego', 'ml', 2000)
   const azucarBrulee = ing('Azúcar para brûlée', 'g', 300)
@@ -49,7 +50,7 @@ export async function seed() {
   const lotus = ing('Lotus', 'g', 250, { portion: 15, premium: 25 })
 
   const ingredients = [
-    fresa, crema, yogurt, azucarBrulee,
+    fresa, uva, crema, yogurt, azucarBrulee,
     vaso12, vaso16, vaso20, tapaPlana, tapaDomo, cuchara, servilleta, sticker,
     granolaArt, cajeta, chocoTurin, nuez, coco, almendra, oreo, mazapan, arandano, pistache, lotus,
   ]
@@ -78,12 +79,12 @@ export async function seed() {
     { label: 'Grande', oz: '20 oz', vaso: vaso20, tapa: tapaDomo, fresaG: 300, baseMl: 240, chocoG: 60, azucarG: 20 },
   ]
 
-  const vasoProd = (linePrefix: string, line: Line, emoji: string, s: Size, price: number, extraRecipe: RecipeItem[]): Product => ({
+  const vasoProd = (linePrefix: string, line: Line, emoji: string, s: Size, price: number, extraRecipe: RecipeItem[], fruta = fresa): Product => ({
     id: uid(),
     name: `${linePrefix} · ${s.label} ${s.oz}`,
     emoji,
     price,
-    recipe: [r(fresa, s.fresaG), ...extraRecipe, ...empaque(s.vaso, s.tapa)],
+    recipe: [r(fruta, s.fresaG), ...extraRecipe, ...empaque(s.vaso, s.tapa)],
     active: true,
     sort: ++sortSeq,
     toppingGroup: 'clasica',
@@ -98,6 +99,8 @@ export async function seed() {
 
   const products: Product[] = [
     ...sizes.map((s, i) => vasoProd('Clásica', 'clasica', '🍓', s, clasicaPrices[i], [r(crema, s.baseMl)])),
+    // Uvas con Crema: misma experiencia y precios que la Clásica, con uva verde
+    ...sizes.map((s, i) => vasoProd('Uvas con Crema', 'uvas', '🍇', s, clasicaPrices[i], [r(crema, s.baseMl)], uva)),
     ...sizes.map((s, i) => vasoProd('Balance', 'balance', '🌿', s, balancePrices[i], [r(yogurt, s.baseMl)])),
     ...sizes.map((s, i) => vasoProd('Chocolate', 'chocolate', '🍫', s, chocoPrices[i], [r(crema, s.baseMl), r(chocoTurin, s.chocoG)])),
     ...sizes.filter(s => s.label in bruleePrices).map((s): Product => ({

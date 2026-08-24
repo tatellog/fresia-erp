@@ -6,7 +6,7 @@ import { deleteProduct } from '../services/catalog'
 import { INITIAL_INVESTMENTS } from '../services/investments'
 
 /** versión del catálogo sembrado; subirla reemplaza catálogos viejos sin movimientos */
-export const SEED_VERSION = '9'
+export const SEED_VERSION = '10'
 
 /**
  * Reemplaza menú e insumos por el catálogo oficial vigente, conservando

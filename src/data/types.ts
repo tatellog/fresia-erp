@@ -5,7 +5,7 @@ export type Payment = 'efectivo' | 'tarjeta' | 'transferencia' | 'rappi' | 'uber
 /** conjunto de toppings elegibles (desde el menú v3 la lista es única: todos llevan ambos grupos) */
 export type ToppingGroup = 'clasica' | 'balance'
 /** líneas de producto del menú */
-export type Line = 'clasica' | 'chocolate' | 'balance' | 'brulee'
+export type Line = 'clasica' | 'chocolate' | 'balance' | 'brulee' | 'uvas'
 
 export interface Ingredient {
   id: string

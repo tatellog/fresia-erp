@@ -21,6 +21,7 @@ describe('catálogo (menú v3)', () => {
   it('precios oficiales por experiencia y tamaño', () => {
     const esperado: [string, number][] = [
       ['Clásica · Chico 12 oz', 95], ['Clásica · Mediano 16 oz', 115], ['Clásica · Grande 20 oz', 135],
+      ['Uvas con Crema · Chico 12 oz', 95], ['Uvas con Crema · Mediano 16 oz', 115], ['Uvas con Crema · Grande 20 oz', 135],
       ['Balance · Chico 12 oz', 105], ['Balance · Mediano 16 oz', 125], ['Balance · Grande 20 oz', 145],
       ['Chocolate · Chico 12 oz', 115], ['Chocolate · Mediano 16 oz', 135], ['Chocolate · Grande 20 oz', 155],
       ['Frèsia Brûlée · Mediano 16 oz', 135], ['Frèsia Brûlée · Grande 20 oz', 155],
@@ -49,6 +50,15 @@ describe('catálogo (menú v3)', () => {
   it('la línea Chocolate lleva Chocolate Turín en la receta', () => {
     const p = prod('Chocolate · Mediano 16 oz')
     expect(p.recipe.some(r => r.ingredientId === ing('Chocolate Turín').id)).toBe(true)
+  })
+
+  it('Uvas con Crema lleva uva verde (no fresa), crema y toppings elegibles', () => {
+    const p = prod('Uvas con Crema · Mediano 16 oz')
+    expect(p.line).toBe('uvas')
+    expect(p.toppingGroup).toBe('clasica')
+    expect(p.recipe.some(r => r.ingredientId === ing('Uva verde').id)).toBe(true)
+    expect(p.recipe.some(r => r.ingredientId === ing('Fresa fresca').id)).toBe(false)
+    expect(p.recipe.some(r => r.ingredientId === ing('Crema tradicional').id)).toBe(true)
   })
 
   it('sin extras sueltos ni tamaños del menú anterior', () => {

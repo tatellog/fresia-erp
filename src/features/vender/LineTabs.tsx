@@ -1,8 +1,9 @@
-export type LineFilter = 'todo' | 'clasica' | 'balance' | 'chocolate' | 'brulee' | 'extras'
+export type LineFilter = 'todo' | 'clasica' | 'uvas' | 'balance' | 'chocolate' | 'brulee' | 'extras'
 
 const tabs: { id: LineFilter; label: string; dot?: string }[] = [
   { id: 'todo', label: 'Todo' },
   { id: 'clasica', label: 'Clásica', dot: 'var(--color-berry-500)' },
+  { id: 'uvas', label: 'Uvas', dot: 'var(--line-uva)' },
   { id: 'balance', label: 'Balance', dot: 'var(--line-olive)' },
   { id: 'chocolate', label: 'Chocolate', dot: 'var(--line-choco)' },
   { id: 'brulee', label: 'Brûlée', dot: 'var(--line-brulee)' },

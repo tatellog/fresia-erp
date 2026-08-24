@@ -21,6 +21,7 @@ const accents: Record<string, { chip: string; bar: string; cup: string }> = {
   chocolate: { chip: 'bg-[var(--chip-choco-bg)] text-[var(--chip-choco-fg)]', bar: 'var(--line-choco)', cup: 'text-[var(--chip-choco-fg)]' },
   balance: { chip: 'bg-[var(--chip-leaf-bg)] text-[var(--chip-leaf-fg)]', bar: 'var(--line-olive)', cup: 'text-[var(--chip-leaf-fg)]' },
   brulee: { chip: 'bg-[var(--chip-brulee-bg)] text-[var(--chip-brulee-fg)]', bar: 'var(--line-brulee)', cup: 'text-[var(--chip-brulee-fg)]' },
+  uvas: { chip: 'bg-[var(--chip-uva-bg)] text-[var(--chip-uva-fg)]', bar: 'var(--line-uva)', cup: 'text-[var(--chip-uva-fg)]' },
 }
 
 /** el vaso se dibuja a escala del tamaño (nombres viejos por si el catálogo aún no se actualiza) */

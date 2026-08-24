@@ -30,6 +30,7 @@ function sections(products: Product[]): Section[] {
   }
   const defs: Omit<Section, 'items'>[] = [
     { key: 'clasica', title: 'Frésia Clásica', dot: 'var(--color-berry-500)', desc: 'Fresas frescas + nuestra crema Frèsia. · 2 toppings incluidos' },
+    { key: 'uvas', title: 'Uvas con Crema', dot: 'var(--line-uva)', desc: 'Uva verde fresca + nuestra crema Frèsia. · 2 toppings incluidos' },
     { key: 'balance', title: 'Frésia Balance', dot: 'var(--line-olive)', desc: 'Yogurt griego natural + fresas frescas. Fresca y ligera. · 2 toppings incluidos' },
     { key: 'chocolate', title: 'Frésia Chocolate', dot: 'var(--line-choco)', desc: 'Chocolate Turín + fresas frescas. · 2 toppings incluidos' },
     { key: 'brulee', title: 'Frèsia Brûlée', dot: 'var(--line-brulee)', desc: 'Crema caramelizada al momento con azúcar brûlée, finalizada con soplete. Exclusiva en tienda.' },
