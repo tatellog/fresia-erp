@@ -22,6 +22,7 @@ import { AlertBanner } from '../features/dashboard/AlertBanner'
 import { ComparisonCard } from '../features/dashboard/ComparisonCard'
 import { SalesChart } from '../features/dashboard/SalesChart'
 import { PastDaysCard } from '../features/dashboard/PastDaysCard'
+import { ChannelsCard } from '../features/dashboard/ChannelsCard'
 
 const CHART_DAYS = 14
 
@@ -142,14 +143,16 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <ChannelsCard />
         <ProfitCard {...data.utilidad} costsKnown={data.costsKnown} />
-        <SalesCard lines={data.lineas} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <SalesCard lines={data.lineas} />
         <TopSellingCard sizes={data.tamanos} />
-        <TopToppingsCard toppings={data.toppings} />
       </div>
+
+      <TopToppingsCard toppings={data.toppings} />
 
       <InventoryAlert statuses={stocks} />
 

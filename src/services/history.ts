@@ -18,7 +18,7 @@ export const RECON_NAME = 'Venta reconstruida (corte en papel)'
 const AVG_TICKET = 115
 
 /** hora local en que se fecha cada método, para repartirlos en el día */
-const RECON_HOUR: Record<Payment, number> = { efectivo: 16, tarjeta: 18, transferencia: 19, rappi: 19, uber: 19 }
+const RECON_HOUR: Record<Payment, number> = { efectivo: 16, tarjeta: 18, transferencia: 19, rappi: 19, uber: 19, didi: 19 }
 
 export type DayAmounts = Partial<Record<Payment, number>>
 

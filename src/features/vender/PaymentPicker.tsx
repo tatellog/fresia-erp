@@ -9,6 +9,7 @@ const mostrador: { id: Payment; label: string }[] = [
 /** apps de delivery: la plataforma cobra por ti, no entra efectivo a caja */
 const delivery: { id: Payment; label: string; dot: string }[] = [
   { id: 'rappi', label: 'Rappi', dot: '#FF441F' },
+  { id: 'didi', label: 'DiDi', dot: '#FF7C33' },
   { id: 'uber', label: 'Uber Eats', dot: '#06C167' },
 ]
 
@@ -32,7 +33,7 @@ export function PaymentPicker({ payment, setPayment }: { payment: Payment; setPa
   return (
     <div className="mb-4 space-y-2">
       <div className="grid grid-cols-3 gap-2">{mostrador.map(p => btn(p.id, p.label))}</div>
-      <div className="grid grid-cols-2 gap-2">{delivery.map(p => btn(p.id, p.label, p.dot))}</div>
+      <div className="grid grid-cols-3 gap-2">{delivery.map(p => btn(p.id, p.label, p.dot))}</div>
     </div>
   )
 }

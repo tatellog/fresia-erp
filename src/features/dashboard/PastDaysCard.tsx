@@ -9,6 +9,7 @@ const METODOS: { id: Payment; label: string }[] = [
   { id: 'tarjeta', label: 'Tarjeta' },
   { id: 'transferencia', label: 'Transferencia' },
   { id: 'rappi', label: 'Rappi' },
+  { id: 'didi', label: 'DiDi' },
   { id: 'uber', label: 'Uber Eats' },
 ]
 
@@ -19,7 +20,7 @@ const ayer = () => { const d = new Date(); d.setDate(d.getDate() - 1); return da
 /** captura, corrección y borrado de días pasados (cortes en papel) por forma de pago */
 export function PastDaysCard() {
   const [fecha, setFecha] = useState(ayer)
-  const [montos, setMontos] = useState<Record<Payment, string>>({ efectivo: '', tarjeta: '', transferencia: '', rappi: '', uber: '' })
+  const [montos, setMontos] = useState<Record<Payment, string>>({ efectivo: '', tarjeta: '', transferencia: '', rappi: '', uber: '', didi: '' })
   const [existente, setExistente] = useState(false)
   const [posTotal, setPosTotal] = useState(0)
   const [status, setStatus] = useState('')
@@ -30,7 +31,7 @@ export function PastDaysCard() {
     if (!fecha) return
     setStatus('')
     Promise.all([getDayRecon(dayStart), getDayPosTotal(dayStart)]).then(([recon, pos]) => {
-      const next = { efectivo: '', tarjeta: '', transferencia: '', rappi: '', uber: '' } as Record<Payment, string>
+      const next = { efectivo: '', tarjeta: '', transferencia: '', rappi: '', uber: '', didi: '' } as Record<Payment, string>
       for (const m of METODOS) if (recon[m.id]) next[m.id] = String(recon[m.id])
       setMontos(next)
       setExistente(Object.keys(recon).length > 0)
@@ -57,7 +58,7 @@ export function PastDaysCard() {
   const borrar = async () => {
     if (!confirm('¿Borrar lo capturado a mano de este día? Las ventas hechas en el POS no se tocan.')) return
     await deleteDayRecon(dayStart)
-    setMontos({ efectivo: '', tarjeta: '', transferencia: '', rappi: '', uber: '' })
+    setMontos({ efectivo: '', tarjeta: '', transferencia: '', rappi: '', uber: '', didi: '' })
     setExistente(false)
     setStatus('✓ Día borrado')
   }

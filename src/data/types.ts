@@ -1,7 +1,7 @@
 // Tipos del dominio de Fresia. Sin dependencias: cualquier capa puede importarlos.
 
 export type Unit = 'g' | 'ml' | 'pza'
-export type Payment = 'efectivo' | 'tarjeta' | 'transferencia' | 'rappi' | 'uber'
+export type Payment = 'efectivo' | 'tarjeta' | 'transferencia' | 'rappi' | 'uber' | 'didi'
 /** conjunto de toppings elegibles (desde el menú v3 la lista es única: todos llevan ambos grupos) */
 export type ToppingGroup = 'clasica' | 'balance'
 /** líneas de producto del menú */
