@@ -1,6 +1,6 @@
 import { money } from '../../lib/format'
 
-/** utilidad del día: ingresos, costo y utilidad con barras comparables */
+/** ganancia del día: ingresos, costo de insumos y ganancia con barras comparables */
 export function ProfitCard({ income, cost, profit, costsKnown }: {
   income: number
   cost: number
@@ -9,16 +9,22 @@ export function ProfitCard({ income, cost, profit, costsKnown }: {
 }) {
   const rows = [
     { label: 'Ingresos', value: income, color: 'var(--color-berry-500)' },
-    { label: 'Costo', value: cost, color: 'var(--line-choco)' },
-    { label: 'Utilidad', value: profit, color: 'var(--line-olive)' },
+    { label: 'Costo de insumos', value: cost, color: 'var(--line-choco)' },
+    { label: 'Ganancia', value: profit, color: 'var(--line-olive)' },
   ]
   const max = Math.max(income, 1)
+  const margin = income > 0 ? Math.round((profit / income) * 100) : 0
   return (
     <div className="rounded-3xl border border-cream-200 bg-cream-50 p-6">
-      <h2 className="mb-5 text-xl font-semibold">Utilidad de hoy</h2>
+      <div className="mb-5 flex items-baseline justify-between">
+        <h2 className="text-xl font-semibold">Ganancia de hoy</h2>
+        {costsKnown && income > 0 && (
+          <span className="text-sm font-bold text-green-700">{margin}% de margen</span>
+        )}
+      </div>
       {!costsKnown && (
         <p className="mb-4 rounded-xl bg-cream-200/60 px-3 py-2 text-xs text-berry-700/70">
-          Registra compras de insumos para que el costo y la utilidad sean reales.
+          Registra compras de insumos para que el costo y la ganancia sean reales.
         </p>
       )}
       <div className="space-y-4">
@@ -34,6 +40,9 @@ export function ProfitCard({ income, cost, profit, costsKnown }: {
           </div>
         ))}
       </div>
+      <p className="mt-4 text-xs text-berry-700/50">
+        Ganancia bruta: no incluye gastos del turno (hielo, gasolina…); esos se ven en Caja.
+      </p>
     </div>
   )
 }

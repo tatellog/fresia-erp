@@ -118,7 +118,14 @@ export default function Dashboard() {
         <QuickActionButton icon={BagIcon} label="Ver menú" onClick={() => navigate('/productos')} />
       </div>
 
-      <DashboardHero total={data.resumen.total} cups={data.resumen.cups} deltaPct={data.deltaAyer} goalMoney={goalMoney ?? 2500} />
+      <DashboardHero
+        total={data.resumen.total}
+        cups={data.resumen.cups}
+        deltaPct={data.deltaAyer}
+        goalMoney={goalMoney ?? 2500}
+        profit={data.utilidad.profit}
+        costsKnown={data.costsKnown}
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -134,13 +141,13 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <ProfitCard {...data.utilidad} costsKnown={data.costsKnown} />
         <SalesCard lines={data.lineas} />
-        <TopSellingCard sizes={data.tamanos} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <TopSellingCard sizes={data.tamanos} />
         <TopToppingsCard toppings={data.toppings} />
-        <ProfitCard {...data.utilidad} costsKnown={data.costsKnown} />
       </div>
 
       <InventoryAlert statuses={stocks} />
