@@ -94,7 +94,7 @@ export async function seed() {
   const clasicaPrices = [95, 115, 135]
   const balancePrices = [105, 125, 145]
   const chocoPrices = [115, 135, 155]
-  /** Frèsia Brûlée: solo Mediano y Grande, caramelizada al momento, sin toppings */
+  /** Frèsia Brûlée: solo Mediano y Grande, caramelizada al momento, 2 toppings incluidos */
   const bruleePrices: Record<string, number> = { Mediano: 135, Grande: 155 }
 
   const products: Product[] = [
@@ -111,6 +111,7 @@ export async function seed() {
       recipe: [r(fresa, s.fresaG), r(crema, s.baseMl), r(azucarBrulee, s.azucarG), ...empaque(s.vaso, s.tapa)],
       active: true,
       sort: ++sortSeq,
+      toppingGroup: 'clasica',
       line: 'brulee',
     })),
   ]

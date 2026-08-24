@@ -39,10 +39,10 @@ describe('catálogo (menú v3)', () => {
     expect(toppings.filter(t => t.premiumPrice)).toHaveLength(2)
   })
 
-  it('Brûlée solo Mediano y Grande, sin toppings elegibles y con azúcar en la receta', () => {
+  it('Brûlée solo Mediano y Grande, con toppings elegibles y azúcar en la receta', () => {
     const b = prod('Frèsia Brûlée · Mediano 16 oz')
     expect(b.line).toBe('brulee')
-    expect(b.toppingGroup).toBeUndefined()
+    expect(b.toppingGroup).toBe('clasica')
     expect(b.recipe.some(r => r.ingredientId === ing('Azúcar para brûlée').id)).toBe(true)
     expect(products.some(p => p.name.startsWith('Frèsia Brûlée · Chico'))).toBe(false)
   })

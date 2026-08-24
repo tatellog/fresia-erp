@@ -2,7 +2,7 @@ import { db } from './db'
 import { uid } from './ids'
 import { migrateFromV1 } from './migrate'
 import { seed } from './seed'
-import { deleteProduct } from '../services/catalog'
+import { deleteProduct, productLine, saveProduct } from '../services/catalog'
 import { INITIAL_INVESTMENTS } from '../services/investments'
 
 /** versión del catálogo sembrado; subirla reemplaza catálogos viejos sin movimientos */
@@ -56,6 +56,10 @@ export async function initDb() {
   // los combos salieron del menú: limpiar catálogos viejos que aún los tengan
   const combos = await db.products.filter(p => /combo/i.test(p.name)).toArray()
   for (const c of combos) await deleteProduct(c.id)
+
+  // la Brûlée ahora lleva 2 toppings incluidos: dar el grupo a catálogos viejos
+  const brulees = await db.products.filter(p => !p.toppingGroup && productLine(p) === 'brulee').toArray()
+  for (const b of brulees) await saveProduct({ ...b, toppingGroup: 'clasica' }, b)
 
   // gastos de apertura reales: se cargan una sola vez en cada dispositivo
   if (!(await db.meta.get('investmentsSeeded')) && (await db.investments.count()) === 0) {
