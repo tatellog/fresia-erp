@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Investment } from '../data/types'
 import { INVESTORS, investorShares } from '../services/investments'
+import { isInversionVisible } from '../services/privacy'
 import { money, round2 } from '../lib/format'
 import { Button, Empty } from '../components/ui'
 import { BanknoteIcon, ReceiptIcon, WalletIcon } from '../components/ui/icons'
@@ -19,7 +20,15 @@ const payerChip: Record<string, string> = {
 type PersonFilter = 'todos' | 'T' | 'A' | 'M' | 'sin'
 type EstadoFilter = 'todos' | 'pendiente' | 'liquidado'
 
+/** la sección solo se ve donde la dueña la mostró con su PIN (Ajustes) */
 export default function Inversion() {
+  const visible = useLiveQuery(isInversionVisible)
+  if (visible === undefined) return null
+  if (!visible) return <Empty text="Sección privada. Se muestra desde Ajustes → Sección Inversión con el PIN de dueña." />
+  return <InversionContent />
+}
+
+function InversionContent() {
   const investments = useLiveQuery(() => db.investments.orderBy('ts').toArray())
   const [editing, setEditing] = useState<Investment | 'new' | null>(null)
   const [person, setPerson] = useState<PersonFilter>('todos')

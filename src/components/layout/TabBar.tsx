@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { tabs } from './tabs'
+import { useVisibleTabs } from './tabs'
 import { icons } from '../ui/icons'
 
 /** tabs inferiores: teléfono e iPad vertical */
 export function TabBar() {
+  const tabs = useVisibleTabs()
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-cream-200 bg-cream-50/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-lg md:max-w-2xl">

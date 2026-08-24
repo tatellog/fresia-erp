@@ -1,3 +1,5 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import { isInversionVisible } from '../../services/privacy'
 import type { IconName } from '../ui/icons'
 
 /** secciones principales de la app; compartidas por la sidebar y los tabs inferiores */
@@ -9,3 +11,9 @@ export const tabs: { to: string; label: string; icon: IconName }[] = [
   { to: '/inversion', label: 'Inversión', icon: 'bank' },
   { to: '/reportes', label: 'Dashboard', icon: 'chart' },
 ]
+
+/** tabs a mostrar en este dispositivo: Inversión solo donde la dueña la mostró */
+export function useVisibleTabs() {
+  const showInversion = useLiveQuery(isInversionVisible)
+  return tabs.filter(t => t.to !== '/inversion' || showInversion)
+}

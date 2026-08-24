@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { tabs } from './tabs'
+import { useVisibleTabs } from './tabs'
 import { OfflineChip } from './OfflineChip'
 import { icons, GearIcon } from '../ui/icons'
 import { Wordmark } from './Wordmark'
 
 /** navegación lateral: iPad horizontal y pantallas grandes */
 export function SidebarNav({ online }: { online: boolean }) {
+  const tabs = useVisibleTabs()
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-cream-200 bg-cream-50 px-5 pb-6 pt-[max(1.75rem,env(safe-area-inset-top))] lg:flex">
       <NavLink to="/" className="mb-10 px-2">

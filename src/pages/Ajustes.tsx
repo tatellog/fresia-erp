@@ -3,6 +3,8 @@ import { GoalsCard } from '../features/ajustes/GoalsCard'
 import { CatalogUpdateCard } from '../features/ajustes/CatalogUpdateCard'
 import { CloudCard } from '../features/ajustes/CloudCard'
 import { EmployeesCard } from '../features/ajustes/EmployeesCard'
+import { InversionCard } from '../features/ajustes/InversionCard'
+import { TerminalCard } from '../features/ajustes/TerminalCard'
 import { DemoCard } from '../features/ajustes/DemoCard'
 import { BackupCard } from '../features/ajustes/BackupCard'
 import { InstallCard } from '../features/ajustes/InstallCard'
@@ -16,8 +18,9 @@ export default function Ajustes() {
       <GoalsCard />
       <AppearanceCard />
       <EmployeesCard />
+      <InversionCard />
       <CloudCard />
-      {/* TerminalCard (Mercado Pago Point) se activa en la siguiente fase, junto con la Edge Function `mp` */}
+      <TerminalCard />
       <DemoCard />
       <BackupCard />
       <InstallCard />

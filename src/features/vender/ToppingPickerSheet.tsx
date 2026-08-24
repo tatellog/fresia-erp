@@ -96,18 +96,29 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
     () => db.products.filter(p => p.active && !!line && (p.extraScope ?? []).includes(line)).toArray(),
     [line],
   )
-  const [incluidos, setIncluidos] = useState<Map<string, Ingredient>>(new Map())
+  /** toppings incluidos por porciones: doble cajeta = qty 2 dentro de los 2 incluidos */
+  const [incluidos, setIncluidos] = useState<Map<string, { t: Ingredient; qty: number }>>(new Map())
   /** toppings extra por porciones: doble cajeta = qty 2 */
   const [extraTops, setExtraTops] = useState<Map<string, { t: Ingredient; qty: number }>>(new Map())
   const [extras, setExtras] = useState<Map<string, Product>>(new Map())
 
   if (!toppings || !extrasDisponibles) return null
 
-  const toggleIn = (t: Ingredient) => {
+  const incluidosCount = [...incluidos.values()].reduce((s, x) => s + x.qty, 0)
+
+  /** cada toque suma una porción mientras queden espacios incluidos */
+  const masIncluido = (t: Ingredient) => {
+    if (incluidosCount >= INCLUDED_TOPPINGS) return
     const next = new Map(incluidos)
-    if (next.has(t.id)) next.delete(t.id)
-    else if (next.size < INCLUDED_TOPPINGS) next.set(t.id, t)
-    else return
+    next.set(t.id, { t, qty: (next.get(t.id)?.qty ?? 0) + 1 })
+    setIncluidos(next)
+  }
+
+  const menosIncluido = (t: Ingredient) => {
+    const next = new Map(incluidos)
+    const qty = (next.get(t.id)?.qty ?? 0) - 1
+    if (qty <= 0) next.delete(t.id)
+    else next.set(t.id, { t, qty })
     setIncluidos(next)
   }
 
@@ -136,7 +147,7 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
   // normales después de los 2 incluidos a EXTRA_TOPPING_PRICE.
   // Cada porción extra es una entrada más (doble cajeta = 2 entradas).
   const chosen = [
-    ...incluidos.values(),
+    ...[...incluidos.values()].flatMap(({ t, qty }) => Array.from({ length: qty }, () => t)),
     ...[...extraTops.values()].flatMap(({ t, qty }) => Array.from({ length: qty }, () => t)),
   ]
   const toppingsTotal = toppingsCharge(chosen)
@@ -146,28 +157,35 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
   const extrasTotal = [...extras.values()].reduce((s, e) => s + e.price, 0)
   const price = round2(product.price + toppingsTotal + extrasTotal)
   const ordered = [...toppings].sort((a, b) => a.name.localeCompare(b.name))
-  const llenos = incluidos.size >= INCLUDED_TOPPINGS
+  const llenos = incluidosCount >= INCLUDED_TOPPINGS
 
   return (
     <Sheet open onClose={onClose} title={product.name}>
       <div className="mb-2 flex items-baseline justify-between">
-        <p className="text-sm font-medium text-berry-700">Tus {INCLUDED_TOPPINGS} toppings incluidos</p>
+        <p className="text-sm font-medium text-berry-700">
+          Tus {INCLUDED_TOPPINGS} toppings incluidos <span className="font-normal text-berry-700/60">· toca de nuevo para doble</span>
+        </p>
         <span className={`text-xs font-bold tabular-nums ${llenos ? 'text-emerald-700' : 'text-berry-700/50'}`}>
-          {incluidos.size}/{INCLUDED_TOPPINGS}
+          {incluidosCount}/{INCLUDED_TOPPINGS}
         </span>
       </div>
       <div className="mb-5 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
-        {ordered.map(t => (
-          <ToppingCard
-            key={t.id}
-            t={t}
-            on={incluidos.has(t.id)}
-            label={t.premiumPrice ? `+${money(t.premiumPrice)}` : 'Incluido'}
-            labelIncluded={!t.premiumPrice}
-            disabled={llenos && !incluidos.has(t.id)}
-            onTap={() => toggleIn(t)}
-          />
-        ))}
+        {ordered.map(t => {
+          const qty = incluidos.get(t.id)?.qty ?? 0
+          return (
+            <ToppingCard
+              key={t.id}
+              t={t}
+              on={qty > 0}
+              qty={qty > 1 ? qty : undefined}
+              label={t.premiumPrice ? `+${money(t.premiumPrice)}` : 'Incluido'}
+              labelIncluded={!t.premiumPrice}
+              disabled={llenos && qty === 0}
+              onTap={() => masIncluido(t)}
+              onMinus={() => menosIncluido(t)}
+            />
+          )
+        })}
         {toppings.length === 0 && (
           <p className="col-span-full text-sm text-berry-700/60">No hay toppings de esta línea en Insumos.</p>
         )}
