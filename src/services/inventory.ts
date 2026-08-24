@@ -1,12 +1,16 @@
 import { db } from '../data/db'
 import { uid } from '../data/ids'
-import type { Ingredient } from '../data/types'
+import type { Expense, Ingredient } from '../data/types'
 import { round2 } from '../lib/format'
 import { enqueue } from './outbox'
 
-/** compra de insumo: sube stock y recalcula costo promedio ponderado */
-export async function registerPurchase(ingredientId: string, qty: number, totalCost: number, note?: string) {
-  return db.transaction('rw', [db.ingredients, db.purchases, db.outbox], async () => {
+/**
+ * Compra de insumo: sube stock y recalcula costo promedio ponderado.
+ * Con `cashSessionId` además registra el gasto en la caja del turno
+ * (se pagó con efectivo de la caja), todo en la misma transacción.
+ */
+export async function registerPurchase(ingredientId: string, qty: number, totalCost: number, note?: string, cashSessionId?: string) {
+  return db.transaction('rw', [db.ingredients, db.purchases, db.expenses, db.outbox], async () => {
     const ing = await db.ingredients.get(ingredientId)
     if (!ing) throw new Error('Insumo no encontrado')
     const oldValue = Math.max(ing.stock, 0) * ing.cost
@@ -18,6 +22,11 @@ export async function registerPurchase(ingredientId: string, qty: number, totalC
     const purchase = { id: uid(), ts: Date.now(), ingredientId, ingredientName: ing.name, qty, totalCost, note }
     await db.purchases.add(purchase)
     await enqueue('purchases', 'upsert', purchase)
+    if (cashSessionId) {
+      const expense: Expense = { id: uid(), ts: Date.now(), concept: `Compra · ${ing.name}`, amount: totalCost, sessionId: cashSessionId, kind: 'gasto' }
+      await db.expenses.add(expense)
+      await enqueue('expenses', 'upsert', expense)
+    }
   })
 }
 

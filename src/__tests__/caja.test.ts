@@ -4,6 +4,7 @@ import { db } from '../data/db'
 import { uid } from '../data/ids'
 import type { CashSession, Sale } from '../data/types'
 import { addExpense, closeCash, expectedCash, openCash } from '../services/cash'
+import { registerPurchase } from '../services/inventory'
 
 const sale = (total: number, payment: Sale['payment'], sessionId: string): Sale =>
   ({ id: uid(), ts: Date.now(), items: [], total, cost: 0, payment, sessionId })
@@ -36,6 +37,23 @@ describe('caja: dinero del día', () => {
     const expenses = await db.expenses.toArray()
     expect(expenses.filter(e => (e.kind ?? 'gasto') === 'gasto').map(e => e.concept)).toEqual(['Hielo'])
     expect(expenses.filter(e => e.kind === 'retiro').map(e => e.concept)).toEqual(['Depósito al banco'])
+  })
+
+  it('compra de insumos con efectivo de caja: sube stock y descuenta del corte', async () => {
+    await db.ingredients.add({ id: 'i-fresa', name: 'Fresa fresca', unit: 'g', stock: 100, cost: 0.1, minStock: 0 })
+    await registerPurchase('i-fresa', 1000, 250, undefined, session.id)
+
+    const fresa = await db.ingredients.get('i-fresa')
+    expect(fresa?.stock).toBe(1100)
+    expect(fresa?.cost).toBe(0.24) // (100×0.1 + 250) / 1100, redondeado a centavos
+
+    const compra = (await db.expenses.toArray()).find(e => e.concept === 'Compra · Fresa fresca')
+    expect(compra?.amount).toBe(250)
+    expect(compra?.sessionId).toBe(session.id)
+    expect(compra?.kind).toBe('gasto')
+
+    const expenses = await db.expenses.toArray()
+    expect(expectedCash(session, [sale(109, 'efectivo', session.id)], expenses)).toBe(500 + 109 - 120 - 100 - 250)
   })
 
   it('el corte guarda contado, esperado y la justificación de la diferencia', async () => {

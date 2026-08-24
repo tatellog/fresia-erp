@@ -5,7 +5,7 @@ import type { Sale } from '../data/types'
 import { expectedCash } from '../services/cash'
 import { fmtTime, startOfDay } from '../lib/format'
 import { Empty } from '../components/ui'
-import { ArrowDownCircleIcon, LockIcon, ReceiptIcon, UnlockIcon } from '../components/ui/icons'
+import { ArrowDownCircleIcon, BoxIcon, LockIcon, ReceiptIcon, UnlockIcon } from '../components/ui/icons'
 import { CashStatusBadge } from '../features/caja/CashStatusBadge'
 import { DailyTotals } from '../features/caja/DailyTotals'
 import { QuickActionButton } from '../features/caja/QuickActionButton'
@@ -16,6 +16,7 @@ import { CashCountForm } from '../features/caja/CashCountForm'
 import { HistoryRow } from '../features/caja/HistoryRow'
 import { AbrirSheet } from '../features/caja/AbrirSheet'
 import { GastoSheet } from '../features/caja/GastoSheet'
+import { CompraInsumoSheet } from '../features/caja/CompraInsumoSheet'
 import { RetiroSheet } from '../features/caja/RetiroSheet'
 import { SaleSheet } from '../features/caja/SaleSheet'
 
@@ -37,7 +38,7 @@ export default function Caja() {
     db.cashSessions.orderBy('openTs').reverse().filter(s => s.closeTs !== undefined).limit(8).toArray(),
   )
   const branch = useLiveQuery(async () => (await db.meta.get('branch'))?.value || 'Principal')
-  const [sheet, setSheet] = useState<'abrir' | 'gasto' | 'retiro' | null>(null)
+  const [sheet, setSheet] = useState<'abrir' | 'gasto' | 'retiro' | 'compra' | null>(null)
   const [saleDetail, setSaleDetail] = useState<Sale | null>(null)
 
   const gastos = useMemo(() => (sessionExpenses ?? []).filter(e => (e.kind ?? 'gasto') === 'gasto'), [sessionExpenses])
@@ -115,8 +116,9 @@ export default function Caja() {
       <DailyTotals expected={expected} card={cardTotal} transfer={transferTotal} delivery={deliveryTotal} total={dayTotal} open={!!session} />
 
       {/* acciones */}
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">
         <QuickActionButton icon={UnlockIcon} label="Abrir caja" primary={!session} disabled={!!session} onClick={() => setSheet('abrir')} />
+        <QuickActionButton icon={BoxIcon} label="Compra de insumos" disabled={!session} onClick={() => setSheet('compra')} />
         <QuickActionButton icon={ReceiptIcon} label="Registrar gasto" disabled={!session} onClick={() => setSheet('gasto')} />
         <QuickActionButton icon={ArrowDownCircleIcon} label="Retiro de efectivo" disabled={!session} onClick={() => setSheet('retiro')} />
         <QuickActionButton icon={LockIcon} label="Cerrar caja" disabled={!session} onClick={() => document.getElementById('corte')?.scrollIntoView({ behavior: 'smooth' })} />
@@ -153,6 +155,7 @@ export default function Caja() {
 
       {sheet === 'abrir' && <AbrirSheet onClose={() => setSheet(null)} />}
       {sheet === 'gasto' && session && <GastoSheet sessionId={session.id} onClose={() => setSheet(null)} />}
+      {sheet === 'compra' && session && <CompraInsumoSheet sessionId={session.id} onClose={() => setSheet(null)} />}
       {sheet === 'retiro' && session && <RetiroSheet sessionId={session.id} onClose={() => setSheet(null)} />}
       {saleDetail && <SaleSheet sale={saleDetail} onClose={() => setSaleDetail(null)} />}
     </div>
