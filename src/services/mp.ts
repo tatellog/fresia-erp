@@ -18,7 +18,11 @@ export type TerminalOutcome = 'paid' | 'canceled' | 'expired' | 'failed'
 
 async function call<T = Record<string, unknown>>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('mp', { body })
-  if (error) throw new Error('No se pudo contactar la función de Mercado Pago')
+  if (error) {
+    // en respuestas no-2xx el detalle viene en el cuerpo (error.context es la Response)
+    const detail = await (error as { context?: Response }).context?.json?.().catch(() => null)
+    throw new Error((detail as { error?: string })?.error ?? 'No se pudo contactar la función de Mercado Pago')
+  }
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error)
   return data as T
 }

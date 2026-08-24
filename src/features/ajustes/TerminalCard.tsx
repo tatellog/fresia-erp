@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { Session } from '@supabase/supabase-js'
 import { db } from '../../data/db'
 import { cloudEnabled, supabase } from '../../services/sync/client'
-import { linkTerminal, listTerminals, setTerminalMode, unlinkTerminal, type MpTerminal } from '../../services/mp'
+import { linkTerminal, listTerminals, printTicket, setTerminalMode, unlinkTerminal, type MpTerminal } from '../../services/mp'
+import { renderTicket } from '../../services/ticket'
 import { Button, Card } from '../../components/ui'
 
 /** vínculo con la terminal Mercado Pago Point Smart 2 (cobro desde el POS) */
@@ -58,6 +59,26 @@ export function TerminalCard() {
     setStatus('Terminal desvinculada. Para volver a cobrar sola, cámbiala a modo STANDALONE en la app de Mercado Pago.')
   }
 
+  /** manda un ticket de muestra a la impresora para verificar el vínculo */
+  const probarImpresion = async () => {
+    setBusy(true)
+    setStatus('')
+    try {
+      const content = await renderTicket({
+        lines: [{
+          product: { id: 'prueba', name: 'Ticket de prueba', emoji: '', price: 0, recipe: [], active: true, sort: 0 },
+          qty: 1, toppings: [], extras: [],
+        }],
+        total: 0, payment: 'efectivo', ts: Date.now(),
+      })
+      await printTicket(content, `prueba-${Date.now()}`)
+      setStatus('✓ Ticket de prueba enviado: debe salir en unos segundos')
+    } catch (e) {
+      setStatus(`✗ ${e instanceof Error ? e.message : e}`)
+    }
+    setBusy(false)
+  }
+
   return (
     <Card className="mb-3">
       <h2 className="mb-1 font-bold">Terminal Mercado Pago</h2>
@@ -105,6 +126,11 @@ export function TerminalCard() {
               </Button>
             )}
           </div>
+          {linked && (
+            <Button variant="soft" className="mt-2 w-full" disabled={busy} onClick={probarImpresion}>
+              Imprimir ticket de prueba
+            </Button>
+          )}
         </>
       )}
       {status && <p className="mt-2 text-sm font-semibold">{status}</p>}

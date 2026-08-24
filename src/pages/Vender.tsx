@@ -52,7 +52,7 @@ export default function Vender() {
   const [payment, setPayment] = useState<Payment>('efectivo')
   /** con cuánto pagan en efectivo; null = sin capturar */
   const [paid, setPaid] = useState<number | null>(null)
-  const [done, setDone] = useState<{ total: number; saleId: string; change?: number } | null>(null)
+  const [done, setDone] = useState<{ total: number; saleId: string; change?: number; ticketError?: string } | null>(null)
   /** cobro en curso en la terminal Mercado Pago */
   const [terminal, setTerminal] = useState<{ msg: string; error?: boolean; orderId?: string } | null>(null)
   const terminalOrder = useRef<string | null>(null)
@@ -124,8 +124,11 @@ export default function Vender() {
         lines, total: t, payment, paid: pagoRecibido, change, attendant, ts: Date.now(),
       })
       await printTicket(content, `ticket-${saleId}`)
-    } catch {
-      // sin ticket no pasa nada: la venta ya quedó registrada y la fila sigue
+    } catch (e) {
+      // sin ticket no pasa nada: la venta ya quedó registrada y la fila sigue,
+      // pero se avisa en la confirmación para poder revisar la impresora
+      const msg = e instanceof Error ? e.message : String(e)
+      setDone(d => (d?.saleId === saleId ? { ...d, ticketError: msg } : d))
     }
   }
 
@@ -272,6 +275,11 @@ export default function Vender() {
             <div className="mt-2 rounded-xl bg-berry-50 px-4 py-2 text-berry-700">
               <span className="text-sm font-medium">Cambio a devolver: </span>
               <span className="font-display text-lg font-bold tabular-nums">{money(done.change)}</span>
+            </div>
+          )}
+          {done.ticketError && (
+            <div className="mt-2 rounded-xl bg-red-50 px-3 py-1.5 text-xs text-red-700">
+              No se imprimió el ticket: {done.ticketError}
             </div>
           )}
           <div className="mt-1 font-display text-sm italic text-berry-700/45">Para ti, bombón.</div>
