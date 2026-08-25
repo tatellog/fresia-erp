@@ -148,6 +148,36 @@ export function TerminalCard() {
               Imprimir ticket de prueba
             </Button>
           )}
+          {linked && (
+            <div className="mt-2 flex gap-2">
+              <Button
+                variant="soft" className="flex-1 text-xs" disabled={busy}
+                onClick={async () => {
+                  setBusy(true)
+                  try {
+                    await setTerminalMode(linked, 'PDV')
+                    setStatus('✓ Modo PDV activado: reinicia la terminal. La app le manda cobros y tickets; su teclado de cobro se bloquea.')
+                  } catch (e) { setStatus(`✗ ${e instanceof Error ? e.message : e}`) }
+                  setBusy(false)
+                }}
+              >
+                Modo PDV (app manda)
+              </Button>
+              <Button
+                variant="soft" className="flex-1 text-xs" disabled={busy}
+                onClick={async () => {
+                  setBusy(true)
+                  try {
+                    await setTerminalMode(linked, 'STANDALONE')
+                    setStatus('✓ Modo normal activado: reinicia la terminal. Cobra sola con su teclado, pero la app ya no puede mandarle cobros ni tickets.')
+                  } catch (e) { setStatus(`✗ ${e instanceof Error ? e.message : e}`) }
+                  setBusy(false)
+                }}
+              >
+                Modo normal (cobra sola)
+              </Button>
+            </div>
+          )}
         </>
       )}
       {status && <p className="mt-2 text-sm font-semibold">{status}</p>}
