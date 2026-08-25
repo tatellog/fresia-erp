@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { Session } from '@supabase/supabase-js'
 import { db } from '../../data/db'
 import { cloudEnabled, supabase } from '../../services/sync/client'
-import { linkTerminal, listTerminals, printTicket, setTerminalMode, unlinkTerminal, type MpTerminal } from '../../services/mp'
+import { linkTerminal, listTerminals, printStatus, printTicket, setTerminalMode, unlinkTerminal, type MpTerminal } from '../../services/mp'
 import { renderTicket } from '../../services/ticket'
 import { Button, Card } from '../../components/ui'
 
@@ -71,8 +71,25 @@ export function TerminalCard() {
         }],
         total: 0, payment: 'efectivo', ts: Date.now(),
       })
-      await printTicket(content, `prueba-${Date.now()}`)
-      setStatus('✓ Ticket de prueba enviado: debe salir en unos segundos')
+      const actionId = await printTicket(content, `prueba-${Date.now()}`)
+      setStatus('Enviado. Verificando con Mercado Pago…')
+      // se consulta el estado unas veces para saber si la terminal la imprimió
+      for (let i = 0; i < 4; i++) {
+        await new Promise(r => setTimeout(r, 4000))
+        const s = await printStatus(actionId)
+        if (s.status === 'processed' || s.status === 'finished') {
+          setStatus('✓ Impreso: la terminal confirmó el ticket')
+          setBusy(false)
+          return
+        }
+        if (s.status === 'failed' || s.status === 'canceled' || s.status === 'error') {
+          setStatus(`✗ La terminal no lo imprimió (${s.status}${s.detail ? `: ${s.detail}` : ''})`)
+          setBusy(false)
+          return
+        }
+        setStatus(`Estado en Mercado Pago: ${s.status}${s.detail ? ` · ${s.detail}` : ''}…`)
+      }
+      setStatus('La orden quedó pendiente en Mercado Pago: revisa que la Point esté prendida, con internet y en modo PDV')
     } catch (e) {
       setStatus(`✗ ${e instanceof Error ? e.message : e}`)
     }

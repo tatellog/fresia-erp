@@ -107,6 +107,12 @@ Deno.serve(async req => {
         return json({ action_id: data.id, status: data.status })
       }
 
+      // estado de una acción de impresión: para diagnosticar por qué no salió
+      case 'action_status': {
+        const data = await mp(`/terminals/v1/actions/${body.action_id}`)
+        return json({ status: data.status, detail: data.status_detail ?? data.error ?? null, raw: data })
+      }
+
       default:
         return json({ error: 'Acción no reconocida' }, 400)
     }
