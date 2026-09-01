@@ -7,7 +7,8 @@ import { CupIcon, SparkleIcon } from '../../components/ui/icons'
 /** descompone el nombre en etiqueta de línea, título grande y subtítulo */
 export function parts(p: Product): { eyebrow: string | null; main: string; sub: string | null } {
   const i = p.name.indexOf('·')
-  const eyebrow = i >= 0 ? p.name.slice(0, i).trim() : productLine(p) ?? null
+  // sin '·' (Waffle Frésia, Té Relajante, Miel artesanal) el nombre completo es el título
+  const eyebrow = i >= 0 ? p.name.slice(0, i).trim() : null
   const rest = i >= 0 ? p.name.slice(i + 1).trim() : p.name
   const size = rest.match(/^(.+?)\s+(\d+\s*(?:oz|ml))$/)
   if (size) return { eyebrow, main: size[1], sub: size[2] }
@@ -22,6 +23,11 @@ const accents: Record<string, { chip: string; bar: string; cup: string }> = {
   balance: { chip: 'bg-[var(--chip-leaf-bg)] text-[var(--chip-leaf-fg)]', bar: 'var(--line-olive)', cup: 'text-[var(--chip-leaf-fg)]' },
   brulee: { chip: 'bg-[var(--chip-brulee-bg)] text-[var(--chip-brulee-fg)]', bar: 'var(--line-brulee)', cup: 'text-[var(--chip-brulee-fg)]' },
   uvas: { chip: 'bg-[var(--chip-uva-bg)] text-[var(--chip-uva-fg)]', bar: 'var(--line-uva)', cup: 'text-[var(--chip-uva-fg)]' },
+  mix: { chip: 'bg-[var(--chip-mix-bg)] text-[var(--chip-mix-fg)]', bar: 'var(--line-mix)', cup: 'text-[var(--chip-mix-fg)]' },
+  nogada: { chip: 'bg-[var(--chip-nogada-bg)] text-[var(--chip-nogada-fg)]', bar: 'var(--line-nogada)', cup: 'text-[var(--chip-nogada-fg)]' },
+  waffle: { chip: 'bg-[var(--chip-waffle-bg)] text-[var(--chip-waffle-fg)]', bar: 'var(--line-waffle)', cup: 'text-[var(--chip-waffle-fg)]' },
+  bebidas: { chip: 'bg-[var(--chip-te-bg)] text-[var(--chip-te-fg)]', bar: 'var(--line-te)', cup: 'text-[var(--chip-te-fg)]' },
+  despensa: { chip: 'bg-[var(--chip-miel-bg)] text-[var(--chip-miel-fg)]', bar: 'var(--line-miel)', cup: 'text-[var(--chip-miel-fg)]' },
 }
 
 /** el vaso se dibuja a escala del tamaño (nombres viejos por si el catálogo aún no se actualiza) */

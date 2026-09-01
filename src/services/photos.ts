@@ -21,6 +21,10 @@ const toppingPhotos: [keyword: string, src: string][] = [
   ['arandano', '/images/topping-arandano.jpg'],
   ['pistache', '/images/topping-pistache.jpg'],
   ['lotus', '/images/topping-lotus.jpg'],
+  // 'mermelada de fresa' va antes que 'fresa' para no confundirse con la fresa fresca
+  ['mermelada de fresa', '/images/topping-mermelada-fresa.jpg'],
+  ['zarzamora', '/images/topping-mermelada-zarzamora.jpg'],
+  ['fresa', '/images/topping-fresa.jpg'],
 ]
 
 export function toppingPhoto(name: string): string | undefined {
@@ -28,17 +32,39 @@ export function toppingPhoto(name: string): string | undefined {
   return toppingPhotos.find(([k]) => n.includes(k))?.[1]
 }
 
+/** ilustraciones botánicas de cada mezcla de té */
+const teaPhotos: [keyword: string, src: string][] = [
+  ['relajante', '/images/te-relajante.jpg'],
+  ['frutal', '/images/te-frutal.jpg'],
+  ['fresco', '/images/te-fresco.jpg'],
+  ['detox', '/images/te-detox.jpg'],
+]
+
 const productSize = (p: Product) =>
   /Grande/i.test(p.name) ? 'grande' : /Median/i.test(p.name) ? 'mediano' : 'chico'
 
 /** foto del producto según su línea (Chocolate tiene foto por tamaño) */
 export function productPhoto(p: Product): string | undefined {
   switch (productLine(p)) {
+    case 'nogada': return '/images/nogada.jpg'
     case 'uvas': return '/images/uvas.jpg'
+    case 'mix': return '/images/mix.jpg'
     case 'brulee': return '/images/brulee.jpg'
     case 'chocolate': return `/images/chocolate-${productSize(p)}.jpg`
     case 'balance': return '/images/balance.jpg'
     case 'clasica': return productSize(p) === 'grande' ? '/images/clasica-grande.jpg' : '/images/clasica.jpg'
+    case 'waffle': return '/images/waffle.jpg'
+    case 'bebidas': {
+      const n = strip(p.name)
+      if (n.startsWith('agua')) return '/images/agua.jpg'
+      return teaPhotos.find(([k]) => n.includes(k))?.[1]
+    }
+    case 'despensa': {
+      const n = strip(p.name)
+      if (n.startsWith('pepita')) return '/images/pepitas.jpg'
+      if (!n.startsWith('miel')) return undefined
+      return n.includes('500') ? '/images/miel-500.jpg' : '/images/miel-70.jpg'
+    }
     default: return undefined
   }
 }

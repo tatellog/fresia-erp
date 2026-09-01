@@ -9,11 +9,16 @@ import { ProductRow } from '../features/productos/ProductRow'
 import { ProductFormSheet } from '../features/productos/ProductFormSheet'
 
 const lineDefs: { key: string; title: string; dot: string }[] = [
+  { key: 'nogada', title: 'Frésia en Nogada · del mes', dot: 'var(--line-nogada)' },
   { key: 'clasica', title: 'Frésia Clásica', dot: 'var(--color-berry-500)' },
-  { key: 'uvas', title: 'Uvas con Crema', dot: 'var(--line-uva)' },
+  { key: 'uvas', title: 'Uvas', dot: 'var(--line-uva)' },
+  { key: 'mix', title: 'Mix Frésia', dot: 'var(--line-mix)' },
   { key: 'balance', title: 'Frésia Balance', dot: 'var(--line-olive)' },
   { key: 'chocolate', title: 'Frésia Chocolate', dot: 'var(--line-choco)' },
   { key: 'brulee', title: 'Frèsia Brûlée', dot: 'var(--line-brulee)' },
+  { key: 'waffle', title: 'Waffle Frésia', dot: 'var(--line-waffle)' },
+  { key: 'bebidas', title: 'Bebidas', dot: 'var(--line-te)' },
+  { key: 'despensa', title: 'Despensa', dot: 'var(--line-miel)' },
   { key: 'otros', title: 'Otros', dot: 'var(--color-blush)' },
 ]
 
@@ -52,7 +57,7 @@ export default function Productos() {
             <span className="h-2 w-2 rounded-full" style={{ background: sec.dot }} />
             {sec.title}
             <span className="text-xs font-normal text-berry-700/45">
-              {sec.items.length} {sec.items.length === 1 ? 'tamaño' : 'tamaños'}
+              {sec.items.length} {sec.key === 'bebidas' || sec.key === 'despensa' ? (sec.items.length === 1 ? 'producto' : 'productos') : (sec.items.length === 1 ? 'tamaño' : 'tamaños')}
             </span>
           </h2>
           <div className="space-y-2">

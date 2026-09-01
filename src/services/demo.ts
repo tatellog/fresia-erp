@@ -3,7 +3,7 @@ import { uid } from '../data/ids'
 import type { Employee, Expense, Ingredient, Payment, Product, Sale, SaleItem } from '../data/types'
 import { round2, startOfDay } from '../lib/format'
 import { productCost } from './costing'
-import { toppingsCharge } from './sales'
+import { includedToppings, toppingsCharge } from './sales'
 
 /** generador determinista para que la demo sea reproducible */
 function rng(seed: number) {
@@ -94,7 +94,7 @@ export async function loadDemoData() {
           const tCost = toppings.reduce((sum, t) => sum + t.cost * (t.portion ?? 0), 0)
           items.push({
             productId: p.id, name: p.name, qty: 1,
-            price: round2(p.price + toppingsCharge(toppings)),
+            price: round2(p.price + toppingsCharge(toppings, includedToppings(p))),
             cost: round2(productCost(p, ingMap) + tCost),
             toppings: toppings.length ? toppings.map(t => t.name) : undefined,
           })

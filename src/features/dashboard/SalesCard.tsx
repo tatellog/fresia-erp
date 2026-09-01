@@ -2,11 +2,16 @@ import type { LineShare } from '../../services/analytics'
 import { money } from '../../lib/format'
 
 const colors: Record<LineShare['line'], string> = {
+  'Del mes': 'var(--line-nogada)',
   'Clásica': 'var(--color-berry-500)',
   'Uvas': 'var(--line-uva)',
+  'Mix': 'var(--line-mix)',
   'Balance': 'var(--line-olive)',
   'Chocolate': 'var(--line-choco)',
   'Brûlée': 'var(--line-brulee)',
+  'Waffle': 'var(--line-waffle)',
+  'Bebidas': 'var(--line-te)',
+  'Despensa': 'var(--line-miel)',
 }
 
 /** ventas por línea con porcentaje y barra horizontal */

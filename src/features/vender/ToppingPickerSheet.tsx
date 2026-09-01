@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
 import type { Ingredient, Product } from '../../data/types'
-import { EXTRA_TOPPING_PRICE, INCLUDED_TOPPINGS, toppingsCharge } from '../../services/sales'
+import { EXTRA_TOPPING_PRICE, includedToppings, toppingsCharge } from '../../services/sales'
 import { productLine } from '../../services/catalog'
 import { toppingPhoto } from '../../services/photos'
 import { money, round2 } from '../../lib/format'
@@ -92,6 +92,7 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
     [product.toppingGroup],
   )
   const line = productLine(product)
+  const included = includedToppings(product)
   const extrasDisponibles = useLiveQuery(
     () => db.products.filter(p => p.active && !!line && (p.extraScope ?? []).includes(line)).toArray(),
     [line],
@@ -108,7 +109,7 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
 
   /** cada toque suma una porción mientras queden espacios incluidos */
   const masIncluido = (t: Ingredient) => {
-    if (incluidosCount >= INCLUDED_TOPPINGS) return
+    if (incluidosCount >= included) return
     const next = new Map(incluidos)
     next.set(t.id, { t, qty: (next.get(t.id)?.qty ?? 0) + 1 })
     setIncluidos(next)
@@ -150,23 +151,23 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
     ...[...incluidos.values()].flatMap(({ t, qty }) => Array.from({ length: qty }, () => t)),
     ...[...extraTops.values()].flatMap(({ t, qty }) => Array.from({ length: qty }, () => t)),
   ]
-  const toppingsTotal = toppingsCharge(chosen)
-  const extraToppings = Math.max(0, chosen.filter(t => !t.premiumPrice).length - INCLUDED_TOPPINGS)
+  const toppingsTotal = toppingsCharge(chosen, included)
+  const extraToppings = Math.max(0, chosen.filter(t => !t.premiumPrice).length - included)
   const premiumCount = chosen.filter(t => t.premiumPrice).length
   const premiumTotal = chosen.reduce((s, t) => s + (t.premiumPrice ?? 0), 0)
   const extrasTotal = [...extras.values()].reduce((s, e) => s + e.price, 0)
   const price = round2(product.price + toppingsTotal + extrasTotal)
   const ordered = [...toppings].sort((a, b) => a.name.localeCompare(b.name))
-  const llenos = incluidosCount >= INCLUDED_TOPPINGS
+  const llenos = incluidosCount >= included
 
   return (
     <Sheet open onClose={onClose} title={product.name}>
       <div className="mb-2 flex items-baseline justify-between">
         <p className="text-sm font-medium text-berry-700">
-          Tus {INCLUDED_TOPPINGS} toppings incluidos <span className="font-normal text-berry-700/60">· toca de nuevo para doble</span>
+          {included === 1 ? 'Tu topping incluido' : `Tus ${included} toppings incluidos`} <span className="font-normal text-berry-700/60">· toca de nuevo para doble</span>
         </p>
         <span className={`text-xs font-bold tabular-nums ${llenos ? 'text-emerald-700' : 'text-berry-700/50'}`}>
-          {incluidosCount}/{INCLUDED_TOPPINGS}
+          {incluidosCount}/{included}
         </span>
       </div>
       <div className="mb-5 grid grid-cols-3 gap-2.5 sm:grid-cols-4">

@@ -12,6 +12,11 @@ export function productLine(p: Product): Line | undefined {
   if (p.extraScope?.length) return undefined
   const n = p.name.toLowerCase()
   if (n.includes('brûlée') || n.includes('brulee')) return 'brulee'
+  if (n.includes('nogada')) return 'nogada'
+  if (n.startsWith('mix')) return 'mix'
+  if (n.startsWith('waffle')) return 'waffle'
+  if (/^t[eé]\b/.test(n) || n.startsWith('agua')) return 'bebidas'
+  if (n.startsWith('miel') || n.startsWith('pepita')) return 'despensa'
   if (n.startsWith('uvas')) return 'uvas'
   if (n.startsWith('balance')) return 'balance'
   if (n.startsWith('chocolate')) return 'chocolate'

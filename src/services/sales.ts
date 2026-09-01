@@ -15,11 +15,14 @@ export const EXTRA_TOPPING_PRICE = 18
  * cobran su precio y no gastan un incluido; del resto, 2 van incluidos
  * y los adicionales se cobran a EXTRA_TOPPING_PRICE.
  */
-export function toppingsCharge(toppings: Ingredient[]): number {
+export function toppingsCharge(toppings: Ingredient[], included = INCLUDED_TOPPINGS): number {
   const premium = toppings.reduce((s, t) => s + (t.premiumPrice ?? 0), 0)
   const normales = toppings.filter(t => !t.premiumPrice).length
-  return premium + Math.max(0, normales - INCLUDED_TOPPINGS) * EXTRA_TOPPING_PRICE
+  return premium + Math.max(0, normales - included) * EXTRA_TOPPING_PRICE
 }
+
+/** toppings incluidos en el precio de un producto */
+export const includedToppings = (p: Product) => p.includedToppings ?? INCLUDED_TOPPINGS
 
 export interface CartLine {
   product: Product
@@ -33,7 +36,7 @@ export interface CartLine {
 /** precio unitario cobrado: base + cargo de toppings + extras */
 export function lineUnitPrice(line: CartLine): number {
   const extrasTotal = line.extras.reduce((s, e) => s + e.price, 0)
-  return round2(line.product.price + toppingsCharge(line.toppings) + extrasTotal)
+  return round2(line.product.price + toppingsCharge(line.toppings, includedToppings(line.product)) + extrasTotal)
 }
 
 /** costo unitario de insumos: receta base + porciones de toppings + recetas de extras */

@@ -30,20 +30,33 @@ export function profit(sales: Sale[]): { income: number; cost: number; profit: n
 }
 
 export interface LineShare {
-  line: 'Clásica' | 'Uvas' | 'Balance' | 'Chocolate' | 'Brûlée'
+  line: 'Del mes' | 'Clásica' | 'Uvas' | 'Mix' | 'Balance' | 'Chocolate' | 'Brûlée' | 'Waffle' | 'Bebidas' | 'Despensa'
   total: number
   pct: number
 }
 
 export function salesByLine(sales: Sale[]): LineShare[] {
-  const acc = new Map<LineShare['line'], number>([['Clásica', 0], ['Uvas', 0], ['Balance', 0], ['Chocolate', 0], ['Brûlée', 0]])
+  const acc = new Map<LineShare['line'], number>(
+    (['Del mes', 'Clásica', 'Uvas', 'Mix', 'Balance', 'Chocolate', 'Brûlée', 'Waffle', 'Bebidas', 'Despensa'] as const).map(l => [l, 0]),
+  )
+  /** línea comercial por el nombre del renglón vendido (los nombres viejos siguen contando) */
+  const lineOf = (name: string): LineShare['line'] | undefined => {
+    if (name.includes('Nogada')) return 'Del mes'
+    if (name.startsWith('Clásica')) return 'Clásica'
+    if (name.startsWith('Uvas')) return 'Uvas'
+    if (name.startsWith('Mix')) return 'Mix'
+    if (name.startsWith('Balance')) return 'Balance'
+    if (name.startsWith('Chocolate ·')) return 'Chocolate'
+    if (name.startsWith('Frèsia Brûlée')) return 'Brûlée'
+    if (name.startsWith('Waffle')) return 'Waffle'
+    if (/^Té\b/.test(name) || name.startsWith('Agua')) return 'Bebidas'
+    if (name.startsWith('Miel') || name.startsWith('Pepitas')) return 'Despensa'
+    return undefined
+  }
   for (const s of sales)
     for (const i of s.items) {
-      if (i.name.startsWith('Clásica')) acc.set('Clásica', acc.get('Clásica')! + i.price * i.qty)
-      else if (i.name.startsWith('Uvas')) acc.set('Uvas', acc.get('Uvas')! + i.price * i.qty)
-      else if (i.name.startsWith('Balance')) acc.set('Balance', acc.get('Balance')! + i.price * i.qty)
-      else if (i.name.startsWith('Chocolate ·')) acc.set('Chocolate', acc.get('Chocolate')! + i.price * i.qty)
-      else if (i.name.startsWith('Frèsia Brûlée')) acc.set('Brûlée', acc.get('Brûlée')! + i.price * i.qty)
+      const line = lineOf(i.name)
+      if (line) acc.set(line, acc.get(line)! + i.price * i.qty)
     }
   const sum = [...acc.values()].reduce((a, b) => a + b, 0)
   return [...acc.entries()].map(([line, total]) => ({

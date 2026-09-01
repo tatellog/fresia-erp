@@ -5,7 +5,12 @@ export type Payment = 'efectivo' | 'tarjeta' | 'transferencia' | 'rappi' | 'uber
 /** conjunto de toppings elegibles (desde el menú v3 la lista es única: todos llevan ambos grupos) */
 export type ToppingGroup = 'clasica' | 'balance'
 /** líneas de producto del menú */
-export type Line = 'clasica' | 'chocolate' | 'balance' | 'brulee' | 'uvas'
+export type Line =
+  | 'clasica' | 'chocolate' | 'balance' | 'brulee' | 'uvas' | 'mix'
+  | 'nogada'   // Frésia del mes (edición limitada)
+  | 'waffle'
+  | 'bebidas'  // tés y agua
+  | 'despensa' // miel y pepitas
 
 export interface Ingredient {
   id: string
@@ -41,6 +46,8 @@ export interface Product {
   sort: number
   /** si el producto lleva toppings elegibles, de qué grupo se ofrecen */
   toppingGroup?: ToppingGroup
+  /** toppings incluidos en el precio; ausente = INCLUDED_TOPPINGS (la Nogada incluye 1: la nuez ocupa el otro) */
+  includedToppings?: number
   /** línea del menú a la que pertenece (vasos) */
   line?: Line
   /** si es un extra, en qué líneas se ofrece dentro del armado del vaso */
