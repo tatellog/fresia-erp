@@ -11,7 +11,7 @@ export function Sheet({ open, onClose, title, children }: {
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative max-h-[88dvh] overflow-y-auto rounded-t-3xl bg-cream-50 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl">
+      <div className="relative mx-auto w-full max-h-[88dvh] overflow-y-auto rounded-t-3xl bg-cream-50 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl lg:mb-6 lg:max-w-3xl lg:rounded-3xl lg:p-7">
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-berry-200" />
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">{title}</h2>

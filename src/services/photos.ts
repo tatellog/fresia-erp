@@ -7,7 +7,7 @@ import { productLine } from './catalog'
  * venga de una versión anterior o el nombre se edite ligeramente.
  */
 
-const strip = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+export const strip = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
 const toppingPhotos: [keyword: string, src: string][] = [
   ['cajeta', '/images/topping-cajeta.jpg'],
