@@ -144,8 +144,8 @@ export async function seed() {
   })
 
   const clasicaPrices = [95, 115, 135]
-  const uvasPrices = [105, 125, 145]
-  const mixPrices = [115, 135, 155]
+  const uvasPrices = clasicaPrices
+  const mixPrices = clasicaPrices
   const balancePrices = [105, 125, 145]
   const chocoPrices = [115, 135, 155]
   /** Frèsia Brûlée: solo Mediano y Grande, caramelizada al momento, 2 toppings incluidos */

@@ -22,8 +22,8 @@ describe('catálogo (menú v4)', () => {
     const esperado: [string, number][] = [
       ['Frésia en Nogada · Mediano 16 oz', 145], ['Frésia en Nogada · Grande 20 oz', 165],
       ['Clásica · Chico 12 oz', 95], ['Clásica · Mediano 16 oz', 115], ['Clásica · Grande 20 oz', 135],
-      ['Uvas · Chico 12 oz', 105], ['Uvas · Mediano 16 oz', 125], ['Uvas · Grande 20 oz', 145],
-      ['Mix Frésia · Chico 12 oz', 115], ['Mix Frésia · Mediano 16 oz', 135], ['Mix Frésia · Grande 20 oz', 155],
+      ['Uvas · Chico 12 oz', 95], ['Uvas · Mediano 16 oz', 115], ['Uvas · Grande 20 oz', 135],
+      ['Mix Frésia · Chico 12 oz', 95], ['Mix Frésia · Mediano 16 oz', 115], ['Mix Frésia · Grande 20 oz', 135],
       ['Balance · Chico 12 oz', 105], ['Balance · Mediano 16 oz', 125], ['Balance · Grande 20 oz', 145],
       ['Chocolate · Chico 12 oz', 115], ['Chocolate · Mediano 16 oz', 135], ['Chocolate · Grande 20 oz', 155],
       ['Frèsia Brûlée · Mediano 16 oz', 135], ['Frèsia Brûlée · Grande 20 oz', 155],
