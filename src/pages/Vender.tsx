@@ -224,7 +224,7 @@ export default function Vender() {
             )}
           </div>
           {cart.length === 0 ? (
-            <p className="py-10 text-center font-display text-lg italic text-berry-700/45">Para ti, bombón.</p>
+            <p className="py-10 text-center font-display text-lg italic text-berry-700/45">Para mi bombón.</p>
           ) : (
             <>
               <CartLines lines={cart} setQty={setQty} />
@@ -287,7 +287,7 @@ export default function Vender() {
               No se imprimió el ticket: {done.ticketError}
             </div>
           )}
-          <div className="mt-1 font-display text-sm italic text-berry-700/45">Para ti, bombón.</div>
+          <div className="mt-1 font-display text-sm italic text-berry-700/45">Para mi bombón.</div>
           <button
             onClick={deshacer}
             className="mt-3 rounded-full border border-cream-300 px-4 py-1.5 text-sm font-semibold text-berry-700 active:bg-cream-100"
