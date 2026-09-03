@@ -77,8 +77,10 @@ export function TerminalCard() {
       for (let i = 0; i < 4; i++) {
         await new Promise(r => setTimeout(r, 4000))
         const s = await printStatus(actionId)
-        if (s.status === 'processed' || s.status === 'finished') {
-          setStatus('✓ Impreso: la terminal confirmó el ticket')
+        // Mercado Pago solo reporta created / on_terminal / canceled: que la
+        // terminal la haya tomado es lo más lejos que llega la confirmación
+        if (s.status === 'on_terminal' || s.status === 'processed' || s.status === 'finished') {
+          setStatus('✓ La terminal recibió el ticket. Si no salió papel, revisa el rollo de la impresora')
           setBusy(false)
           return
         }
@@ -89,7 +91,7 @@ export function TerminalCard() {
         }
         setStatus(`Estado en Mercado Pago: ${s.status}${s.detail ? ` · ${s.detail}` : ''}…`)
       }
-      setStatus('La orden quedó pendiente en Mercado Pago: revisa que la Point esté prendida, con internet y en modo PDV')
+      setStatus('El ticket sigue en «created»: la Point no lo recogió. Revisa que esté prendida, con internet y en modo PDV')
     } catch (e) {
       setStatus(`✗ ${e instanceof Error ? e.message : e}`)
     }
