@@ -61,6 +61,8 @@ export default function Vender() {
   /** cobro en curso en la terminal Mercado Pago */
   const [terminal, setTerminal] = useState<{ msg: string; error?: boolean; orderId?: string } | null>(null)
   const terminalOrder = useRef<string | null>(null)
+  /** temporizador que esconde la confirmación de venta */
+  const ocultarDone = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const mpTerminalId = useLiveQuery(async () => (await db.meta.get('mpTerminalId'))?.value)
 
@@ -112,7 +114,8 @@ export default function Vender() {
     setPaying(false)
     setPaid(null)
     setDone({ total: t, saleId, change })
-    setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), change ? 12000 : 6000)
+    if (ocultarDone.current) clearTimeout(ocultarDone.current)
+    ocultarDone.current = setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), change ? 12000 : 6000)
     void imprimirTicket(lines, t, pagoRecibido, change, saleId)
   }
 
@@ -131,11 +134,24 @@ export default function Vender() {
       const content = await renderTicket({
         lines, total: t, payment, paid: pagoRecibido, change, attendant, ts: Date.now(),
       })
-      await printTicket(content, `ticket-${saleId}`)
+      // recién cobrado la Point sigue ocupada con su propio comprobante y
+      // rechaza la impresión: se reintenta un par de veces antes de rendirse
+      for (let intento = 1; ; intento++) {
+        try {
+          await printTicket(content, `ticket-${saleId}-${intento}`)
+          return
+        } catch (e) {
+          if (intento === 3) throw e
+          await new Promise(r => setTimeout(r, 4000))
+        }
+      }
     } catch (e) {
       // sin ticket no pasa nada: la venta ya quedó registrada y la fila sigue,
       // pero se avisa en la confirmación para poder revisar la impresora
       const msg = e instanceof Error ? e.message : String(e)
+      // la confirmación dura más para alcanzar a leer el motivo
+      if (ocultarDone.current) clearTimeout(ocultarDone.current)
+      ocultarDone.current = setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), 30000)
       setDone(d => (d?.saleId === saleId ? { ...d, ticketError: msg } : d))
     }
   }
