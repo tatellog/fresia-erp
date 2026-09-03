@@ -116,12 +116,15 @@ export default function Vender() {
     void imprimirTicket(lines, t, pagoRecibido, change, saleId)
   }
 
-  /** apps de delivery: el cliente no está presente y la plataforma trae su propio ticket */
-  const esDelivery = (p: Payment) => p === 'rappi' || p === 'didi' || p === 'uber'
+  /**
+   * Ventas que no llevan ticket impreso: en efectivo no se pide, y en las apps
+   * de delivery el cliente no está presente y la plataforma trae el suyo.
+   */
+  const sinTicket = (p: Payment) => p === 'efectivo' || p === 'rappi' || p === 'didi' || p === 'uber'
 
   /** imprime el ticket en la Point vinculada; nunca frena ni deshace la venta */
   const imprimirTicket = async (lines: CartLine[], t: number, pagoRecibido: number | undefined, change: number | undefined, saleId: string) => {
-    if (!mpTerminalId || !navigator.onLine || esDelivery(payment)) return
+    if (!mpTerminalId || !navigator.onLine || sinTicket(payment)) return
     try {
       const activeId = (await db.meta.get('activeEmployeeId'))?.value
       const attendant = activeId ? (await db.employees.get(activeId))?.name : undefined
