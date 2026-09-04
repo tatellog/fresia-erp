@@ -43,8 +43,9 @@ const teaPhotos: [keyword: string, src: string][] = [
 const productSize = (p: Product) =>
   /Grande/i.test(p.name) ? 'grande' : /Median/i.test(p.name) ? 'mediano' : 'chico'
 
-/** foto del producto según su línea (Choco Crema tiene foto por tamaño) */
+/** foto del producto: la subida por la usuaria o, si no hay, la del menú según su línea */
 export function productPhoto(p: Product): string | undefined {
+  if (p.photo) return p.photo
   switch (productLine(p)) {
     case 'nogada': return '/images/nogada.jpg'
     case 'uvas': return '/images/uvas.jpg'

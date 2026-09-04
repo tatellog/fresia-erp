@@ -1,6 +1,7 @@
 import { db } from '../../data/db'
 import { DOMAIN_TABLES, type SyncTable } from '../../data/types'
 import { SEED_VERSION } from '../../data/init'
+import { ensureToppingLists } from '../toppingLists'
 import { supabase } from './client'
 import { toCloud } from './mapping'
 import { getBranch } from './settings'
@@ -12,9 +13,10 @@ const ts = (v: unknown) => (typeof v === 'string' ? new Date(v).getTime() : unde
 /** forma local (camelCase) de cada fila que llega de Postgres; inverso de `toCloud` */
 export const fromCloud: Record<SyncTable, (r: CloudRow) => Record<string, unknown>> = {
   ingredients: r => ({ id: r.id, name: r.name, unit: r.unit, stock: r.stock, cost: r.cost, minStock: r.min_stock, toppingGroups: r.topping_groups ?? undefined, portion: r.portion ?? undefined, premiumPrice: r.premium_price ?? undefined }),
-  products: r => ({ id: r.id, name: r.name, emoji: r.emoji, price: r.price, recipe: r.recipe, active: r.active, sort: r.sort, toppingGroup: r.topping_group ?? undefined, includedToppings: r.included_toppings ?? undefined, freePremium: r.free_premium ?? undefined, line: r.line ?? undefined, extraScope: r.extra_scope ?? undefined }),
+  products: r => ({ id: r.id, name: r.name, emoji: r.emoji, price: r.price, recipe: r.recipe, active: r.active, sort: r.sort, toppingGroup: r.topping_group ?? undefined, includedToppings: r.included_toppings ?? undefined, freePremium: r.free_premium ?? undefined, line: r.line ?? undefined, extraScope: r.extra_scope ?? undefined, photo: r.photo ?? undefined }),
   sales: r => ({ id: r.id, ts: ts(r.ts), items: r.items, total: r.total, cost: r.cost, payment: r.payment, sessionId: r.session_id ?? undefined, employeeName: r.employee ?? undefined }),
   employees: r => ({ id: r.id, name: r.name, active: r.active, pin: '' }),
+  toppingLists: r => ({ id: r.id, name: r.name, sort: r.sort }),
   investments: r => ({ id: r.id, ts: ts(r.ts), concept: r.concept, amount: r.amount, paidBy: r.paid_by ?? '', pending: r.pending }),
   purchases: r => ({ id: r.id, ts: ts(r.ts), ingredientId: r.ingredient_id, ingredientName: r.ingredient_name, qty: r.qty, totalCost: r.total_cost, note: r.note ?? undefined }),
   wastes: r => ({ id: r.id, ts: ts(r.ts), ingredientId: r.ingredient_id, ingredientName: r.ingredient_name, qty: r.qty, reason: r.reason }),
@@ -67,5 +69,7 @@ export async function restoreFromCloud(): Promise<{ restored: number; error?: st
     await db.meta.put({ key: 'seedVersion', value: SEED_VERSION })
     await db.meta.put({ key: 'lastSyncAt', value: String(Date.now()) })
   })
+  // nubes anteriores a las listas editables no traen ninguna: dejar las originales
+  await ensureToppingLists()
   return { restored }
 }

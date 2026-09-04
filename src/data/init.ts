@@ -4,6 +4,7 @@ import { migrateFromV1 } from './migrate'
 import { seed } from './seed'
 import { deleteProduct, productLine, saveProduct } from '../services/catalog'
 import { INITIAL_INVESTMENTS } from '../services/investments'
+import { ensureToppingLists } from '../services/toppingLists'
 
 /** versión del catálogo sembrado; subirla reemplaza catálogos viejos sin movimientos */
 export const SEED_VERSION = '15'
@@ -52,6 +53,9 @@ export async function initDb() {
     else if ((await db.products.count()) === 0) await seed()
     await db.meta.put({ key: 'initialized', value: '1' })
   }
+
+  // las listas de toppings son editables desde el menú; las dos originales siempre existen
+  await ensureToppingLists()
 
   // los combos salieron del menú: limpiar catálogos viejos que aún los tengan
   const combos = await db.products.filter(p => /combo/i.test(p.name)).toArray()

@@ -26,6 +26,11 @@ describe('sync: mapeo ida y vuelta', () => {
     expect(roundTrip('products', prod as never)).toMatchObject(prod)
   })
 
+  it('conserva listas de toppings', () => {
+    const list = { id: 'frutas', name: 'Frutas', sort: 3 }
+    expect(roundTrip('toppingLists', list)).toMatchObject(list)
+  })
+
   it('conserva cortes de caja con cierre', () => {
     const cs: CashSession = { id: 'c1', openTs: 1700000000000, closeTs: 1700003600000, openAmount: 500, closeAmount: 2350, expected: 2400, employeeName: 'Ana', note: 'faltaron 50' }
     expect(roundTrip('cashSessions', cs as never)).toMatchObject(cs)

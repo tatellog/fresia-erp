@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type {
-  CashSession, Employee, Expense, Ingredient, Investment, MetaEntry, OutboxEntry, Product, Purchase, Sale, Waste,
+  CashSession, Employee, Expense, Ingredient, Investment, MetaEntry, OutboxEntry, Product, Purchase, Sale, ToppingList, Waste,
 } from './types'
 
 /** instancia única de la base local (IndexedDB) */
@@ -14,6 +14,7 @@ export const db = new Dexie('fresia2') as Dexie & {
   cashSessions: EntityTable<CashSession, 'id'>
   employees: EntityTable<Employee, 'id'>
   investments: EntityTable<Investment, 'id'>
+  toppingLists: EntityTable<ToppingList, 'id'>
   outbox: EntityTable<OutboxEntry, 'seq'>
   meta: EntityTable<MetaEntry, 'key'>
 }
@@ -36,4 +37,8 @@ db.version(2).stores({
 
 db.version(3).stores({
   investments: 'id, ts',
+})
+
+db.version(4).stores({
+  toppingLists: 'id, name, sort',
 })

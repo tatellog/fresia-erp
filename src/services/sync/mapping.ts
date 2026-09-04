@@ -12,7 +12,7 @@ export const toCloud: Record<SyncTable, { table: string; map: (r: CloudRow, bran
   },
   products: {
     table: 'products',
-    map: (r, branch) => ({ id: r.id, name: r.name, emoji: r.emoji, price: r.price, recipe: r.recipe, active: r.active, sort: r.sort, topping_group: r.toppingGroup ?? null, included_toppings: r.includedToppings ?? null, free_premium: r.freePremium ?? null, line: r.line ?? null, extra_scope: r.extraScope ?? null, branch, updated_at: new Date().toISOString() }),
+    map: (r, branch) => ({ id: r.id, name: r.name, emoji: r.emoji, price: r.price, recipe: r.recipe, active: r.active, sort: r.sort, topping_group: r.toppingGroup ?? null, included_toppings: r.includedToppings ?? null, free_premium: r.freePremium ?? null, line: r.line ?? null, extra_scope: r.extraScope ?? null, photo: r.photo ?? null, branch, updated_at: new Date().toISOString() }),
   },
   sales: {
     table: 'sales',
@@ -21,6 +21,10 @@ export const toCloud: Record<SyncTable, { table: string; map: (r: CloudRow, bran
   employees: {
     table: 'employees',
     map: (r, branch) => ({ id: r.id, name: r.name, active: r.active, branch, updated_at: new Date().toISOString() }),
+  },
+  toppingLists: {
+    table: 'topping_lists',
+    map: (r, branch) => ({ id: r.id, name: r.name, sort: r.sort, branch, updated_at: new Date().toISOString() }),
   },
   investments: {
     table: 'investments',

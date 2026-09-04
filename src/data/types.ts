@@ -2,8 +2,15 @@
 
 export type Unit = 'g' | 'ml' | 'pza'
 export type Payment = 'efectivo' | 'tarjeta' | 'transferencia' | 'rappi' | 'uber' | 'didi'
-/** conjunto de toppings elegibles (desde el menú v3 la lista es única: todos llevan ambos grupos) */
-export type ToppingGroup = 'clasica' | 'balance'
+/** id de una lista de toppings elegibles (ver ToppingList); 'clasica' y 'balance' son las originales */
+export type ToppingGroup = string
+
+/** lista de toppings que se le ofrece al cliente al vender un producto */
+export interface ToppingList {
+  id: ToppingGroup
+  name: string
+  sort: number
+}
 /** líneas de producto del menú */
 export type Line =
   | 'clasica' | 'chocolate' | 'balance' | 'brulee' | 'uvas' | 'mix'
@@ -22,7 +29,7 @@ export interface Ingredient {
   cost: number
   /** alerta de stock mínimo */
   minStock: number
-  /** si es topping elegible en el POS, en qué líneas aparece */
+  /** si es topping elegible en el POS, en qué listas aparece */
   toppingGroups?: ToppingGroup[]
   /** porción que consume una selección de topping, en `unit` */
   portion?: number
@@ -44,7 +51,7 @@ export interface Product {
   recipe: RecipeItem[]
   active: boolean
   sort: number
-  /** si el producto lleva toppings elegibles, de qué grupo se ofrecen */
+  /** si el producto lleva toppings elegibles, de qué lista escoge el cliente */
   toppingGroup?: ToppingGroup
   /** toppings incluidos en el precio; ausente = INCLUDED_TOPPINGS (la Nogada incluye 1: la nuez ocupa el otro) */
   includedToppings?: number
@@ -54,6 +61,8 @@ export interface Product {
   line?: Line
   /** si es un extra, en qué líneas se ofrece dentro del armado del vaso */
   extraScope?: Line[]
+  /** foto subida desde el formulario (data URL JPEG cuadrado); si falta se usa la del menú */
+  photo?: string
 }
 
 export interface SaleItem {
@@ -152,9 +161,10 @@ export interface Investment {
 /** tablas del dominio que se sincronizan con la nube */
 export type SyncTable =
   | 'ingredients' | 'products' | 'sales' | 'purchases' | 'wastes' | 'expenses' | 'cashSessions' | 'employees' | 'investments'
+  | 'toppingLists'
 
 export const DOMAIN_TABLES: SyncTable[] = [
-  'ingredients', 'products', 'sales', 'purchases', 'wastes', 'expenses', 'cashSessions', 'employees', 'investments',
+  'ingredients', 'products', 'sales', 'purchases', 'wastes', 'expenses', 'cashSessions', 'employees', 'investments', 'toppingLists',
 ]
 
 /** cola de cambios pendientes de subir a Supabase */
