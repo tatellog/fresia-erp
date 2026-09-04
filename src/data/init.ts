@@ -6,7 +6,7 @@ import { deleteProduct, productLine, saveProduct } from '../services/catalog'
 import { INITIAL_INVESTMENTS } from '../services/investments'
 
 /** versión del catálogo sembrado; subirla reemplaza catálogos viejos sin movimientos */
-export const SEED_VERSION = '13'
+export const SEED_VERSION = '15'
 
 /**
  * Reemplaza menú e insumos por el catálogo oficial vigente, conservando
@@ -60,6 +60,18 @@ export async function initDb() {
   // la Brûlée ahora lleva 2 toppings incluidos: dar el grupo a catálogos viejos
   const brulees = await db.products.filter(p => !p.toppingGroup && productLine(p) === 'brulee').toArray()
   for (const b of brulees) await saveProduct({ ...b, toppingGroup: 'clasica' }, b)
+
+  // el Waffle lleva el Turín y las mermeladas dentro de sus 2 incluidos:
+  // dárselo también a los catálogos que ya estaban en el dispositivo
+  const waffles = await db.products.filter(p => !p.freePremium?.length && productLine(p) === 'waffle').toArray()
+  if (waffles.length) {
+    const libres = (await db.ingredients.filter(i => /tur[ií]n|mermelada/i.test(i.name)).toArray()).map(i => i.id)
+    if (libres.length) for (const w of waffles) await saveProduct({ ...w, freePremium: libres }, w)
+  }
+
+  // la línea de chocolate ahora se llama Choco Crema: renombrar catálogos viejos
+  const chocos = await db.products.filter(p => /^chocolate ·/i.test(p.name)).toArray()
+  for (const c of chocos) await saveProduct({ ...c, name: c.name.replace(/^chocolate ·/i, 'Choco Crema ·') }, c)
 
   // gastos de apertura reales: se cargan una sola vez en cada dispositivo
   if (!(await db.meta.get('investmentsSeeded')) && (await db.investments.count()) === 0) {

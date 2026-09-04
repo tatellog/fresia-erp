@@ -14,7 +14,7 @@ const lineDefs: { key: string; title: string; dot: string }[] = [
   { key: 'uvas', title: 'Uvas', dot: 'var(--line-uva)' },
   { key: 'mix', title: 'Mix Frésia', dot: 'var(--line-mix)' },
   { key: 'balance', title: 'Frésia Balance', dot: 'var(--line-olive)' },
-  { key: 'chocolate', title: 'Frésia Chocolate', dot: 'var(--line-choco)' },
+  { key: 'chocolate', title: 'Frésia Choco Crema', dot: 'var(--line-choco)' },
   { key: 'brulee', title: 'Frèsia Brûlée', dot: 'var(--line-brulee)' },
   { key: 'waffle', title: 'Waffle Frésia', dot: 'var(--line-waffle)' },
   { key: 'bebidas', title: 'Bebidas', dot: 'var(--line-te)' },

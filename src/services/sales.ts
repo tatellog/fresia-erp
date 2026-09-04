@@ -11,13 +11,21 @@ export const INCLUDED_TOPPINGS = 2
 export const EXTRA_TOPPING_PRICE = 18
 
 /**
+ * Cargo premium del topping en un producto: 0 si el producto lo lleva
+ * en su lista de incluidos (el Waffle con Turín y mermeladas).
+ */
+export const toppingPremium = (t: Ingredient, product?: Product) =>
+  product?.freePremium?.includes(t.id) ? 0 : t.premiumPrice ?? 0
+
+/**
  * Cargo por toppings elegidos: los premium (Pistache, Lotus) siempre
  * cobran su precio y no gastan un incluido; del resto, 2 van incluidos
  * y los adicionales se cobran a EXTRA_TOPPING_PRICE.
  */
-export function toppingsCharge(toppings: Ingredient[], included = INCLUDED_TOPPINGS): number {
-  const premium = toppings.reduce((s, t) => s + (t.premiumPrice ?? 0), 0)
-  const normales = toppings.filter(t => !t.premiumPrice).length
+export function toppingsCharge(toppings: Ingredient[], product?: Product): number {
+  const included = product ? includedToppings(product) : INCLUDED_TOPPINGS
+  const premium = toppings.reduce((s, t) => s + toppingPremium(t, product), 0)
+  const normales = toppings.filter(t => !toppingPremium(t, product)).length
   return premium + Math.max(0, normales - included) * EXTRA_TOPPING_PRICE
 }
 
@@ -36,7 +44,7 @@ export interface CartLine {
 /** precio unitario cobrado: base + cargo de toppings + extras */
 export function lineUnitPrice(line: CartLine): number {
   const extrasTotal = line.extras.reduce((s, e) => s + e.price, 0)
-  return round2(line.product.price + toppingsCharge(line.toppings, includedToppings(line.product)) + extrasTotal)
+  return round2(line.product.price + toppingsCharge(line.toppings, line.product) + extrasTotal)
 }
 
 /** costo unitario de insumos: receta base + porciones de toppings + recetas de extras */

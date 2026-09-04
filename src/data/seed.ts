@@ -5,10 +5,11 @@ import type { Ingredient, Line, Product, RecipeItem, ToppingGroup, Unit } from '
 /**
  * Catálogo oficial de Frèsia (menú v4, septiembre 2026): la Frésia del mes
  * (Frésia en Nogada, edición limitada), seis experiencias en vaso (Clásica,
- * Uvas, Mix Frésia, Balance, Chocolate y Frèsia Brûlée), el Waffle Frésia,
+ * Uvas, Mix Frésia, Balance, Choco Crema y Frèsia Brûlée), el Waffle Frésia,
  * bebidas (tés orgánicos y agua) y despensa (miel artesanal y pepitas).
  * Lista única de toppings para todas las líneas: 2 incluidos, adicionales
- * con cargo y premium siempre con cargo. Los costos inician en 0 y se
+ * con cargo y premium siempre con cargo (salvo el Waffle, donde el Turín y
+ * las mermeladas entran en los incluidos). Los costos inician en 0 y se
  * calculan con las compras.
  */
 export async function seed() {
@@ -148,6 +149,8 @@ export async function seed() {
   const mixPrices = clasicaPrices
   const balancePrices = [105, 125, 145]
   const chocoPrices = [115, 135, 155]
+  /** Chocolate Turín: un solo tamaño (Chico 12 oz) */
+  const TURIN_CHICO_PRICE = 135
   /** Frèsia Brûlée: solo Mediano y Grande, caramelizada al momento, 2 toppings incluidos */
   const bruleePrices: Record<string, number> = { Mediano: 135, Grande: 155 }
   /** Frésia del mes (septiembre): Frésia en Nogada, solo Mediano y Grande */
@@ -165,7 +168,11 @@ export async function seed() {
     // Mix Frésia: uva verde + fresa + crema
     ...sizes.map((s, i) => vasoProd('Mix Frésia', 'mix', '🍇', s, mixPrices[i], [r(crema, s.baseMl)], [fresa, uva])),
     ...sizes.map((s, i) => vasoProd('Balance', 'balance', '🌿', s, balancePrices[i], [r(yogurt, s.baseMl)])),
-    ...sizes.map((s, i) => vasoProd('Chocolate', 'chocolate', '🍫', s, chocoPrices[i], [r(crema, s.baseMl), r(chocoTurin, s.chocoG)])),
+    // Choco Crema: chocolate Turín + crema Frèsia + fresas
+    ...sizes.map((s, i) => vasoProd('Choco Crema', 'chocolate', '🍫', s, chocoPrices[i], [r(crema, s.baseMl), r(chocoTurin, s.chocoG)])),
+    // Chocolate Turín: solo Chico, 2 toppings incluidos y los premium siguen con cargo
+    ...sizes.filter(s => s.label === 'Chico').map(s =>
+      vasoProd('Chocolate Turín', 'chocolate', '🍫', s, TURIN_CHICO_PRICE, [r(crema, s.baseMl), r(chocoTurin, s.chocoG)])),
     ...sizes.filter(s => s.label in bruleePrices).map((s): Product => ({
       id: uid(),
       name: `Frèsia Brûlée · ${s.label} ${s.oz}`,
@@ -177,7 +184,8 @@ export async function seed() {
       toppingGroup: 'clasica',
       line: 'brulee',
     })),
-    // ── Waffle Frésia: waffle + crema y 2 toppings incluidos ──
+    // ── Waffle Frésia: waffle + crema y 2 toppings incluidos, donde el
+    //    Turín y las mermeladas van sin cargo (en los vasos son premium) ──
     {
       id: uid(),
       name: 'Waffle Frésia',
@@ -187,6 +195,7 @@ export async function seed() {
       active: true,
       sort: ++sortSeq,
       toppingGroup: 'clasica',
+      freePremium: [chocoTurin.id, mermeladaFresa.id, mermeladaZarzamora.id],
       line: 'waffle',
     },
     // ── Bebidas ──

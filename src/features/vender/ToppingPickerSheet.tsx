@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
 import type { Ingredient, Product } from '../../data/types'
-import { EXTRA_TOPPING_PRICE, includedToppings, toppingsCharge } from '../../services/sales'
+import { EXTRA_TOPPING_PRICE, includedToppings, toppingPremium, toppingsCharge } from '../../services/sales'
 import { productLine } from '../../services/catalog'
 import { toppingPhoto } from '../../services/photos'
 import { money, round2 } from '../../lib/format'
@@ -13,8 +13,10 @@ import { Button, Sheet } from '../../components/ui'
  * tarjeta funciona como contador: cada toque suma una porción (doble
  * cajeta = ×2) y el botón − resta una.
  */
-function ToppingCard({ t, on, label, labelIncluded, disabled, onTap, qty, onMinus }: {
+function ToppingCard({ t, premium, on, label, labelIncluded, disabled, onTap, qty, onMinus }: {
   t: Ingredient
+  /** cargo premium en este producto (0 = va dentro de los incluidos) */
+  premium: number
   on: boolean
   label: string
   labelIncluded?: boolean
@@ -55,7 +57,7 @@ function ToppingCard({ t, on, label, labelIncluded, disabled, onTap, qty, onMinu
           −
         </span>
       )}
-      {!!t.premiumPrice && !on && (
+      {!!premium && !on && (
         <span className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] ${
           photo ? 'bg-black/40 text-amber-300 backdrop-blur-sm' : 'bg-berry-50 text-berry-500'
         }`}>
@@ -151,10 +153,11 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
     ...[...incluidos.values()].flatMap(({ t, qty }) => Array.from({ length: qty }, () => t)),
     ...[...extraTops.values()].flatMap(({ t, qty }) => Array.from({ length: qty }, () => t)),
   ]
-  const toppingsTotal = toppingsCharge(chosen, included)
-  const extraToppings = Math.max(0, chosen.filter(t => !t.premiumPrice).length - included)
-  const premiumCount = chosen.filter(t => t.premiumPrice).length
-  const premiumTotal = chosen.reduce((s, t) => s + (t.premiumPrice ?? 0), 0)
+  const premium = (t: Ingredient) => toppingPremium(t, product)
+  const toppingsTotal = toppingsCharge(chosen, product)
+  const extraToppings = Math.max(0, chosen.filter(t => !premium(t)).length - included)
+  const premiumCount = chosen.filter(t => premium(t)).length
+  const premiumTotal = chosen.reduce((s, t) => s + premium(t), 0)
   const extrasTotal = [...extras.values()].reduce((s, e) => s + e.price, 0)
   const price = round2(product.price + toppingsTotal + extrasTotal)
   const ordered = [...toppings].sort((a, b) => a.name.localeCompare(b.name))
@@ -177,10 +180,11 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
             <ToppingCard
               key={t.id}
               t={t}
+              premium={premium(t)}
               on={qty > 0}
               qty={qty > 1 ? qty : undefined}
-              label={t.premiumPrice ? `+${money(t.premiumPrice)}` : 'Incluido'}
-              labelIncluded={!t.premiumPrice}
+              label={premium(t) ? `+${money(premium(t))}` : 'Incluido'}
+              labelIncluded={!premium(t)}
               disabled={llenos && qty === 0}
               onTap={() => masIncluido(t)}
               onMinus={() => menosIncluido(t)}
@@ -197,7 +201,7 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
           <p className="mb-2 text-sm font-medium text-berry-700">
             Topping extra <span className="font-normal text-berry-700/60">
               · {money(EXTRA_TOPPING_PRICE)} c/u
-              {ordered.some(t => t.premiumPrice) && <>, premium {money(Math.max(...ordered.map(t => t.premiumPrice ?? 0)))}</>}
+              {ordered.some(t => premium(t)) && <>, premium {money(Math.max(...ordered.map(premium)))}</>}
               · toca de nuevo para doble
             </span>
           </p>
@@ -208,9 +212,10 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
                 <ToppingCard
                   key={t.id}
                   t={t}
+                  premium={premium(t)}
                   on={qty > 0}
                   qty={qty > 0 ? qty : undefined}
-                  label={`+${money(t.premiumPrice ?? EXTRA_TOPPING_PRICE)}`}
+                  label={`+${money(premium(t) || EXTRA_TOPPING_PRICE)}`}
                   onTap={() => masExtra(t)}
                   onMinus={() => menosExtra(t)}
                 />

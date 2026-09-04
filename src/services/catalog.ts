@@ -19,7 +19,7 @@ export function productLine(p: Product): Line | undefined {
   if (n.startsWith('miel') || n.startsWith('pepita')) return 'despensa'
   if (n.startsWith('uvas')) return 'uvas'
   if (n.startsWith('balance')) return 'balance'
-  if (n.startsWith('chocolate')) return 'chocolate'
+  if (n.startsWith('choco')) return 'chocolate'   // Choco Crema y Chocolate Turín
   if (n.startsWith('clásica') || n.startsWith('clasica')) return 'clasica'
   if (p.toppingGroup === 'balance') return 'balance'
   if (p.toppingGroup === 'clasica') return 'clasica'

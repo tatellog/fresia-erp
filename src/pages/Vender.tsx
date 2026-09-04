@@ -36,7 +36,7 @@ function sections(products: Product[]): Section[] {
     { key: 'uvas', title: 'Uvas', dot: 'var(--line-uva)', desc: 'Uvas verdes + crema Frèsia. · 2 toppings incluidos' },
     { key: 'mix', title: 'Mix Frésia', dot: 'var(--line-mix)', desc: 'Uvas verdes + fresas + crema Frèsia. · 2 toppings incluidos' },
     { key: 'balance', title: 'Frésia Balance', dot: 'var(--line-olive)', desc: 'Yogurt griego natural + fresas frescas. Fresca y ligera. · 2 toppings incluidos' },
-    { key: 'chocolate', title: 'Frésia Chocolate', dot: 'var(--line-choco)', desc: 'Chocolate Turín + fresas frescas. · 2 toppings incluidos' },
+    { key: 'chocolate', title: 'Frésia Choco Crema', dot: 'var(--line-choco)', desc: 'Chocolate Turín + crema Frèsia + fresas frescas. · 2 toppings incluidos' },
     { key: 'brulee', title: 'Frèsia Brûlée', dot: 'var(--line-brulee)', desc: 'Crema caramelizada al momento con azúcar brûlée, finalizada con soplete. Exclusiva en tienda. · 2 toppings incluidos' },
     { key: 'waffle', title: 'Waffle Frésia', dot: 'var(--line-waffle)', desc: 'Waffle + crema Frèsia. · 2 toppings incluidos' },
     { key: 'bebidas', title: 'Bebidas', dot: 'var(--line-te)', desc: 'Té orgánico: Relajante (manzanilla y flor de manzano), Frutal (frutas y flores), Fresco (menta y hierbas) y Detox (verde, hierbas y cítricos). Agua Santa María.' },

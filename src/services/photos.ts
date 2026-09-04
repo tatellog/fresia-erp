@@ -43,14 +43,17 @@ const teaPhotos: [keyword: string, src: string][] = [
 const productSize = (p: Product) =>
   /Grande/i.test(p.name) ? 'grande' : /Median/i.test(p.name) ? 'mediano' : 'chico'
 
-/** foto del producto según su línea (Chocolate tiene foto por tamaño) */
+/** foto del producto según su línea (Choco Crema tiene foto por tamaño) */
 export function productPhoto(p: Product): string | undefined {
   switch (productLine(p)) {
     case 'nogada': return '/images/nogada.jpg'
     case 'uvas': return '/images/uvas.jpg'
     case 'mix': return '/images/mix.jpg'
     case 'brulee': return '/images/brulee.jpg'
-    case 'chocolate': return `/images/chocolate-${productSize(p)}.jpg`
+    // el Turín va solo con chocolate; la Choco Crema tiene foto por tamaño
+    case 'chocolate': return strip(p.name).includes('turin')
+      ? '/images/chocolate-turin.jpg'
+      : `/images/chocolate-${productSize(p)}.jpg`
     case 'balance': return '/images/balance.jpg'
     case 'clasica': return productSize(p) === 'grande' ? '/images/clasica-grande.jpg' : '/images/clasica.jpg'
     case 'waffle': return '/images/waffle.jpg'

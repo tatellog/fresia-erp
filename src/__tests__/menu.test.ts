@@ -4,6 +4,7 @@ import { db } from '../data/db'
 import { seed } from '../data/seed'
 import type { Ingredient, Product } from '../data/types'
 import { checkout, lineUnitPrice, setSalePayment, voidSale, EXTRA_TOPPING_PRICE, INCLUDED_TOPPINGS } from '../services/sales'
+import { productPhoto } from '../services/photos'
 
 let products: Product[] = []
 let ingredients: Ingredient[] = []
@@ -25,7 +26,8 @@ describe('catálogo (menú v4)', () => {
       ['Uvas · Chico 12 oz', 95], ['Uvas · Mediano 16 oz', 115], ['Uvas · Grande 20 oz', 135],
       ['Mix Frésia · Chico 12 oz', 95], ['Mix Frésia · Mediano 16 oz', 115], ['Mix Frésia · Grande 20 oz', 135],
       ['Balance · Chico 12 oz', 105], ['Balance · Mediano 16 oz', 125], ['Balance · Grande 20 oz', 145],
-      ['Chocolate · Chico 12 oz', 115], ['Chocolate · Mediano 16 oz', 135], ['Chocolate · Grande 20 oz', 155],
+      ['Choco Crema · Chico 12 oz', 115], ['Choco Crema · Mediano 16 oz', 135], ['Choco Crema · Grande 20 oz', 155],
+      ['Chocolate Turín · Chico 12 oz', 135],
       ['Frèsia Brûlée · Mediano 16 oz', 135], ['Frèsia Brûlée · Grande 20 oz', 155],
       ['Waffle Frésia', 99],
       ['Té Relajante', 35], ['Té Frutal', 35], ['Té Fresco', 35], ['Té Detox', 35], ['Agua Santa María (1 L)', 25],
@@ -73,6 +75,41 @@ describe('catálogo (menú v4)', () => {
     expect(w.recipe.some(r => r.ingredientId === ing('Fresa fresca').id)).toBe(false)
   })
 
+  it('el Waffle lleva Turín y mermeladas dentro de sus 2 incluidos; el resto de premium sigue con cargo', () => {
+    const w = prod('Waffle Frésia')
+    const linea = (toppings: Ingredient[]) => ({ product: w, qty: 1, toppings, extras: [] })
+    expect(w.freePremium).toEqual(
+      [ing('Chocolate Turín'), ing('Mermelada de fresa'), ing('Mermelada de zarzamora')].map(i => i.id),
+    )
+    // Turín y mermelada ocupan los 2 incluidos: sin cargo
+    expect(lineUnitPrice(linea([ing('Chocolate Turín'), ing('Mermelada de fresa')]))).toBe(99)
+    // el tercero ya es extra normal, no premium
+    expect(lineUnitPrice(linea([ing('Chocolate Turín'), ing('Mermelada de fresa'), ing('Mermelada de zarzamora')])))
+      .toBe(99 + EXTRA_TOPPING_PRICE)
+    // Pistache y Lotus siguen siendo premium en el Waffle
+    expect(lineUnitPrice(linea([ing('Pistache')]))).toBe(99 + 25)
+    // y en los vasos el Turín sigue cobrándose
+    const vaso = prod('Clásica · Mediano 16 oz')
+    expect(lineUnitPrice({ product: vaso, qty: 1, toppings: [ing('Chocolate Turín')], extras: [] })).toBe(115 + 25)
+  })
+
+  it('Chocolate Turín: un solo tamaño chico con 2 toppings incluidos y premium con cargo', () => {
+    const t = prod('Chocolate Turín · Chico 12 oz')
+    expect(t.line).toBe('chocolate')
+    expect(t.toppingGroup).toBe('clasica')
+    expect(t.includedToppings).toBeUndefined()
+    expect(t.freePremium).toBeUndefined()
+    expect(t.recipe.some(r => r.ingredientId === ing('Chocolate Turín').id)).toBe(true)
+    expect(products.filter(p => p.name.startsWith('Chocolate Turín ·'))).toHaveLength(1)
+    const linea = (toppings: Ingredient[]) => ({ product: t, qty: 1, toppings, extras: [] })
+    expect(lineUnitPrice(linea([ing('Cajeta'), ing('Oreo triturada')]))).toBe(135)
+    expect(lineUnitPrice(linea([ing('Cajeta'), ing('Oreo triturada'), ing('Coco rallado')]))).toBe(135 + EXTRA_TOPPING_PRICE)
+    expect(lineUnitPrice(linea([ing('Chocolate Turín')]))).toBe(135 + 25)
+    // el Turín se ve con el vaso solo de chocolate; la Choco Crema tiene su foto por tamaño
+    expect(productPhoto(t)).toBe('/images/chocolate-turin.jpg')
+    expect(productPhoto(prod('Choco Crema · Chico 12 oz'))).toBe('/images/chocolate-chico.jpg')
+  })
+
   it('bebidas y despensa se venden por pieza, sin toppings', () => {
     for (const name of ['Té Relajante', 'Té Detox', 'Agua Santa María (1 L)', 'Miel artesanal (500 g)', 'Pepitas (70 g)']) {
       const p = prod(name)
@@ -93,7 +130,7 @@ describe('catálogo (menú v4)', () => {
   })
 
   it('la línea Chocolate lleva Chocolate Turín en la receta', () => {
-    const p = prod('Chocolate · Mediano 16 oz')
+    const p = prod('Choco Crema · Mediano 16 oz')
     expect(p.recipe.some(r => r.ingredientId === ing('Chocolate Turín').id)).toBe(true)
   })
 
@@ -115,7 +152,7 @@ describe('catálogo (menú v4)', () => {
 
   it('todo vaso lleva empaque completo: vaso, tapa, cuchara, servilleta y sello', () => {
     const vasos = products.filter(x => x.name.includes('·'))
-    expect(vasos).toHaveLength(19)
+    expect(vasos).toHaveLength(20)
     for (const p of vasos) {
       const nombres = p.recipe.map(r => ingredients.find(i => i.id === r.ingredientId)?.name ?? '')
       expect(nombres.some(n => n.startsWith('Vaso PET')), p.name).toBe(true)

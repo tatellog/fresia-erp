@@ -37,6 +37,15 @@ describe('analítica del dashboard', () => {
     expect(lines.find(l => l.line === 'Brûlée')!.total).toBe(165)
   })
 
+  it('la línea de chocolate junta el nombre viejo, Choco Crema y Chocolate Turín', () => {
+    const chocolates = [
+      venta(hoy, [item('Chocolate · Grande 20 oz', 1, 155)]),
+      venta(hoy, [item('Choco Crema · Chico 12 oz', 1, 115)]),
+      venta(hoy, [item('Chocolate Turín · Chico 12 oz', 1, 135)]),
+    ]
+    expect(salesByLine(chocolates).find(l => l.line === 'Choco Crema')!.total).toBe(155 + 115 + 135)
+  })
+
   it('vasos por tamaño (los del menú viejo cuentan en su equivalente)', () => {
     const m = Object.fromEntries(cupsBySize(ventas).map(x => [x.size, x.count]))
     expect(m).toEqual({ Chico: 1, Mediano: 3, Grande: 2 })

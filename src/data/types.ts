@@ -48,6 +48,8 @@ export interface Product {
   toppingGroup?: ToppingGroup
   /** toppings incluidos en el precio; ausente = INCLUDED_TOPPINGS (la Nogada incluye 1: la nuez ocupa el otro) */
   includedToppings?: number
+  /** ids de toppings premium que en este producto van sin cargo y ocupan un incluido (el Waffle: Turín y mermeladas) */
+  freePremium?: string[]
   /** línea del menú a la que pertenece (vasos) */
   line?: Line
   /** si es un extra, en qué líneas se ofrece dentro del armado del vaso */
