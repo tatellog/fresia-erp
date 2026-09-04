@@ -37,10 +37,13 @@
   --chip-brulee-fg: #a4701d;
   --chip-uva-bg: #e9f2df;
   --chip-uva-fg: #4a7a35;
+  --chip-granada-bg: #fbe1e7;
+  --chip-granada-fg: #9b1c3a;
   --line-choco: #8b5e34;
   --line-olive: #6c8a1e;
   --line-brulee: #c9942e;
   --line-uva: #6aa84f;
+  --line-granada: #b3213f;
   --chip-mix-bg: #fbe7dc;
   --chip-mix-fg: #b5562f;
   --chip-nogada-bg: #f6e0e4;
@@ -107,10 +110,13 @@
   --chip-brulee-fg: #e0b86a;
   --chip-uva-bg: #24301f;
   --chip-uva-fg: #a8cf8e;
+  --chip-granada-bg: #361a22;
+  --chip-granada-fg: #ef8fa4;
   --line-choco: #c39a6e;
   --line-olive: #a5bd62;
   --line-brulee: #d9a94f;
   --line-uva: #8fbf72;
+  --line-granada: #d94b6a;
   --chip-mix-bg: #33241d;
   --chip-mix-fg: #e6a07f;
   --chip-nogada-bg: #33202a;

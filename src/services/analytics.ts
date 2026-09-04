@@ -30,14 +30,14 @@ export function profit(sales: Sale[]): { income: number; cost: number; profit: n
 }
 
 export interface LineShare {
-  line: 'Del mes' | 'Clásica' | 'Uvas' | 'Mix' | 'Balance' | 'Choco Crema' | 'Brûlée' | 'Waffle' | 'Bebidas' | 'Despensa'
+  line: 'Del mes' | 'Clásica' | 'Uvas' | 'Mix' | 'Granada' | 'Balance' | 'Choco Crema' | 'Brûlée' | 'Waffle' | 'Bebidas' | 'Despensa'
   total: number
   pct: number
 }
 
 export function salesByLine(sales: Sale[]): LineShare[] {
   const acc = new Map<LineShare['line'], number>(
-    (['Del mes', 'Clásica', 'Uvas', 'Mix', 'Balance', 'Choco Crema', 'Brûlée', 'Waffle', 'Bebidas', 'Despensa'] as const).map(l => [l, 0]),
+    (['Del mes', 'Clásica', 'Uvas', 'Mix', 'Granada', 'Balance', 'Choco Crema', 'Brûlée', 'Waffle', 'Bebidas', 'Despensa'] as const).map(l => [l, 0]),
   )
   /** línea comercial por el nombre del renglón vendido (los nombres viejos siguen contando) */
   const lineOf = (name: string): LineShare['line'] | undefined => {
@@ -45,6 +45,7 @@ export function salesByLine(sales: Sale[]): LineShare[] {
     if (name.startsWith('Clásica')) return 'Clásica'
     if (name.startsWith('Uvas')) return 'Uvas'
     if (name.startsWith('Mix')) return 'Mix'
+    if (name.startsWith('Granada')) return 'Granada'
     if (name.startsWith('Balance')) return 'Balance'
     if (name.startsWith('Choco')) return 'Choco Crema'   // Chocolate ·, Choco Crema · y Chocolate Turín ·
     if (name.startsWith('Frèsia Brûlée')) return 'Brûlée'

@@ -147,6 +147,7 @@ export async function seed() {
   const clasicaPrices = [95, 115, 135]
   const uvasPrices = clasicaPrices
   const mixPrices = clasicaPrices
+  const granadaPrices = clasicaPrices
   const balancePrices = [105, 125, 145]
   const chocoPrices = [115, 135, 155]
   /** Chocolate Turín: un solo tamaño (Chico 12 oz) */
@@ -167,6 +168,8 @@ export async function seed() {
     ...sizes.map((s, i) => vasoProd('Uvas', 'uvas', '🍇', s, uvasPrices[i], [r(crema, s.baseMl)], [uva])),
     // Mix Frésia: uva verde + fresa + crema
     ...sizes.map((s, i) => vasoProd('Mix Frésia', 'mix', '🍇', s, mixPrices[i], [r(crema, s.baseMl)], [fresa, uva])),
+    // Granada: granada desgranada + crema, mismos precios que la Clásica
+    ...sizes.map((s, i) => vasoProd('Granada', 'granada', '🍓', s, granadaPrices[i], [r(crema, s.baseMl)], [granada])),
     ...sizes.map((s, i) => vasoProd('Balance', 'balance', '🌿', s, balancePrices[i], [r(yogurt, s.baseMl)])),
     // Choco Crema: chocolate Turín + crema Frèsia + fresas
     ...sizes.map((s, i) => vasoProd('Choco Crema', 'chocolate', '🍫', s, chocoPrices[i], [r(crema, s.baseMl), r(chocoTurin, s.chocoG)])),

@@ -23,6 +23,7 @@ const accents: Record<string, { chip: string; bar: string; cup: string }> = {
   balance: { chip: 'bg-[var(--chip-leaf-bg)] text-[var(--chip-leaf-fg)]', bar: 'var(--line-olive)', cup: 'text-[var(--chip-leaf-fg)]' },
   brulee: { chip: 'bg-[var(--chip-brulee-bg)] text-[var(--chip-brulee-fg)]', bar: 'var(--line-brulee)', cup: 'text-[var(--chip-brulee-fg)]' },
   uvas: { chip: 'bg-[var(--chip-uva-bg)] text-[var(--chip-uva-fg)]', bar: 'var(--line-uva)', cup: 'text-[var(--chip-uva-fg)]' },
+  granada: { chip: 'bg-[var(--chip-granada-bg)] text-[var(--chip-granada-fg)]', bar: 'var(--line-granada)', cup: 'text-[var(--chip-granada-fg)]' },
   mix: { chip: 'bg-[var(--chip-mix-bg)] text-[var(--chip-mix-fg)]', bar: 'var(--line-mix)', cup: 'text-[var(--chip-mix-fg)]' },
   nogada: { chip: 'bg-[var(--chip-nogada-bg)] text-[var(--chip-nogada-fg)]', bar: 'var(--line-nogada)', cup: 'text-[var(--chip-nogada-fg)]' },
   waffle: { chip: 'bg-[var(--chip-waffle-bg)] text-[var(--chip-waffle-fg)]', bar: 'var(--line-waffle)', cup: 'text-[var(--chip-waffle-fg)]' },

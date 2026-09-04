@@ -49,6 +49,7 @@ export function productPhoto(p: Product): string | undefined {
   switch (productLine(p)) {
     case 'nogada': return '/images/nogada.jpg'
     case 'uvas': return '/images/uvas.jpg'
+    case 'granada': return '/images/granada.jpg'
     case 'mix': return '/images/mix.jpg'
     case 'brulee': return '/images/brulee.jpg'
     // el Turín va solo con chocolate; la Choco Crema tiene foto por tamaño

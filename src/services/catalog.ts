@@ -18,6 +18,7 @@ export function productLine(p: Product): Line | undefined {
   if (/^t[eé]\b/.test(n) || n.startsWith('agua')) return 'bebidas'
   if (n.startsWith('miel') || n.startsWith('pepita')) return 'despensa'
   if (n.startsWith('uvas')) return 'uvas'
+  if (n.startsWith('granada')) return 'granada'
   if (n.startsWith('balance')) return 'balance'
   if (n.startsWith('choco')) return 'chocolate'   // Choco Crema y Chocolate Turín
   if (n.startsWith('clásica') || n.startsWith('clasica')) return 'clasica'

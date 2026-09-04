@@ -13,6 +13,7 @@ const lineDefs: { key: string; title: string; dot: string }[] = [
   { key: 'clasica', title: 'Frésia Clásica', dot: 'var(--color-berry-500)' },
   { key: 'uvas', title: 'Uvas', dot: 'var(--line-uva)' },
   { key: 'mix', title: 'Mix Frésia', dot: 'var(--line-mix)' },
+  { key: 'granada', title: 'Granada', dot: 'var(--line-granada)' },
   { key: 'balance', title: 'Frésia Balance', dot: 'var(--line-olive)' },
   { key: 'chocolate', title: 'Frésia Choco Crema', dot: 'var(--line-choco)' },
   { key: 'brulee', title: 'Frèsia Brûlée', dot: 'var(--line-brulee)' },

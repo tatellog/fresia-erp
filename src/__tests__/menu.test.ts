@@ -25,6 +25,7 @@ describe('catálogo (menú v4)', () => {
       ['Clásica · Chico 12 oz', 95], ['Clásica · Mediano 16 oz', 115], ['Clásica · Grande 20 oz', 135],
       ['Uvas · Chico 12 oz', 95], ['Uvas · Mediano 16 oz', 115], ['Uvas · Grande 20 oz', 135],
       ['Mix Frésia · Chico 12 oz', 95], ['Mix Frésia · Mediano 16 oz', 115], ['Mix Frésia · Grande 20 oz', 135],
+      ['Granada · Chico 12 oz', 95], ['Granada · Mediano 16 oz', 115], ['Granada · Grande 20 oz', 135],
       ['Balance · Chico 12 oz', 105], ['Balance · Mediano 16 oz', 125], ['Balance · Grande 20 oz', 145],
       ['Choco Crema · Chico 12 oz', 115], ['Choco Crema · Mediano 16 oz', 135], ['Choco Crema · Grande 20 oz', 155],
       ['Chocolate Turín · Chico 12 oz', 135],
@@ -143,6 +144,15 @@ describe('catálogo (menú v4)', () => {
     expect(p.recipe.some(r => r.ingredientId === ing('Crema tradicional').id)).toBe(true)
   })
 
+  it('Granada lleva granada desgranada (no fresa), crema y toppings elegibles', () => {
+    const p = prod('Granada · Mediano 16 oz')
+    expect(p.line).toBe('granada')
+    expect(p.toppingGroup).toBe('clasica')
+    expect(p.recipe.some(r => r.ingredientId === ing('Granada desgranada').id)).toBe(true)
+    expect(p.recipe.some(r => r.ingredientId === ing('Fresa fresca').id)).toBe(false)
+    expect(p.recipe.some(r => r.ingredientId === ing('Crema tradicional').id)).toBe(true)
+  })
+
   it('sin extras sueltos ni tamaños del menú anterior', () => {
     for (const p of products) {
       expect(p.extraScope ?? [], p.name).toHaveLength(0)
@@ -152,7 +162,7 @@ describe('catálogo (menú v4)', () => {
 
   it('todo vaso lleva empaque completo: vaso, tapa, cuchara, servilleta y sello', () => {
     const vasos = products.filter(x => x.name.includes('·'))
-    expect(vasos).toHaveLength(20)
+    expect(vasos).toHaveLength(23)
     for (const p of vasos) {
       const nombres = p.recipe.map(r => ingredients.find(i => i.id === r.ingredientId)?.name ?? '')
       expect(nombres.some(n => n.startsWith('Vaso PET')), p.name).toBe(true)

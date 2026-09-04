@@ -7,7 +7,7 @@ import { INITIAL_INVESTMENTS } from '../services/investments'
 import { ensureToppingLists } from '../services/toppingLists'
 
 /** versión del catálogo sembrado; subirla reemplaza catálogos viejos sin movimientos */
-export const SEED_VERSION = '15'
+export const SEED_VERSION = '16'
 
 /**
  * Reemplaza menú e insumos por el catálogo oficial vigente, conservando
@@ -76,6 +76,27 @@ export async function initDb() {
   // la línea de chocolate ahora se llama Choco Crema: renombrar catálogos viejos
   const chocos = await db.products.filter(p => /^chocolate ·/i.test(p.name)).toArray()
   for (const c of chocos) await saveProduct({ ...c, name: c.name.replace(/^chocolate ·/i, 'Choco Crema ·') }, c)
+
+  // la línea Granada (granada desgranada + crema, precios de Clásica) se agrega
+  // a los catálogos que ya tienen movimientos, clonando cada tamaño de la Clásica
+  if (!(await db.products.filter(p => productLine(p) === 'granada').count())) {
+    const clasicas = await db.products.filter(p => productLine(p) === 'clasica' && /Chico|Median|Grande/.test(p.name)).toArray()
+    const granada = await db.ingredients.filter(i => /granada/i.test(i.name)).first()
+    const fresa = await db.ingredients.filter(i => /^fresa/i.test(i.name)).first()
+    if (clasicas.length && granada) {
+      let sort = (await db.products.count()) + 1
+      for (const c of clasicas) {
+        const { id: _id, sort: _sort, ...base } = c
+        await saveProduct({
+          ...base,
+          name: c.name.replace(/^Clásica/i, 'Granada'),
+          line: 'granada',
+          photo: undefined,
+          recipe: c.recipe.map(r => (fresa && r.ingredientId === fresa.id ? { ...r, ingredientId: granada.id } : r)),
+        }, undefined, sort++)
+      }
+    }
+  }
 
   // gastos de apertura reales: se cargan una sola vez en cada dispositivo
   if (!(await db.meta.get('investmentsSeeded')) && (await db.investments.count()) === 0) {

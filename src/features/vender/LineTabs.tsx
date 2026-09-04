@@ -8,6 +8,7 @@ const tabs: { id: LineFilter; label: string; dot?: string }[] = [
   { id: 'clasica', label: 'Clásica', dot: 'var(--color-berry-500)' },
   { id: 'uvas', label: 'Uvas', dot: 'var(--line-uva)' },
   { id: 'mix', label: 'Mix', dot: 'var(--line-mix)' },
+  { id: 'granada', label: 'Granada', dot: 'var(--line-granada)' },
   { id: 'balance', label: 'Balance', dot: 'var(--line-olive)' },
   { id: 'chocolate', label: 'Choco Crema', dot: 'var(--line-choco)' },
   { id: 'brulee', label: 'Brûlée', dot: 'var(--line-brulee)' },

@@ -14,6 +14,7 @@ export interface ToppingList {
 /** líneas de producto del menú */
 export type Line =
   | 'clasica' | 'chocolate' | 'balance' | 'brulee' | 'uvas' | 'mix'
+  | 'granada'  // granada desgranada + crema, precios de Clásica
   | 'nogada'   // Frésia del mes (edición limitada)
   | 'waffle'
   | 'bebidas'  // tés y agua

@@ -6,6 +6,7 @@ const colors: Record<LineShare['line'], string> = {
   'Clásica': 'var(--color-berry-500)',
   'Uvas': 'var(--line-uva)',
   'Mix': 'var(--line-mix)',
+  'Granada': 'var(--line-granada)',
   'Balance': 'var(--line-olive)',
   'Choco Crema': 'var(--line-choco)',
   'Brûlée': 'var(--line-brulee)',
