@@ -6,6 +6,9 @@ import App from './App'
 import { initDb } from './data/init'
 import { initTheme } from './hooks/useTheme'
 import { startSync } from './services/sync/engine'
+import { startAutoUpdate } from './services/updates'
+
+startAutoUpdate()
 
 initDb().then(async () => {
   await initTheme()
