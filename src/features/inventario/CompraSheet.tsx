@@ -4,7 +4,7 @@ import { db } from '../../data/db'
 import type { Ingredient } from '../../data/types'
 import { registerPurchase } from '../../services/inventory'
 import { money } from '../../lib/format'
-import { Button, Field, Input, Sheet } from '../../components/ui'
+import { Button, decimal, Field, NumberInput, Sheet } from '../../components/ui'
 
 /** registro de compra de un insumo (recalcula costo promedio) */
 export function CompraSheet({ ing, onClose }: { ing: Ingredient; onClose: () => void }) {
@@ -13,15 +13,15 @@ export function CompraSheet({ ing, onClose }: { ing: Ingredient; onClose: () => 
   const [fromCash, setFromCash] = useState(true)
   // caja abierta: la compra puede pagarse con efectivo del turno
   const session = useLiveQuery(async () => (await db.cashSessions.filter(s => s.closeTs === undefined).last()) ?? null)
-  const q = parseFloat(qty), c = parseFloat(cost)
+  const q = decimal(qty), c = decimal(cost)
   const valid = q > 0 && c >= 0
   return (
     <Sheet open onClose={onClose} title={`Compra · ${ing.name}`}>
       <Field label={`Cantidad comprada (${ing.unit})`}>
-        <Input type="number" inputMode="decimal" value={qty} onChange={e => setQty(e.target.value)} autoFocus />
+        <NumberInput value={qty} onChange={e => setQty(e.target.value)} autoFocus />
       </Field>
       <Field label="Costo total de la compra ($)">
-        <Input type="number" inputMode="decimal" value={cost} onChange={e => setCost(e.target.value)} />
+        <NumberInput value={cost} onChange={e => setCost(e.target.value)} />
       </Field>
       {valid && q > 0 && (
         <p className="mb-3 text-sm text-berry-700/70">

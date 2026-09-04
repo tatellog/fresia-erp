@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../../data/db'
 import type { Ingredient, ToppingGroup, Unit } from '../../data/types'
 import { deleteIngredient, saveIngredient } from '../../services/inventory'
-import { Button, Field, Input, Sheet } from '../../components/ui'
+import { Button, decimal as num, Field, Input, NumberInput, Sheet } from '../../components/ui'
 
 /** alta y edición de insumos */
 export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClose: () => void }) {
@@ -11,21 +13,44 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
   const [minStock, setMinStock] = useState(ing ? String(ing.minStock) : '0')
   const [groups, setGroups] = useState<ToppingGroup[]>(ing?.toppingGroups ?? [])
   const [portion, setPortion] = useState(ing?.portion ? String(ing.portion) : '')
-  const valid = name.trim() && parseFloat(cost) >= 0 && (groups.length === 0 || parseFloat(portion) > 0)
+  const [premium, setPremium] = useState(ing?.premiumPrice ? String(ing.premiumPrice) : '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const otros = useLiveQuery(() => db.ingredients.toArray(), []) ?? []
+
+  const esTopping = groups.length > 0
+  const limpio = name.trim()
+  /** qué falta para poder guardar; vacío = listo (el botón nunca queda mudo sin decir por qué) */
+  const falta = !limpio
+    ? 'Escribe el nombre del insumo.'
+    : otros.some(o => o.id !== ing?.id && o.name.trim().toLowerCase() === limpio.toLowerCase())
+      ? 'Ya existe un insumo con ese nombre.'
+      : esTopping && num(portion) <= 0
+        ? `Escribe la porción por vaso en ${unit} (cuánto se sirve de este topping).`
+        : ''
 
   const toggleGroup = (g: ToppingGroup) =>
     setGroups(prev => (prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]))
 
   const save = async () => {
-    await saveIngredient({
-      name: name.trim(),
-      unit,
-      cost: parseFloat(cost),
-      minStock: parseFloat(minStock) || 0,
-      toppingGroups: groups.length ? groups : undefined,
-      portion: groups.length ? parseFloat(portion) : undefined,
-    }, ing)
-    onClose()
+    if (falta) return setError(falta)
+    setSaving(true)
+    setError('')
+    try {
+      await saveIngredient({
+        name: limpio,
+        unit,
+        cost: num(cost),
+        minStock: num(minStock),
+        toppingGroups: esTopping ? groups : undefined,
+        portion: esTopping ? num(portion) : undefined,
+        premiumPrice: esTopping && num(premium) > 0 ? num(premium) : undefined,
+      }, ing)
+      onClose()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar el insumo.')
+      setSaving(false)
+    }
   }
 
   return (
@@ -38,6 +63,7 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
           {(['g', 'ml', 'pza'] as Unit[]).map(u => (
             <button
               key={u}
+              type="button"
               onClick={() => setUnit(u)}
               className={`rounded-xl py-2.5 font-semibold ${unit === u ? 'bg-berry-500 text-white' : 'bg-cream-200 text-berry-700'}`}
             >
@@ -47,16 +73,17 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
         </div>
       </Field>
       <Field label={`Costo por ${unit} ($)`}>
-        <Input type="number" inputMode="decimal" value={cost} onChange={e => setCost(e.target.value)} />
+        <NumberInput value={cost} onChange={e => setCost(e.target.value)} placeholder="0" />
       </Field>
       <Field label={`Avisarme cuando queden menos de (${unit})`}>
-        <Input type="number" inputMode="decimal" value={minStock} onChange={e => setMinStock(e.target.value)} />
+        <NumberInput value={minStock} onChange={e => setMinStock(e.target.value)} placeholder="0" />
       </Field>
       <Field label="¿Es topping elegible en el punto de venta?">
         <div className="grid grid-cols-2 gap-2">
           {(['clasica', 'balance'] as ToppingGroup[]).map(g => (
             <button
               key={g}
+              type="button"
               onClick={() => toggleGroup(g)}
               className={`rounded-xl py-2.5 font-semibold capitalize ${
                 groups.includes(g) ? 'bg-berry-500 text-white' : 'bg-cream-200 text-berry-700'
@@ -67,13 +94,21 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
           ))}
         </div>
       </Field>
-      {groups.length > 0 && (
-        <Field label={`Porción por vaso (${unit})`}>
-          <Input type="number" inputMode="decimal" value={portion} onChange={e => setPortion(e.target.value)} />
-        </Field>
+      {esTopping && (
+        <>
+          <Field label={`Porción por vaso (${unit})`}>
+            <NumberInput value={portion} onChange={e => setPortion(e.target.value)} placeholder={`Ej. 20 ${unit}`} />
+          </Field>
+          <Field label="Precio premium ($, vacío = va en los incluidos)">
+            <NumberInput value={premium} onChange={e => setPremium(e.target.value)} placeholder="0" />
+          </Field>
+        </>
       )}
-      <Button className="w-full" disabled={!valid} onClick={save}>
-        Guardar
+      {(error || falta) && (
+        <p className="mb-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">{error || falta}</p>
+      )}
+      <Button className="w-full" disabled={saving || !!falta} onClick={save}>
+        {saving ? 'Guardando…' : 'Guardar'}
       </Button>
       {ing && (
         <Button

@@ -8,3 +8,18 @@ export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
     />
   )
 }
+
+/**
+ * Campo numérico de captura a mano. Va como texto a propósito: un
+ * `type="number"` descarta la coma decimal del teclado en español y "12,5"
+ * se guardaría como 125. Aquí la coma se conserva y `decimal()` la traduce.
+ */
+export function NumberInput(props: InputHTMLAttributes<HTMLInputElement>) {
+  return <Input {...props} type="text" inputMode="decimal" />
+}
+
+/** número escrito a mano: acepta coma decimal y campo vacío (= 0) */
+export const decimal = (v: string) => {
+  const n = parseFloat(String(v).replace(',', '.'))
+  return Number.isFinite(n) ? n : 0
+}

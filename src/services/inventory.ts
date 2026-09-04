@@ -44,9 +44,15 @@ export async function registerWaste(ingredientId: string, qty: number, reason: s
   })
 }
 
+/**
+ * Alta y edición de insumos. Al editar se relee el renglón vivo dentro de
+ * la transacción: la hoja se abrió con una foto del insumo y entre tanto una
+ * venta o una compra pudo mover la existencia, que nunca debe pisarse.
+ */
 export async function saveIngredient(data: Omit<Ingredient, 'id' | 'stock'>, existing?: Ingredient) {
   return db.transaction('rw', [db.ingredients, db.outbox], async () => {
-    const row: Ingredient = existing ? { ...existing, ...data } : { ...data, id: uid(), stock: 0 }
+    const current = existing ? (await db.ingredients.get(existing.id)) ?? existing : undefined
+    const row: Ingredient = current ? { ...current, ...data } : { ...data, id: uid(), stock: 0 }
     await db.ingredients.put(row)
     await enqueue('ingredients', 'upsert', row)
   })
