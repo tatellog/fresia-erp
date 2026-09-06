@@ -20,8 +20,17 @@ export async function flushOutbox(): Promise<{ pushed: number; error?: string }>
   let pushed = 0
   try {
     const branch = await getBranch()
+    // una tabla que rebota (por ejemplo una columna que aún no existe en la
+    // nube) se aparta: lo demás sigue subiendo, sobre todo las ventas
+    const atoradas = new Set<SyncTable>()
+    let fallo: string | undefined
+    /** deja la tabla para el siguiente intento y guarda el primer motivo */
+    const apartar = (table: SyncTable, msg: string) => {
+      atoradas.add(table)
+      fallo ??= `${table}: ${msg}`
+    }
     for (;;) {
-      const batch = await db.outbox.orderBy('seq').limit(500).toArray()
+      const batch = (await db.outbox.orderBy('seq').limit(500).toArray()).filter(e => !atoradas.has(e.table))
       if (batch.length === 0) break
 
       // agrupa entradas consecutivas de la misma tabla y operación
@@ -33,23 +42,25 @@ export async function flushOutbox(): Promise<{ pushed: number; error?: string }>
       }
 
       for (const g of groups) {
+        if (atoradas.has(g.table)) continue
         const { table, map } = toCloud[g.table]
         if (g.op === 'upsert') {
           // si el mismo id aparece varias veces en el grupo, gana el último
           const rows = new Map(g.entries.map(e => [e.row.id as string, map(e.row, branch)]))
           const { error } = await supabase.from(table).upsert([...rows.values()])
-          if (error) return { pushed, error: error.message }
+          if (error) { apartar(g.table, error.message); continue }
         } else {
           const ids = g.entries.map(e => e.row.id as string)
           const { error } = await supabase.from(table).delete().in('id', ids)
-          if (error) return { pushed, error: error.message }
+          if (error) { apartar(g.table, error.message); continue }
         }
         await db.outbox.bulkDelete(g.entries.map(e => e.seq))
         pushed += g.entries.length
       }
     }
-    await db.meta.put({ key: 'lastSyncAt', value: String(Date.now()) })
-    return { pushed }
+    // la marca de "todo al día" solo se pone si nada quedó pendiente
+    if (!fallo) await db.meta.put({ key: 'lastSyncAt', value: String(Date.now()) })
+    return { pushed, error: fallo }
   } catch (e) {
     return { pushed, error: e instanceof Error ? e.message : String(e) }
   } finally {

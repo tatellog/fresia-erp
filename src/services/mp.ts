@@ -72,15 +72,21 @@ export const printStatus = (actionId: string) =>
 
 /**
  * Espera el resultado del pago consultando la orden cada 2.5 s hasta que
- * termina o pasan ~5.5 min (la orden expira sola a los 5).
+ * termina o pasan ~5.5 min (la orden expira sola a los 5). `onStatus` va
+ * reportando el estado de Mercado Pago para poder mostrarlo en el mostrador:
+ * así se distingue "la terminal ya tiene el cobro" de "nunca le llegó".
  */
-export async function waitForPayment(orderId: string, opts?: { signal?: AbortSignal }): Promise<TerminalOutcome> {
+export async function waitForPayment(
+  orderId: string,
+  opts?: { signal?: AbortSignal; onStatus?: (status: string, detail?: string) => void },
+): Promise<TerminalOutcome> {
   const deadline = Date.now() + 5.5 * 60_000
   while (Date.now() < deadline) {
     if (opts?.signal?.aborted) return 'canceled'
     await new Promise(r => setTimeout(r, 2500))
     try {
-      const { status } = await call<{ status: string }>({ action: 'status', order_id: orderId })
+      const { status, status_detail } = await call<{ status: string; status_detail?: string }>({ action: 'status', order_id: orderId })
+      opts?.onStatus?.(status, status_detail)
       if (status === 'processed') return 'paid'
       if (status === 'canceled') return 'canceled'
       if (status === 'expired') return 'expired'

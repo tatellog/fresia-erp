@@ -62,7 +62,7 @@ export default function Vender() {
   /** venta recién cobrada: se muestra su resumen hasta que se cierra o pasa el tiempo */
   const [done, setDone] = useState<VentaHecha | null>(null)
   /** cobro en curso en la terminal Mercado Pago */
-  const [terminal, setTerminal] = useState<{ msg: string; error?: boolean; orderId?: string } | null>(null)
+  const [terminal, setTerminal] = useState<{ msg: string; error?: boolean; orderId?: string; estado?: string; lento?: boolean } | null>(null)
   const terminalOrder = useRef<string | null>(null)
   /** temporizador que esconde el resumen de la venta si nadie lo cierra */
   const ocultarDone = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -166,7 +166,16 @@ export default function Vender() {
       const orderId = await chargeOnTerminal(total, `venta-${Date.now()}`)
       terminalOrder.current = orderId
       setTerminal({ msg: 'Esperando el pago en la terminal…', orderId })
-      const result = await waitForPayment(orderId)
+      // el estado real de la orden se muestra en pantalla: si nunca sale de
+      // "created" es que la Point no tomó el cobro (apagada, sin red o en
+      // modo standalone), y así se ve en el mostrador sin adivinar
+      const desde = Date.now()
+      const result = await waitForPayment(orderId, {
+        onStatus: (estado, detalle) => {
+          console.info('[Frésia] orden %s: %s%s', orderId, estado, detalle ? ` (${detalle})` : '')
+          setTerminal(t => (t?.orderId === orderId ? { ...t, estado, lento: Date.now() - desde > 30_000 } : t))
+        },
+      })
       if (terminalOrder.current !== orderId) return // se canceló desde el POS
       terminalOrder.current = null
       if (result === 'paid') {
@@ -277,7 +286,16 @@ export default function Vender() {
             <div className="font-display text-xl font-semibold">{terminal.error ? 'No se cobró' : money(total)}</div>
             <p className={`mt-1 text-sm ${terminal.error ? 'text-red-700' : 'text-berry-700/70'}`}>{terminal.msg}</p>
             {!terminal.error && terminal.orderId && (
-              <p className="mt-1 text-xs text-berry-700/45">También puedes cancelar desde la terminal.</p>
+              <p className="mt-1 text-xs text-berry-700/45">
+                También puedes cancelar desde la terminal.
+                {terminal.estado && <> · estado: {terminal.estado}</>}
+              </p>
+            )}
+            {terminal.lento && (
+              <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Si la terminal no muestra el cobro: revisa que esté encendida, con internet y en
+                modo PDV (Ajustes → Terminal Mercado Pago). Puedes cancelar aquí y cobrar de otra forma.
+              </p>
             )}
             <div className="mt-4 flex justify-center gap-2">
               {terminal.error ? (

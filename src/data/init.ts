@@ -42,6 +42,32 @@ export async function ensurePersistentStorage(): Promise<boolean> {
   }
 }
 
+/**
+ * Ajustes al catálogo que ya vive en el dispositivo (el menú cambia, los
+ * datos se quedan). Idempotente: cada paso solo toca lo que aún no cambió.
+ */
+async function ajustarCatalogoInstalado() {
+  // los combos salieron del menú: limpiar catálogos viejos que aún los tengan
+  const combos = await db.products.filter(p => /combo/i.test(p.name)).toArray()
+  for (const c of combos) await deleteProduct(c.id)
+
+  // la Brûlée ahora lleva 2 toppings incluidos: dar el grupo a catálogos viejos
+  const brulees = await db.products.filter(p => !p.toppingGroup && productLine(p) === 'brulee').toArray()
+  for (const b of brulees) await saveProduct({ ...b, toppingGroup: 'clasica' }, b)
+
+  // el Waffle lleva el Turín y las mermeladas dentro de sus 2 incluidos:
+  // dárselo también a los catálogos que ya estaban en el dispositivo
+  const waffles = await db.products.filter(p => !p.freePremium?.length && productLine(p) === 'waffle').toArray()
+  if (waffles.length) {
+    const libres = (await db.ingredients.filter(i => /tur[ií]n|mermelada/i.test(i.name)).toArray()).map(i => i.id)
+    if (libres.length) for (const w of waffles) await saveProduct({ ...w, freePremium: libres }, w)
+  }
+
+  // la línea de chocolate ahora se llama Choco Crema: renombrar catálogos viejos
+  const chocos = await db.products.filter(p => /^chocolate ·/i.test(p.name)).toArray()
+  for (const c of chocos) await saveProduct({ ...c, name: c.name.replace(/^chocolate ·/i, 'Choco Crema ·') }, c)
+}
+
 /** arranque de la base: migra desde la v1 si existe, o siembra el catálogo real */
 export async function initDb() {
   void ensurePersistentStorage()
@@ -71,25 +97,10 @@ export async function initDb() {
     await db.meta.put({ key: 'catalogConsolidated', value: '1' })
   }
 
-  // los combos salieron del menú: limpiar catálogos viejos que aún los tengan
-  const combos = await db.products.filter(p => /combo/i.test(p.name)).toArray()
-  for (const c of combos) await deleteProduct(c.id)
-
-  // la Brûlée ahora lleva 2 toppings incluidos: dar el grupo a catálogos viejos
-  const brulees = await db.products.filter(p => !p.toppingGroup && productLine(p) === 'brulee').toArray()
-  for (const b of brulees) await saveProduct({ ...b, toppingGroup: 'clasica' }, b)
-
-  // el Waffle lleva el Turín y las mermeladas dentro de sus 2 incluidos:
-  // dárselo también a los catálogos que ya estaban en el dispositivo
-  const waffles = await db.products.filter(p => !p.freePremium?.length && productLine(p) === 'waffle').toArray()
-  if (waffles.length) {
-    const libres = (await db.ingredients.filter(i => /tur[ií]n|mermelada/i.test(i.name)).toArray()).map(i => i.id)
-    if (libres.length) for (const w of waffles) await saveProduct({ ...w, freePremium: libres }, w)
-  }
-
-  // la línea de chocolate ahora se llama Choco Crema: renombrar catálogos viejos
-  const chocos = await db.products.filter(p => /^chocolate ·/i.test(p.name)).toArray()
-  for (const c of chocos) await saveProduct({ ...c, name: c.name.replace(/^chocolate ·/i, 'Choco Crema ·') }, c)
+  // ── mantenimiento de catálogos ya instalados ──
+  // Va aparte y protegido: un renglón raro en el catálogo de un dispositivo
+  // no puede dejar el punto de venta sin abrir.
+  await ajustarCatalogoInstalado().catch(e => console.error('[Frésia] no se pudo ajustar el catálogo instalado', e))
 
   // la línea Granada (granada desgranada + crema, precios de Clásica) se agrega
   // a los catálogos que ya tienen movimientos, clonando cada tamaño de la Clásica
