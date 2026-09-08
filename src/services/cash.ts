@@ -5,6 +5,15 @@ import { round2 } from '../lib/format'
 import { enqueue } from './outbox'
 
 /** efectivo que debería haber en caja: fondo + ventas en efectivo − gastos − retiros */
+/**
+ * La caja abierta: la sesión sin cierre que se abrió más recientemente.
+ * Con la bajada desde la nube pueden llegar sesiones viejas que nadie
+ * cerró en otro dispositivo; la vigente es siempre la última en abrirse.
+ */
+export async function openCashSession(): Promise<CashSession | undefined> {
+  return db.cashSessions.orderBy('openTs').reverse().filter(s => s.closeTs === undefined).first()
+}
+
 export function expectedCash(session: CashSession, sales: Sale[], expenses: Expense[]): number {
   const cashSales = sales.filter(s => s.payment === 'efectivo').reduce((s, x) => s + x.total, 0)
   const out = expenses.reduce((s, x) => s + x.amount, 0)

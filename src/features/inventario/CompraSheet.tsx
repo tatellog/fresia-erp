@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../../data/db'
+import { openCashSession } from '../../services/cash'
 import type { Ingredient } from '../../data/types'
 import { registerPurchase } from '../../services/inventory'
 import { money } from '../../lib/format'
@@ -12,7 +12,7 @@ export function CompraSheet({ ing, onClose }: { ing: Ingredient; onClose: () => 
   const [cost, setCost] = useState('')
   const [fromCash, setFromCash] = useState(true)
   // caja abierta: la compra puede pagarse con efectivo del turno
-  const session = useLiveQuery(async () => (await db.cashSessions.filter(s => s.closeTs === undefined).last()) ?? null)
+  const session = useLiveQuery(async () => (await openCashSession()) ?? null)
   const q = decimal(qty), c = decimal(cost)
   const valid = q > 0 && c >= 0
   return (

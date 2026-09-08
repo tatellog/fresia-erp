@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Sale } from '../data/types'
-import { expectedCash } from '../services/cash'
+import { expectedCash, openCashSession } from '../services/cash'
 import { fmtTime, startOfDay } from '../lib/format'
 import { Empty } from '../components/ui'
 import { ArrowDownCircleIcon, BoxIcon, LockIcon, ReceiptIcon, UnlockIcon } from '../components/ui/icons'
@@ -24,7 +24,7 @@ const DIEZ_HORAS = 10 * 3600_000
 
 export default function Caja() {
   // null = caja cerrada; undefined = consulta aún cargando
-  const session = useLiveQuery(async () => (await db.cashSessions.filter(s => s.closeTs === undefined).last()) ?? null)
+  const session = useLiveQuery(async () => (await openCashSession()) ?? null)
   const sessionSales = useLiveQuery(
     async () => (session ? db.sales.where('sessionId').equals(session.id).toArray() : []),
     [session?.id],

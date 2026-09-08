@@ -1,4 +1,5 @@
 import { db } from '../data/db'
+import { openCashSession } from './cash'
 import { uid } from '../data/ids'
 import type { Ingredient, Payment, Product, SaleItem } from '../data/types'
 import { round2 } from '../lib/format'
@@ -63,7 +64,7 @@ function lineUnitCost(line: CartLine, ingredients: Map<string, Ingredient>): num
 export async function checkout(cart: CartLine[], payment: Payment): Promise<string> {
   return db.transaction('rw', [db.sales, db.ingredients, db.cashSessions, db.outbox, db.meta, db.employees], async () => {
     const ingredients = new Map((await db.ingredients.toArray()).map(i => [i.id, i]))
-    const session = await db.cashSessions.filter(s => s.closeTs === undefined).last()
+    const session = await openCashSession()
     const activeId = (await db.meta.get('activeEmployeeId'))?.value
     const employee = activeId ? await db.employees.get(activeId) : undefined
 

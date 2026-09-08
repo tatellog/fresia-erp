@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { openCashSession } from '../services/cash'
 import { db } from '../data/db'
 import {
   cupsBySize, delta, hourlySales, profit, salesByLine, salesSummary, stockStatus, topProduct, topToppings,
@@ -41,7 +42,7 @@ export default function Dashboard() {
   const sales14 = useLiveQuery(() => db.sales.where('ts').aboveOrEqual(startOfDay(CHART_DAYS - 1)).toArray())
   const ingredients = useLiveQuery(() => db.ingredients.toArray())
   const hasPurchases = useLiveQuery(async () => (await db.purchases.count()) > 0)
-  const openSession = useLiveQuery(async () => (await db.cashSessions.filter(s => s.closeTs === undefined).last()) ?? null)
+  const openSession = useLiveQuery(async () => (await openCashSession()) ?? null)
   const lastClosed = useLiveQuery(() => db.cashSessions.orderBy('openTs').reverse().filter(s => s.closeTs !== undefined).first())
   const branch = useLiveQuery(async () => (await db.meta.get('branch'))?.value || 'Principal')
   const activeEmployee = useLiveQuery(async () => {
