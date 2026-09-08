@@ -7,7 +7,7 @@ import { INITIAL_INVESTMENTS } from '../services/investments'
 import { ensureToppingLists } from '../services/toppingLists'
 
 /** versión del catálogo sembrado; subirla reemplaza catálogos viejos sin movimientos */
-export const SEED_VERSION = '16'
+export const SEED_VERSION = '17'
 
 /**
  * Reemplaza menú e insumos por el catálogo oficial vigente, conservando
@@ -56,6 +56,20 @@ export async function initDb() {
 
   // las listas de toppings son editables desde el menú; las dos originales siempre existen
   await ensureToppingLists()
+
+  // Consolidación única del catálogo (septiembre 2026): cada dispositivo
+  // había sembrado el menú con ids al azar y, al bajar de la nube, se
+  // juntaban las copias. Se vuelve a sembrar con ids estables (los mismos
+  // en todos los dispositivos) conservando las fotos subidas a mano.
+  if (!(await db.meta.get('catalogConsolidated'))) {
+    const fotos = new Map((await db.products.toArray()).filter(p => p.photo).map(p => [p.name, p.photo!]))
+    await updateCatalog()
+    for (const p of await db.products.toArray()) {
+      const photo = fotos.get(p.name)
+      if (photo) await saveProduct({ ...p, photo }, p)
+    }
+    await db.meta.put({ key: 'catalogConsolidated', value: '1' })
+  }
 
   // los combos salieron del menú: limpiar catálogos viejos que aún los tengan
   const combos = await db.products.filter(p => /combo/i.test(p.name)).toArray()

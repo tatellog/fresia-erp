@@ -249,3 +249,21 @@ describe('anular y corregir ventas', () => {
     for (const [name, stock] of before) expect(after.get(name), name).toBe(stock)
   })
 })
+
+describe('ids estables del catálogo', () => {
+  it('sembrar en dos dispositivos da los mismos ids, con forma de uuid', async () => {
+    const antes = new Map((await db.products.toArray()).map(p => [p.name, p.id]))
+    const insumosAntes = new Map((await db.ingredients.toArray()).map(i => [i.name, i.id]))
+    await db.transaction('rw', [db.ingredients, db.products], async () => {
+      await db.ingredients.clear()
+      await db.products.clear()
+    })
+    await seed()
+    for (const p of await db.products.toArray()) {
+      expect(p.id).toBe(antes.get(p.name))
+      expect(p.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}$/)
+    }
+    for (const i of await db.ingredients.toArray()) expect(i.id).toBe(insumosAntes.get(i.name))
+    expect(new Set((await db.products.toArray()).map(p => p.id)).size).toBe(await db.products.count())
+  })
+})

@@ -1,5 +1,6 @@
 import { db } from './db'
-import { uid } from './ids'
+import { stableId } from './ids'
+import { enqueue } from '../services/outbox'
 import type { Ingredient, Line, Product, RecipeItem, ToppingGroup, Unit } from './types'
 
 /**
@@ -11,12 +12,15 @@ import type { Ingredient, Line, Product, RecipeItem, ToppingGroup, Unit } from '
  * con cargo y premium siempre con cargo (salvo el Waffle, donde el Turín y
  * las mermeladas entran en los incluidos). Los costos inician en 0 y se
  * calculan con las compras.
+ *
+ * Los ids salen del nombre: todos los dispositivos siembran los mismos y
+ * la nube los funde en una sola copia. Lo sembrado se encola para subir.
  */
 export async function seed() {
   const todas: ToppingGroup[] = ['clasica', 'balance']
   const ing = (name: string, unit: Unit, minStock: number, topping?: { portion: number; premium?: number }): Ingredient =>
     ({
-      id: uid(), name, unit, stock: 0, cost: 0, minStock,
+      id: stableId(`ingredient:${name}`), name, unit, stock: 0, cost: 0, minStock,
       toppingGroups: topping ? todas : undefined,
       portion: topping?.portion,
       premiumPrice: topping?.premium,
@@ -107,7 +111,7 @@ export async function seed() {
 
   /** vaso de línea con 2 toppings incluidos; `fruta` reparte la fruta base entre uno o dos ingredientes */
   const vasoProd = (linePrefix: string, line: Line, emoji: string, s: Size, price: number, extraRecipe: RecipeItem[], fruta: Ingredient[] = [fresa]): Product => ({
-    id: uid(),
+    id: stableId(`product:${linePrefix} · ${s.label} ${s.oz}`),
     name: `${linePrefix} · ${s.label} ${s.oz}`,
     emoji,
     price,
@@ -120,7 +124,7 @@ export async function seed() {
 
   /** la Frésia del mes: la nuez de Castilla ya va en la receta y ocupa un incluido, así que se elige 1 topping más */
   const vasoDelMes = (linePrefix: string, line: Line, emoji: string, s: Size, price: number, recipe: RecipeItem[]): Product => ({
-    id: uid(),
+    id: stableId(`product:${linePrefix} · ${s.label} ${s.oz}`),
     name: `${linePrefix} · ${s.label} ${s.oz}`,
     emoji,
     price,
@@ -134,7 +138,7 @@ export async function seed() {
 
   /** producto que se vende por pieza (bebidas y despensa): un insumo, sin toppings */
   const pieza = (name: string, line: Line, emoji: string, price: number, insumo: Ingredient): Product => ({
-    id: uid(),
+    id: stableId(`product:${name}`),
     name,
     emoji,
     price,
@@ -177,7 +181,7 @@ export async function seed() {
     ...sizes.filter(s => s.label === 'Chico').map(s =>
       vasoProd('Chocolate Turín', 'chocolate', '🍫', s, TURIN_CHICO_PRICE, [r(crema, s.baseMl), r(chocoTurin, s.chocoG)])),
     ...sizes.filter(s => s.label in bruleePrices).map((s): Product => ({
-      id: uid(),
+      id: stableId(`product:Frèsia Brûlée · ${s.label} ${s.oz}`),
       name: `Frèsia Brûlée · ${s.label} ${s.oz}`,
       emoji: '🔥',
       price: bruleePrices[s.label],
@@ -190,7 +194,7 @@ export async function seed() {
     // ── Waffle Frésia: waffle + crema y 2 toppings incluidos, donde el
     //    Turín y las mermeladas van sin cargo (en los vasos son premium) ──
     {
-      id: uid(),
+      id: stableId('product:Waffle Frésia'),
       name: 'Waffle Frésia',
       emoji: '🧇',
       price: 99,
@@ -213,8 +217,10 @@ export async function seed() {
     pieza('Pepitas (70 g)', 'despensa', '🌱', 25, pepitas),
   ]
 
-  await db.transaction('rw', [db.ingredients, db.products], async () => {
+  await db.transaction('rw', [db.ingredients, db.products, db.outbox], async () => {
     await db.ingredients.bulkAdd(ingredients)
     await db.products.bulkAdd(products)
+    for (const i of ingredients) await enqueue('ingredients', 'upsert', i)
+    for (const p of products) await enqueue('products', 'upsert', p)
   })
 }
