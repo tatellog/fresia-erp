@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { db } from '../../data/db'
 import { fullResync } from '../../services/outbox'
 import { cloudEnabled, supabase } from '../../services/sync/client'
-import { flushOutbox } from '../../services/sync/engine'
+import { syncRound } from '../../services/sync/engine'
 import { restoreFromCloud } from '../../services/sync/restore'
 import { getBranch, setBranch } from '../../services/sync/settings'
 import { fmtDateTime } from '../../lib/format'
@@ -69,15 +69,15 @@ export function CloudCard() {
       await fullResync()
       await db.meta.put({ key: 'didFirstPush', value: '1' })
     }
-    const r = await flushOutbox()
+    const r = await syncRound()
     setStatus(r.error ? `✗ ${r.error}` : '✓ Conectado y sincronizado')
     setBusy(false)
   }
 
   const syncNow = async () => {
     setBusy(true)
-    const r = await flushOutbox()
-    setStatus(r.error ? `✗ ${r.error}` : `✓ Sincronizado (${r.pushed} cambios subidos)`)
+    const r = await syncRound()
+    setStatus(r.error ? `✗ ${r.error}` : `✓ Sincronizado (${r.pushed} cambios subidos, ${r.pulled} bajados)`)
     setBusy(false)
   }
 
@@ -97,7 +97,8 @@ export function CloudCard() {
         <>
           <p className="mb-3 text-sm text-berry-700/70">
             Inicia sesión para que ventas, inventario y cortes se respalden solos en la nube y puedas verlos desde
-            cualquier lugar. La app sigue funcionando sin internet; se sincroniza cuando vuelve la señal.
+            cualquier lugar. La app sigue funcionando sin internet; se sincroniza cuando vuelve la señal, y cada
+            dispositivo baja solo lo que registran los demás.
           </p>
           <Field label="Correo">
             <Input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} />

@@ -3,6 +3,7 @@ import type { OutboxEntry, SyncTable } from '../../data/types'
 import { cloudEnabled, supabase } from './client'
 import { toCloud } from './mapping'
 import { getBranch } from './settings'
+import { pullFromCloud } from './pull'
 
 let flushing = false
 
@@ -56,13 +57,21 @@ export async function flushOutbox(): Promise<{ pushed: number; error?: string }>
   }
 }
 
+/** una vuelta completa: primero sube lo pendiente y luego baja lo que cambió en la nube */
+export async function syncRound(): Promise<{ pushed: number; pulled: number; error?: string }> {
+  const up = await flushOutbox()
+  if (up.error) return { ...up, pulled: 0 }
+  const down = await pullFromCloud()
+  return { pushed: up.pushed, pulled: down.pulled, error: down.error }
+}
+
 /** dispara la sincronización en segundo plano: al volver la red, al abrir la app y cada 30 s */
 export function startSync() {
   if (!cloudEnabled) return
-  window.addEventListener('online', () => void flushOutbox())
+  window.addEventListener('online', () => void syncRound())
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void flushOutbox()
+    if (document.visibilityState === 'visible') void syncRound()
   })
-  setInterval(() => void flushOutbox(), 30_000)
-  void flushOutbox()
+  setInterval(() => void syncRound(), 30_000)
+  void syncRound()
 }

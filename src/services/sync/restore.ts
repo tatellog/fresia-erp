@@ -65,6 +65,8 @@ export async function restoreFromCloud(): Promise<{ restored: number; error?: st
     // lo local ya es copia fiel de la nube: nada pendiente de subir,
     // y el catálogo restaurado no debe reemplazarse por el sembrado
     await db.outbox.clear()
+    // la siguiente bajada vuelve a pedir todo, por si algo cambió mientras se restauraba
+    await db.meta.delete('lastPullAt')
     await db.meta.put({ key: 'didFirstPush', value: '1' })
     await db.meta.put({ key: 'seedVersion', value: SEED_VERSION })
     await db.meta.put({ key: 'lastSyncAt', value: String(Date.now()) })
