@@ -16,7 +16,7 @@ const INNER = W - M * 2
 const DISPLAY = '"Cormorant Garamond", Georgia, serif'
 const SANS = 'Jost, system-ui, sans-serif'
 
-const PAYMENT_LABEL: Record<Payment, string> = {
+export const PAYMENT_LABEL: Record<Payment, string> = {
   efectivo: 'Efectivo',
   tarjeta: 'Tarjeta',
   transferencia: 'Transferencia',

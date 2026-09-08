@@ -15,6 +15,7 @@ import { CashChange } from '../features/vender/CashChange'
 import { ToppingPickerSheet } from '../features/vender/ToppingPickerSheet'
 import { AttendantChip } from '../features/vender/AttendantChip'
 import { LineTabs, type LineFilter } from '../features/vender/LineTabs'
+import { VentaResumen, type VentaHecha } from '../features/vender/VentaResumen'
 
 interface Section {
   key: LineFilter
@@ -58,11 +59,12 @@ export default function Vender() {
   const [payment, setPayment] = useState<Payment>('efectivo')
   /** con cuánto pagan en efectivo; null = sin capturar */
   const [paid, setPaid] = useState<number | null>(null)
-  const [done, setDone] = useState<{ total: number; saleId: string; change?: number; ticketError?: string } | null>(null)
+  /** venta recién cobrada: se muestra su resumen hasta que se cierra o pasa el tiempo */
+  const [done, setDone] = useState<VentaHecha | null>(null)
   /** cobro en curso en la terminal Mercado Pago */
   const [terminal, setTerminal] = useState<{ msg: string; error?: boolean; orderId?: string } | null>(null)
   const terminalOrder = useRef<string | null>(null)
-  /** temporizador que esconde la confirmación de venta */
+  /** temporizador que esconde el resumen de la venta si nadie lo cierra */
   const ocultarDone = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const mpTerminalId = useLiveQuery(async () => (await db.meta.get('mpTerminalId'))?.value)
@@ -114,9 +116,9 @@ export default function Vender() {
     setCart([])
     setPaying(false)
     setPaid(null)
-    setDone({ total: t, saleId, change })
+    setDone({ saleId, lines, total: t, payment, paid: pagoRecibido, change })
     if (ocultarDone.current) clearTimeout(ocultarDone.current)
-    ocultarDone.current = setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), change ? 12000 : 6000)
+    ocultarDone.current = setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), 20000)
     void imprimirTicket(lines, t, pagoRecibido, change, saleId)
   }
 
@@ -291,31 +293,7 @@ export default function Vender() {
         </div>
       )}
 
-      {done && (
-        <div className="fixed inset-x-4 top-16 z-50 mx-auto max-w-sm rounded-3xl border border-green-600/25 bg-cream-50 px-6 py-5 text-center shadow-2xl lg:top-8">
-          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-xl text-green-700">✓</div>
-          <div className="font-display text-2xl font-bold tabular-nums">{money(done.total)}</div>
-          <div className="mt-0.5 text-sm text-berry-700/60">Venta registrada</div>
-          {done.change != null && (
-            <div className="mt-2 rounded-xl bg-berry-50 px-4 py-2 text-berry-700">
-              <span className="text-sm font-medium">Cambio a devolver: </span>
-              <span className="font-display text-lg font-bold tabular-nums">{money(done.change)}</span>
-            </div>
-          )}
-          {done.ticketError && (
-            <div className="mt-2 rounded-xl bg-red-50 px-3 py-1.5 text-xs text-red-700">
-              No se imprimió el ticket: {done.ticketError}
-            </div>
-          )}
-          <div className="mt-1 font-display text-sm italic text-berry-700/45">Para mi bombón.</div>
-          <button
-            onClick={deshacer}
-            className="mt-3 rounded-full border border-cream-300 px-4 py-1.5 text-sm font-semibold text-berry-700 active:bg-cream-100"
-          >
-            Deshacer
-          </button>
-        </div>
-      )}
+      {done && <VentaResumen venta={done} onUndo={deshacer} onClose={() => setDone(null)} />}
 
       {/* barra de cobro + hoja: teléfono e iPad vertical */}
       {count > 0 && (

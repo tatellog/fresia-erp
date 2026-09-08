@@ -21,7 +21,7 @@ import { HourlySalesChart } from '../features/dashboard/HourlySalesChart'
 import { AlertBanner } from '../features/dashboard/AlertBanner'
 import { ComparisonCard } from '../features/dashboard/ComparisonCard'
 import { SalesChart } from '../features/dashboard/SalesChart'
-import { PastDaysCard } from '../features/dashboard/PastDaysCard'
+import { HistorialCard } from '../features/historial/HistorialCard'
 
 const CHART_DAYS = 14
 
@@ -168,7 +168,7 @@ export default function Dashboard() {
         <SalesChart days={data.dias} />
       </div>
 
-      <PastDaysCard />
+      <HistorialCard />
     </div>
   )
 }
