@@ -16,13 +16,15 @@ export interface MpTerminal {
 /** resultado final de una orden en la terminal */
 export type TerminalOutcome = 'paid' | 'canceled' | 'expired' | 'failed'
 
+/** la terminal ya tiene algo encolado y Mercado Pago no acepta nada más */
+const COLA_OCUPADA = 'La terminal tiene un trabajo pendiente y Mercado Pago no acepta otro hasta que se resuelva. Toca «Actualizar» en la pantalla de la Point para que lo recoja, o usa «Destrabar terminal» en Ajustes para sacarlo de la cola.'
+
 /**
  * Mercado Pago contesta en inglés y sin decir qué hacer. En el mostrador eso
  * no sirve: se traduce a la acción concreta que destraba la terminal.
  */
 const AYUDA: [RegExp, string][] = [
-  [/already a queued order/i,
-   'La terminal tiene un trabajo pendiente (un cobro o un ticket sin terminar) y no acepta otro. Termínalo o cancélalo en la pantalla de la Point; si no muestra nada, apágala y vuelve a prenderla.'],
+  [/already a queued order/i, COLA_OCUPADA],
   [/terminal.*(not found|doesn'?t exist|does not exist)/i,
    'Mercado Pago no encuentra esa terminal. Revisa que siga en tu cuenta y vuelve a vincularla en Ajustes → Terminal Mercado Pago.'],
   [/operating mode|operation mode|standalone/i,
@@ -61,17 +63,30 @@ export const getLinkedTerminal = async () => (await db.meta.get('mpTerminalId'))
 export const linkTerminal = (id: string) => db.meta.put({ key: 'mpTerminalId', value: id })
 export const unlinkTerminal = () => db.meta.delete('mpTerminalId')
 
-/** manda el cobro a la terminal; devuelve el id de la orden */
+/**
+ * Manda el cobro a la terminal; devuelve el id de la orden.
+ *
+ * Una impresión que la Point nunca recogió se queda en la cola para siempre
+ * (Mercado Pago no las expira) y a partir de ahí rechaza cualquier cobro. Un
+ * ticket que no salió no puede dejar al local sin cobrar con tarjeta: si eso
+ * pasa, se saca de la cola y se reintenta.
+ */
 export async function chargeOnTerminal(amount: number, reference: string): Promise<string> {
   const terminalId = await getLinkedTerminal()
   if (!terminalId) throw new Error('No hay terminal vinculada (Ajustes → Terminal Mercado Pago)')
-  const r = await call<{ order_id: string }>({
+  const enviar = () => call<{ order_id: string }>({
     action: 'charge',
     amount,
     terminal_id: terminalId,
     reference: reference.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64),
   })
-  return r.order_id
+  try {
+    return (await enviar()).order_id
+  } catch (e) {
+    const trabada = e instanceof Error && e.message === COLA_OCUPADA
+    if (!trabada || !(await cancelPendingPrint())) throw e
+    return (await enviar()).order_id
+  }
 }
 
 export const cancelTerminalOrder = (orderId: string) => call({ action: 'cancel', order_id: orderId })
@@ -86,12 +101,35 @@ export async function printTicket(contentBase64: string, reference: string): Pro
     content: contentBase64,
     reference: reference.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64),
   })
+  // se recuerda hasta que la Point la recoja: si se queda en la cola, es lo
+  // único que Mercado Pago acepta cancelar para volver a cobrar
+  await db.meta.put({ key: 'mpPendingPrint', value: r.action_id })
   return r.action_id
 }
 
 /** estado de una impresión enviada (created / processed / failed…) */
 export const printStatus = (actionId: string) =>
   call<{ status: string; detail: string | null }>({ action: 'action_status', action_id: actionId })
+
+/** impresión que quedó esperando a que la terminal la recogiera */
+export const getPendingPrint = async () => (await db.meta.get('mpPendingPrint'))?.value || null
+
+export const clearPendingPrint = () => db.meta.delete('mpPendingPrint')
+
+/**
+ * Saca de la cola la impresión atorada. Mercado Pago solo deja cancelar
+ * acciones en `created`, que es justo el caso que traba la terminal.
+ */
+export async function cancelPendingPrint(): Promise<boolean> {
+  const actionId = await getPendingPrint()
+  if (!actionId) return false
+  try {
+    await call({ action: 'cancel_action', action_id: actionId })
+  } finally {
+    await clearPendingPrint()
+  }
+  return true
+}
 
 /**
  * Espera el resultado del pago consultando la orden cada 2.5 s hasta que

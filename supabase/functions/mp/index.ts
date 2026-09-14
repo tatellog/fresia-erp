@@ -113,6 +113,13 @@ Deno.serve(async req => {
         return json({ status: data.status, detail: data.status_detail ?? data.error ?? null, raw: data })
       }
 
+      // saca de la cola una impresión que la terminal nunca recogió: mientras
+      // siga ahí, Mercado Pago rechaza cualquier cobro o ticket nuevo
+      case 'cancel_action': {
+        const data = await mp(`/terminals/v1/actions/${body.action_id}/cancel`, { method: 'POST' })
+        return json({ status: data.status ?? 'canceled' })
+      }
+
       default:
         return json({ error: 'Acción no reconocida' }, 400)
     }

@@ -3,7 +3,10 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { Session } from '@supabase/supabase-js'
 import { db } from '../../data/db'
 import { cloudEnabled, supabase } from '../../services/sync/client'
-import { linkTerminal, listTerminals, printStatus, printTicket, setTerminalMode, unlinkTerminal, type MpTerminal } from '../../services/mp'
+import {
+  cancelPendingPrint, clearPendingPrint, getPendingPrint, linkTerminal, listTerminals,
+  printStatus, printTicket, setTerminalMode, unlinkTerminal, type MpTerminal,
+} from '../../services/mp'
 import { renderTicket } from '../../services/ticket'
 import { Button, Card } from '../../components/ui'
 
@@ -13,8 +16,11 @@ export function TerminalCard() {
   const [found, setFound] = useState<MpTerminal[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
+  /** modo que Mercado Pago reporta hoy para la terminal vinculada */
+  const [modo, setModo] = useState<MpTerminal['operating_mode'] | null>(null)
 
   const linked = useLiveQuery(async () => (await db.meta.get('mpTerminalId'))?.value)
+  const pendiente = useLiveQuery(getPendingPrint)
 
   useEffect(() => {
     if (!cloudEnabled) return
@@ -22,6 +28,18 @@ export function TerminalCard() {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  // el modo se consulta a Mercado Pago, no se supone: la app puede haber
+  // pedido PDV y la Point seguir en standalone por no haberse reiniciado
+  useEffect(() => {
+    if (!session || !linked) {
+      setModo(null)
+      return
+    }
+    listTerminals()
+      .then(ts => setModo(ts.find(t => t.id === linked)?.operating_mode ?? null))
+      .catch(() => setModo(null))
+  }, [session, linked])
 
   const buscar = async () => {
     setBusy(true)
@@ -73,25 +91,33 @@ export function TerminalCard() {
       })
       const actionId = await printTicket(content, `prueba-${Date.now()}`)
       setStatus('Enviado. Verificando con Mercado Pago…')
-      // se consulta el estado unas veces para saber si la terminal la imprimió
-      for (let i = 0; i < 4; i++) {
-        await new Promise(r => setTimeout(r, 4000))
+      // se consulta el estado un rato: la Point puede tardar en recogerlo
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 3000))
         const s = await printStatus(actionId)
         // Mercado Pago solo reporta created / on_terminal / canceled: que la
         // terminal la haya tomado es lo más lejos que llega la confirmación
         if (s.status === 'on_terminal' || s.status === 'processed' || s.status === 'finished') {
+          await clearPendingPrint()
           setStatus('✓ La terminal recibió el ticket. Si no salió papel, revisa el rollo de la impresora')
           setBusy(false)
           return
         }
         if (s.status === 'failed' || s.status === 'canceled' || s.status === 'error') {
+          await clearPendingPrint()
           setStatus(`✗ La terminal no lo imprimió (${s.status}${s.detail ? `: ${s.detail}` : ''})`)
           setBusy(false)
           return
         }
-        setStatus(`Estado en Mercado Pago: ${s.status}${s.detail ? ` · ${s.detail}` : ''}…`)
+        setStatus(`Esperando a que la Point lo recoja (${s.status})…`)
       }
-      setStatus('El ticket sigue en «created»: la Point no lo recogió. Revisa que esté prendida, con internet y en modo PDV')
+      // «created» significa que Mercado Pago lo aceptó y la terminal nunca fue
+      // a buscarlo: el problema está en el aparato, no en el ticket ni el token
+      setStatus(
+        modo === 'PDV'
+          ? 'La Point no recogió el ticket. Toca «Actualizar» en su pantalla; si sigue igual, reiníciala: el modo PDV no se aplica hasta que se reinicia. Mientras quede en la cola, la terminal no acepta cobros.'
+          : 'La Point está en modo normal, no en PDV: no va a recoger nada que le mande la app. Activa «Modo PDV» aquí y reinicia la terminal.',
+      )
     } catch (e) {
       setStatus(`✗ ${e instanceof Error ? e.message : e}`)
     }
@@ -113,7 +139,18 @@ export function TerminalCard() {
               ? 'Point vinculada: al cobrar con tarjeta, el monto aparece solo en la terminal y la venta se registra al confirmarse el pago. La terminal imprime el ticket.'
               : 'Vincula tu Point Smart 2 para mandarle los cobros con tarjeta desde el punto de venta.'}
           </p>
-          {linked && <p className="mb-3 break-all rounded-xl bg-cream-200 px-4 py-2.5 text-xs text-berry-700/70">{linked}</p>}
+          {linked && (
+            <div className="mb-3 rounded-xl bg-cream-200 px-4 py-2.5">
+              <p className="break-all text-xs text-berry-700/70">{linked}</p>
+              {modo && (
+                <p className={`mt-1 text-xs font-bold ${modo === 'PDV' ? 'text-green-700' : 'text-berry-700'}`}>
+                  {modo === 'PDV'
+                    ? 'En modo PDV · recibe cobros y tickets de la app'
+                    : 'En modo normal · no recibe nada de la app'}
+                </p>
+              )}
+            </div>
+          )}
 
           {found && found.length > 0 && (
             <div className="mb-3 space-y-2">
@@ -150,6 +187,21 @@ export function TerminalCard() {
               Imprimir ticket de prueba
             </Button>
           )}
+          {linked && pendiente && (
+            <Button
+              variant="soft" className="mt-2 w-full" disabled={busy}
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  await cancelPendingPrint()
+                  setStatus('✓ Cola liberada: la terminal vuelve a aceptar cobros y tickets')
+                } catch (e) { setStatus(`✗ ${e instanceof Error ? e.message : e}`) }
+                setBusy(false)
+              }}
+            >
+              Destrabar terminal
+            </Button>
+          )}
           {linked && (
             <div className="mt-2 flex gap-2">
               <Button
@@ -158,6 +210,7 @@ export function TerminalCard() {
                   setBusy(true)
                   try {
                     await setTerminalMode(linked, 'PDV')
+                    setModo('PDV')
                     setStatus('✓ Modo PDV activado: reinicia la terminal. La app le manda cobros y tickets; su teclado de cobro se bloquea.')
                   } catch (e) { setStatus(`✗ ${e instanceof Error ? e.message : e}`) }
                   setBusy(false)
@@ -171,6 +224,7 @@ export function TerminalCard() {
                   setBusy(true)
                   try {
                     await setTerminalMode(linked, 'STANDALONE')
+                    setModo('STANDALONE')
                     setStatus('✓ Modo normal activado: reinicia la terminal. Cobra sola con su teclado, pero la app ya no puede mandarle cobros ni tickets.')
                   } catch (e) { setStatus(`✗ ${e instanceof Error ? e.message : e}`) }
                   setBusy(false)
