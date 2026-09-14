@@ -123,10 +123,17 @@ export default function Vender() {
   }
 
   /**
-   * Ventas que no llevan ticket impreso: en efectivo no se pide, y en las apps
-   * de delivery el cliente no está presente y la plataforma trae el suyo.
+   * Ventas que no llevan ticket impreso: en efectivo no se pide, en las apps
+   * de delivery el cliente no está presente y la plataforma trae el suyo, y
+   * con tarjeta la Point ya imprime su propio comprobante.
+   *
+   * Lo de la tarjeta además no funcionaba: al aprobar el pago la terminal
+   * sale de «Cobros automáticos» para enseñar el resultado, y ahí deja de
+   * recoger. El ticket se quedaba encolado sin salir y bloqueaba el cobro
+   * siguiente. Queda la transferencia, con la terminal parada y atenta.
    */
-  const sinTicket = (p: Payment) => p === 'efectivo' || p === 'rappi' || p === 'didi' || p === 'uber'
+  const sinTicket = (p: Payment) =>
+    p === 'efectivo' || p === 'tarjeta' || p === 'rappi' || p === 'didi' || p === 'uber'
 
   /** imprime el ticket en la Point vinculada; nunca frena ni deshace la venta */
   const imprimirTicket = async (lines: CartLine[], t: number, pagoRecibido: number | undefined, change: number | undefined, saleId: string) => {
