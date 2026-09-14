@@ -116,19 +116,50 @@ export const getPendingPrint = async () => (await db.meta.get('mpPendingPrint'))
 
 export const clearPendingPrint = () => db.meta.delete('mpPendingPrint')
 
-/**
- * Saca de la cola la impresión atorada. Mercado Pago solo deja cancelar
- * acciones en `created`, que es justo el caso que traba la terminal.
- */
+/** saca una impresión de la cola; Mercado Pago solo deja cancelar las `created` */
+export const cancelPrint = (actionId: string) => call({ action: 'cancel_action', action_id: actionId })
+
+/** saca de la cola la impresión atorada que mandó este dispositivo */
 export async function cancelPendingPrint(): Promise<boolean> {
   const actionId = await getPendingPrint()
   if (!actionId) return false
   try {
-    await call({ action: 'cancel_action', action_id: actionId })
+    await cancelPrint(actionId)
   } finally {
     await clearPendingPrint()
   }
   return true
+}
+
+/**
+ * Vigila una impresión y la retira si la Point no la recoge a tiempo.
+ *
+ * Una acción en `created` bloquea el siguiente cobro, y Mercado Pago no
+ * publica forma de listar las acciones de una terminal (`GET` devuelve 405):
+ * si se pierde el id, ya nadie puede cancelarla y el mostrador se queda sin
+ * cobrar con tarjeta hasta que caduque sola. Por eso el ticket se abandona
+ * antes que la caja: no salió el papel, pero la venta siguiente entra.
+ */
+export async function watchPrint(actionId: string, ms = 40_000, cada = 5_000): Promise<string> {
+  const deadline = Date.now() + ms
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, cada))
+    try {
+      const { status } = await printStatus(actionId)
+      if (status !== 'created') {
+        if (await getPendingPrint() === actionId) await clearPendingPrint()
+        return status
+      }
+    } catch {
+      // red intermitente: se vuelve a intentar en el siguiente ciclo
+    }
+  }
+  try {
+    await cancelPrint(actionId)
+  } finally {
+    if (await getPendingPrint() === actionId) await clearPendingPrint()
+  }
+  return 'canceled'
 }
 
 /**

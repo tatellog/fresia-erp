@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../data/db'
-import { chargeOnTerminal, mensajeDeAyuda } from '../services/mp'
+import { chargeOnTerminal, mensajeDeAyuda, watchPrint } from '../services/mp'
 
 // la Edge Function se sustituye por un doble: aquí se prueba la lógica de
 // reintento, no la red (vi.mock se iza, por eso el espía va en vi.hoisted)
@@ -61,5 +61,30 @@ describe('cobro con la cola trabada', () => {
     invoke.mockResolvedValueOnce(encolada)
     await expect(chargeOnTerminal(120, 'venta-1')).rejects.toThrow(/trabajo pendiente/)
     expect(invoke).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('vigilancia del ticket enviado a la Point', () => {
+  beforeEach(async () => {
+    invoke.mockReset()
+    await db.meta.put({ key: 'mpTerminalId', value: 'TERM-1' })
+    await db.meta.put({ key: 'mpPendingPrint', value: 'accion-1' })
+  })
+
+  it('retira el ticket que la Point nunca recogió', async () => {
+    // la Point nunca lo toma: todos los sondeos siguen en «created»
+    invoke.mockResolvedValue({ data: { status: 'created' }, error: null })
+
+    expect(await watchPrint('accion-1', 60, 10)).toBe('canceled')
+    expect(invoke.mock.calls.at(-1)?.[1].body).toMatchObject({ action: 'cancel_action', action_id: 'accion-1' })
+    expect(await db.meta.get('mpPendingPrint')).toBeUndefined()
+  })
+
+  it('deja en paz el ticket que sí llegó a la terminal', async () => {
+    invoke.mockResolvedValueOnce({ data: { status: 'on_terminal' }, error: null })
+
+    expect(await watchPrint('accion-1', 60, 10)).toBe('on_terminal')
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expect(await db.meta.get('mpPendingPrint')).toBeUndefined()
   })
 })

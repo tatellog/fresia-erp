@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Ingredient, Payment, Product } from '../data/types'
 import { checkout, lineUnitPrice, voidSale, type CartLine } from '../services/sales'
-import { cancelTerminalOrder, chargeOnTerminal, printTicket, waitForPayment } from '../services/mp'
+import { cancelTerminalOrder, chargeOnTerminal, printTicket, waitForPayment, watchPrint } from '../services/mp'
 import { renderTicket } from '../services/ticket'
 import { productLine } from '../services/catalog'
 import { money } from '../lib/format'
@@ -141,7 +141,10 @@ export default function Vender() {
       // rechaza la impresión: se reintenta un par de veces antes de rendirse
       for (let intento = 1; ; intento++) {
         try {
-          await printTicket(content, `ticket-${saleId}-${intento}`)
+          const actionId = await printTicket(content, `ticket-${saleId}-${intento}`)
+          // si la Point no lo recoge, se retira solo: un ticket encolado
+          // bloquea el cobro siguiente y no hay forma de buscarlo después
+          void watchPrint(actionId)
           return
         } catch (e) {
           if (intento === 3) throw e
