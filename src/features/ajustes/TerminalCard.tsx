@@ -115,7 +115,7 @@ export function TerminalCard() {
       // a buscarlo: el problema está en el aparato, no en el ticket ni el token
       setStatus(
         modo === 'PDV'
-          ? 'La Point no recogió el ticket. Toca «Actualizar» en su pantalla; si sigue igual, reiníciala: el modo PDV no se aplica hasta que se reinicia. Mientras quede en la cola, la terminal no acepta cobros.'
+          ? 'La Point no recogió el ticket. Abre «Cobros vinculados» en su pantalla y déjala ahí: en el menú de inicio no recoge nada. Mientras el ticket siga en la cola, la terminal tampoco acepta cobros.'
           : 'La Point está en modo normal, no en PDV: no va a recoger nada que le mande la app. Activa «Modo PDV» aquí y reinicia la terminal.',
       )
     } catch (e) {

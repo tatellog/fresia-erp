@@ -16,7 +16,7 @@ describe('mensajes de la terminal Mercado Pago', () => {
     const m = mensajeDeAyuda('There is already a queued order on the terminal.')
     expect(m).toMatch(/trabajo pendiente/)
     // las dos salidas reales: que la Point lo recoja, o sacarlo de la cola
-    expect(m).toMatch(/Actualizar/)
+    expect(m).toMatch(/Cobros vinculados/)
     expect(m).toMatch(/Destrabar terminal/)
   })
 
