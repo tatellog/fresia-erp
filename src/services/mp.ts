@@ -16,14 +16,37 @@ export interface MpTerminal {
 /** resultado final de una orden en la terminal */
 export type TerminalOutcome = 'paid' | 'canceled' | 'expired' | 'failed'
 
+/**
+ * Mercado Pago contesta en inglés y sin decir qué hacer. En el mostrador eso
+ * no sirve: se traduce a la acción concreta que destraba la terminal.
+ */
+const AYUDA: [RegExp, string][] = [
+  [/already a queued order/i,
+   'La terminal tiene un trabajo pendiente (un cobro o un ticket sin terminar) y no acepta otro. Termínalo o cancélalo en la pantalla de la Point; si no muestra nada, apágala y vuelve a prenderla.'],
+  [/terminal.*(not found|doesn'?t exist|does not exist)/i,
+   'Mercado Pago no encuentra esa terminal. Revisa que siga en tu cuenta y vuelve a vincularla en Ajustes → Terminal Mercado Pago.'],
+  [/operating mode|operation mode|standalone/i,
+   'La terminal no está en modo PDV. Actívalo en Ajustes → Terminal Mercado Pago y reinicia la Point para que tome el modo.'],
+  [/unauthorized|invalid.*token|forbidden/i,
+   'Mercado Pago rechazó las credenciales. Hay que renovar el token de la cuenta (secreto MP_ACCESS_TOKEN en Supabase).'],
+]
+
+export const mensajeDeAyuda = (msg: string) => AYUDA.find(([re]) => re.test(msg))?.[1] ?? msg
+
 async function call<T = Record<string, unknown>>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('mp', { body })
   if (error) {
     // en respuestas no-2xx el detalle viene en el cuerpo (error.context es la Response)
     const detail = await (error as { context?: Response }).context?.json?.().catch(() => null)
-    throw new Error((detail as { error?: string })?.error ?? 'No se pudo contactar la función de Mercado Pago')
+    const crudo = (detail as { error?: string })?.error
+    if (crudo) console.warn('[Frésia] Mercado Pago:', crudo)
+    throw new Error(crudo ? mensajeDeAyuda(crudo) : 'No se pudo contactar la función de Mercado Pago')
   }
-  if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error)
+  if ((data as { error?: string })?.error) {
+    const crudo = (data as { error: string }).error
+    console.warn('[Frésia] Mercado Pago:', crudo)
+    throw new Error(mensajeDeAyuda(crudo))
+  }
   return data as T
 }
 
