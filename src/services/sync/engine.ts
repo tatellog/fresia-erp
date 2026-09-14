@@ -68,12 +68,15 @@ export async function flushOutbox(): Promise<{ pushed: number; error?: string }>
   }
 }
 
-/** una vuelta completa: primero sube lo pendiente y luego baja lo que cambió en la nube */
+/**
+ * Una vuelta completa: primero sube lo pendiente y luego baja lo que cambió
+ * en la nube. La bajada se hace aunque una tabla haya rebotado al subir:
+ * lo que no pudo subir no tiene por qué dejar al dispositivo sin recibir.
+ */
 export async function syncRound(): Promise<{ pushed: number; pulled: number; error?: string }> {
   const up = await flushOutbox()
-  if (up.error) return { ...up, pulled: 0 }
   const down = await pullFromCloud()
-  return { pushed: up.pushed, pulled: down.pulled, error: down.error }
+  return { pushed: up.pushed, pulled: down.pulled, error: up.error ?? down.error }
 }
 
 /** dispara la sincronización en segundo plano: al volver la red, al abrir la app y cada 30 s */
