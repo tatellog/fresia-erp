@@ -115,7 +115,7 @@ export function TerminalCard() {
       // a buscarlo: el problema está en el aparato, no en el ticket ni el token
       setStatus(
         modo === 'PDV'
-          ? 'La Point no recogió el ticket. Abre «Cobros vinculados» en su pantalla y déjala ahí: en el menú de inicio no recoge nada. Mientras el ticket siga en la cola, la terminal tampoco acepta cobros.'
+          ? 'La Point no recogió el ticket. Déjala parada en «Cobros vinculados → Cobros automáticos»: en el menú de inicio no recoge nada. Mientras el ticket siga en la cola, la terminal tampoco acepta cobros.'
           : 'La Point está en modo normal, no en PDV: no va a recoger nada que le mande la app. Activa «Modo PDV» aquí y reinicia la terminal.',
       )
     } catch (e) {
@@ -136,7 +136,7 @@ export function TerminalCard() {
         <>
           <p className="mb-3 text-sm text-berry-700/70">
             {linked
-              ? 'Point vinculada: al cobrar con tarjeta, el monto aparece solo en la terminal y la venta se registra al confirmarse el pago. La terminal imprime el ticket.'
+              ? 'Point vinculada: al cobrar con tarjeta, el monto aparece solo en la terminal y la venta se registra al confirmarse el pago. Deja la Point en «Cobros vinculados → Cobros automáticos»: en el menú de inicio no recoge los cobros.'
               : 'Vincula tu Point Smart 2 para mandarle los cobros con tarjeta desde el punto de venta.'}
           </p>
           {linked && (

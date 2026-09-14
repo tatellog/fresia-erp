@@ -296,9 +296,9 @@ export default function Vender() {
             )}
             {terminal.lento && (
               <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                Si la terminal no muestra el cobro, abre <b>«Cobros vinculados»</b> en su pantalla: los
-                cobros que manda la app solo aparecen ahí, no en el menú de inicio. Puedes cancelar
-                aquí y cobrar de otra forma.
+                Si la terminal no muestra el cobro, abre en ella <b>«Cobros vinculados → Cobros
+                automáticos»</b> y déjala en esa pantalla: es donde la Point espera los cobros de la
+                app. Puedes cancelar aquí y cobrar de otra forma.
               </p>
             )}
             <div className="mt-4 flex justify-center gap-2">

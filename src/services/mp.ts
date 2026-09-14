@@ -17,7 +17,7 @@ export interface MpTerminal {
 export type TerminalOutcome = 'paid' | 'canceled' | 'expired' | 'failed'
 
 /** la terminal ya tiene algo encolado y Mercado Pago no acepta nada más */
-const COLA_OCUPADA = 'La terminal tiene un trabajo pendiente y Mercado Pago no acepta otro hasta que se resuelva. Abre «Cobros vinculados» en la pantalla de la Point para que lo recoja, o usa «Destrabar terminal» en Ajustes para sacarlo de la cola.'
+const COLA_OCUPADA = 'La terminal tiene un trabajo pendiente y Mercado Pago no acepta otro hasta que se resuelva. Abre «Cobros vinculados → Cobros automáticos» en la Point para que lo recoja, o usa «Destrabar terminal» en Ajustes para sacarlo de la cola.'
 
 /**
  * Mercado Pago contesta en inglés y sin decir qué hacer. En el mostrador eso
