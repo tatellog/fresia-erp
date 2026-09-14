@@ -82,7 +82,7 @@ export function TerminalCard() {
     setBusy(true)
     setStatus('')
     try {
-      const content = await renderTicket({
+      const content = renderTicket({
         lines: [{
           product: { id: 'prueba', name: 'Ticket de prueba', emoji: '', price: 0, recipe: [], active: true, sort: 0 },
           qty: 1, toppings: [], extras: [],

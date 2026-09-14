@@ -134,7 +134,7 @@ export default function Vender() {
     try {
       const activeId = (await db.meta.get('activeEmployeeId'))?.value
       const attendant = activeId ? (await db.employees.get(activeId))?.name : undefined
-      const content = await renderTicket({
+      const content = renderTicket({
         lines, total: t, payment, paid: pagoRecibido, change, attendant, ts: Date.now(),
       })
       // recién cobrado la Point sigue ocupada con su propio comprobante y

@@ -4,17 +4,21 @@ import type { CartLine } from './sales'
 import { lineUnitPrice } from './sales'
 
 /**
- * Ticket de venta para la impresora térmica de la Point Smart: se dibuja
- * en un canvas (58 mm ≈ 384 px) y se manda como PNG en base64 por la
- * acción `print` de la Edge Function `mp`.
+ * Ticket de venta para la impresora térmica de la Point Smart.
+ *
+ * Se manda como texto con etiquetas de formato (subtipo `custom` de la acción
+ * `print`), no como imagen: la Point acepta los PNG y los JPEG y después no
+ * los imprime —la acción muere en `on_terminal` y caduca—, mientras que el
+ * texto sale sin falta. Se pierde la tipografía de marca a cambio de que el
+ * papel salga, que es de lo que vive el mostrador.
  */
 
-const W = 384
-const M = 16
-const INNER = W - M * 2
+/** columnas de la impresora de 58 mm en tamaño normal */
+const COLS = 32
 
-const DISPLAY = '"Cormorant Garamond", Georgia, serif'
-const SANS = 'Jost, system-ui, sans-serif'
+/** Mercado Pago exige entre 100 y 4096 caracteres en el contenido */
+const MIN = 100
+const MAX = 4096
 
 export const PAYMENT_LABEL: Record<Payment, string> = {
   efectivo: 'Efectivo',
@@ -35,133 +39,78 @@ export interface TicketData {
   ts: number
 }
 
-/** parte un texto en renglones que caben en `maxWidth` */
-function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+/**
+ * La impresora no tiene acentos ni ñ: sin esto salen como basura o huecos.
+ * Se quitan las tildes y la ñ pasa a «n», que se lee peor pero se lee.
+ */
+const plano = (s: string) =>
+  s.replace(/[·•]/g, '-')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\x20-\x7E]/g, '')
+
+/** parte un texto en renglones que caben en `ancho` columnas */
+function wrap(text: string, ancho: number): string[] {
   const out: string[] = []
   let line = ''
   for (const word of text.split(/\s+/)) {
     const probe = line ? `${line} ${word}` : word
-    if (ctx.measureText(probe).width <= maxWidth || !line) line = probe
+    if (probe.length <= ancho || !line) line = probe
     else {
       out.push(line)
       line = word
     }
   }
-  if (line) out.push(line)
-  return out
+  return line ? [...out, line] : out
 }
 
-/** dibuja el ticket y devuelve el PNG en base64 (sin el prefijo data:) */
-export async function renderTicket(data: TicketData): Promise<string> {
-  await Promise.all([
-    document.fonts.load(`700 46px ${DISPLAY}`),
-    document.fonts.load(`italic 600 20px ${DISPLAY}`),
-    document.fonts.load(`600 15px ${SANS}`),
-    document.fonts.load(`400 13px ${SANS}`),
-  ]).catch(() => {})
+/** nombre a la izquierda y precio pegado a la derecha, en una sola línea */
+function fila(izq: string, der: string, ancho = COLS): string[] {
+  const renglones = wrap(izq, ancho - der.length - 1)
+  const ultimo = renglones.pop() ?? ''
+  const hueco = Math.max(1, ancho - ultimo.length - der.length)
+  return [...renglones, ultimo + ' '.repeat(hueco) + der]
+}
 
-  // primer lienzo sobrado de alto; al final se recorta a lo dibujado
-  const canvas = document.createElement('canvas')
-  canvas.width = W
-  canvas.height = 600 + data.lines.length * 140
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('No se pudo preparar el ticket')
+/**
+ * Dibuja el ticket como contenido `custom` de la acción de impresión.
+ * Etiquetas: `{br}` salto, `{center}` centrado, `{w}…{/w}` ancho, `{s}` chico.
+ */
+export function renderTicket(data: TicketData): string {
+  const L: string[] = []
+  const push = (s = '') => L.push(plano(s))
+  const centro = (s: string) => push(`{center}${s}`)
+  const regla = () => push('-'.repeat(COLS))
 
-  ctx.fillStyle = '#fff'
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.fillStyle = '#000'
-  ctx.textBaseline = 'alphabetic'
-
-  let y = 54
-  const center = (text: string, font: string, advance: number) => {
-    ctx.font = font
-    ctx.textAlign = 'center'
-    ctx.fillText(text, W / 2, y)
-    y += advance
-  }
-  const dashes = (dashed = true) => {
-    y += 6
-    ctx.save()
-    ctx.strokeStyle = '#000'
-    ctx.lineWidth = 1.5
-    if (dashed) ctx.setLineDash([4, 5])
-    ctx.beginPath()
-    ctx.moveTo(M, y)
-    ctx.lineTo(W - M, y)
-    ctx.stroke()
-    ctx.restore()
-    y += 26
-  }
-
-  center('Frésia', `700 46px ${DISPLAY}`, 24)
-  center('F R E S A S   C O N   C R E M A', `600 12px ${SANS}`, 26)
-  center(fmtDateTime(data.ts), `400 13px ${SANS}`, data.attendant ? 20 : 6)
-  if (data.attendant) center(`Te atendió ${data.attendant}`, `400 13px ${SANS}`, 6)
-
-  dashes()
+  centro('{w}FRESIA{/w}')
+  centro('FRESAS CON CREMA')
+  centro(fmtDateTime(data.ts))
+  if (data.attendant) centro(`Te atendio ${data.attendant}`)
+  push()
+  regla()
 
   for (const line of data.lines) {
     const unit = lineUnitPrice(line)
-    const priceText = money(unit * line.qty)
-    ctx.font = `700 15px ${SANS}`
-    const priceWidth = ctx.measureText(priceText).width
-    ctx.textAlign = 'right'
-    ctx.fillText(priceText, W - M, y)
-
-    ctx.textAlign = 'left'
-    ctx.font = `600 15px ${SANS}`
-    const name = line.qty > 1 ? `${line.qty} × ${line.product.name}` : line.product.name
-    const nameLines = wrap(ctx, name, INNER - priceWidth - 12)
-    for (const l of nameLines) {
-      ctx.fillText(l, M, y)
-      y += 20
-    }
-    if (line.qty > 1) {
-      ctx.font = `400 12px ${SANS}`
-      ctx.fillText(`${money(unit)} c/u`, M + 14, y)
-      y += 18
-    }
+    const nombre = line.qty > 1 ? `${line.qty} x ${line.product.name}` : line.product.name
+    for (const r of fila(nombre, money(unit * line.qty))) push(r)
+    if (line.qty > 1) push(`  ${money(unit)} c/u`)
     const detalle = [...line.toppings.map(t => t.name), ...line.extras.map(e => `+ ${e.name}`)]
-    if (detalle.length) {
-      ctx.font = `400 13px ${SANS}`
-      for (const l of wrap(ctx, detalle.join(', '), INNER - 14)) {
-        ctx.fillText(l, M + 14, y)
-        y += 18
-      }
-    }
-    y += 8
+    if (detalle.length) for (const r of wrap(detalle.join(', '), COLS - 2)) push(`  ${r}`)
   }
 
-  dashes(false)
-
-  ctx.font = `600 15px ${SANS}`
-  ctx.textAlign = 'left'
-  ctx.fillText('TOTAL', M, y + 2)
-  ctx.font = `700 34px ${DISPLAY}`
-  ctx.textAlign = 'right'
-  ctx.fillText(money(data.total), W - M, y + 6)
-  y += 32
-
-  ctx.font = `400 13px ${SANS}`
-  ctx.textAlign = 'left'
-  ctx.fillText(`Pago: ${PAYMENT_LABEL[data.payment]}`, M, y)
-  y += 20
+  regla()
+  for (const r of fila('TOTAL', money(data.total))) push(`{w}${r}{/w}`)
+  push(`Pago: ${PAYMENT_LABEL[data.payment]}`)
   if (data.payment === 'efectivo' && data.paid != null && data.change != null) {
-    ctx.fillText(`Recibido ${money(data.paid)} · Cambio ${money(data.change)}`, M, y)
-    y += 20
+    push(`Recibido ${money(data.paid)} - Cambio ${money(data.change)}`)
   }
+  push()
+  centro('Para mi bombon.')
+  centro('{s}HECHAS AL MOMENTO')
+  push()
 
-  y += 26
-  center('Para mi bombón.', `italic 600 20px ${DISPLAY}`, 24)
-  center('HECHAS AL MOMENTO', `600 10px ${SANS}`, 0)
-  y += 30
-
-  // recorte al alto real dibujado
-  const out = document.createElement('canvas')
-  out.width = W
-  out.height = Math.min(y, canvas.height)
-  const octx = out.getContext('2d')
-  if (!octx) throw new Error('No se pudo preparar el ticket')
-  octx.drawImage(canvas, 0, 0)
-  return out.toDataURL('image/png').split(',')[1]
+  let out = L.join('{br}') + '{br}'
+  // el mínimo de Mercado Pago se cubre alargando el corte de papel
+  while (out.length < MIN) out += '{br}'
+  return out.slice(0, MAX)
 }

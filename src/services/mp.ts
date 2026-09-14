@@ -91,14 +91,19 @@ export async function chargeOnTerminal(amount: number, reference: string): Promi
 
 export const cancelTerminalOrder = (orderId: string) => call({ action: 'cancel', order_id: orderId })
 
-/** manda a imprimir el ticket de venta (imagen PNG en base64); devuelve el id de la acción */
-export async function printTicket(contentBase64: string, reference: string): Promise<string> {
+/**
+ * Manda a imprimir el ticket de venta; devuelve el id de la acción.
+ * Va como texto con etiquetas (`custom`): la Point acepta las imágenes y
+ * luego no las imprime, así que el ticket se dibuja con caracteres.
+ */
+export async function printTicket(content: string, reference: string): Promise<string> {
   const terminalId = await getLinkedTerminal()
   if (!terminalId) throw new Error('No hay terminal vinculada (Ajustes → Terminal Mercado Pago)')
   const r = await call<{ action_id: string }>({
     action: 'print',
     terminal_id: terminalId,
-    content: contentBase64,
+    subtype: 'custom',
+    content,
     reference: reference.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64),
   })
   // se recuerda hasta que la Point la recoja: si se queda en la cola, es lo

@@ -92,15 +92,17 @@ Deno.serve(async req => {
         return json({ status: data.status })
       }
 
-      // imprime el ticket de la venta (imagen base64) en la impresora de la Point
+      // imprime el ticket de la venta en la impresora de la Point: `image`
+      // manda un PNG en base64 y `custom` un texto con etiquetas de formato
       case 'print': {
         if (typeof body.content !== 'string' || !body.content) return json({ error: 'Falta el contenido del ticket' }, 400)
+        const subtype = body.subtype === 'custom' ? 'custom' : 'image'
         const data = await mp('/terminals/v1/actions', {
           method: 'POST',
           body: JSON.stringify({
             type: 'print',
             external_reference: String(body.reference ?? crypto.randomUUID()).slice(0, 64),
-            config: { point: { terminal_id: body.terminal_id, subtype: 'image' } },
+            config: { point: { terminal_id: body.terminal_id, subtype } },
             content: body.content,
           }),
         })
