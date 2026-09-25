@@ -12,6 +12,7 @@ import { ProductCard } from '../features/vender/ProductCard'
 import { CartLines } from '../features/vender/CartLines'
 import { PaymentPicker } from '../features/vender/PaymentPicker'
 import { CashChange } from '../features/vender/CashChange'
+import { TipPicker } from '../features/vender/TipPicker'
 import { ToppingPickerSheet } from '../features/vender/ToppingPickerSheet'
 import { AttendantChip } from '../features/vender/AttendantChip'
 import { LineTabs, type LineFilter } from '../features/vender/LineTabs'
@@ -59,6 +60,8 @@ export default function Vender() {
   const [payment, setPayment] = useState<Payment>('efectivo')
   /** con cuánto pagan en efectivo; null = sin capturar */
   const [paid, setPaid] = useState<number | null>(null)
+  /** propina que deja el cliente; va aparte de la venta */
+  const [tip, setTip] = useState(0)
   /** venta recién cobrada: se muestra su resumen hasta que se cierra o pasa el tiempo */
   const [done, setDone] = useState<VentaHecha | null>(null)
   /** cobro en curso en la terminal Mercado Pago */
@@ -75,7 +78,11 @@ export default function Vender() {
   const available = useMemo(() => new Set(secs.map(s => s.key)), [secs])
 
   const total = cart.reduce((s, l) => s + lineUnitPrice(l) * l.qty, 0)
+  /** lo que paga el cliente: venta + propina */
+  const aPagar = total + tip
   const count = cart.reduce((s, l) => s + l.qty, 0)
+  /** en las apps de delivery la propina la maneja la plataforma */
+  const conPropina = payment === 'efectivo' || payment === 'tarjeta' || payment === 'transferencia'
   const qtyByProduct = useMemo(() => {
     const m = new Map<string, number>()
     for (const l of cart) m.set(l.product.id, (m.get(l.product.id) ?? 0) + l.qty)
@@ -105,21 +112,24 @@ export default function Vender() {
   const pickPayment = (p: Payment) => {
     setPayment(p)
     if (p !== 'efectivo') setPaid(null)
+    if (p === 'rappi' || p === 'uber' || p === 'didi') setTip(0)
   }
 
   const registrar = async () => {
     const t = total
+    const propina = tip
     const lines = cart
     const pagoRecibido = payment === 'efectivo' && paid != null ? paid : undefined
-    const change = payment === 'efectivo' && paid != null && paid > t ? paid - t : undefined
-    const saleId = await checkout(cart, payment)
+    const change = payment === 'efectivo' && paid != null && paid > t + propina ? paid - t - propina : undefined
+    const saleId = await checkout(cart, payment, propina)
     setCart([])
     setPaying(false)
     setPaid(null)
-    setDone({ saleId, lines, total: t, payment, paid: pagoRecibido, change })
+    setTip(0)
+    setDone({ saleId, lines, total: t, tip: propina, payment, paid: pagoRecibido, change })
     if (ocultarDone.current) clearTimeout(ocultarDone.current)
     ocultarDone.current = setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), 20000)
-    void imprimirTicket(lines, t, pagoRecibido, change, saleId)
+    void imprimirTicket(lines, t, propina, pagoRecibido, change, saleId)
   }
 
   /**
@@ -136,13 +146,13 @@ export default function Vender() {
     p === 'efectivo' || p === 'tarjeta' || p === 'rappi' || p === 'didi' || p === 'uber'
 
   /** imprime el ticket en la Point vinculada; nunca frena ni deshace la venta */
-  const imprimirTicket = async (lines: CartLine[], t: number, pagoRecibido: number | undefined, change: number | undefined, saleId: string) => {
+  const imprimirTicket = async (lines: CartLine[], t: number, propina: number, pagoRecibido: number | undefined, change: number | undefined, saleId: string) => {
     if (!mpTerminalId || !navigator.onLine || sinTicket(payment)) return
     try {
       const activeId = (await db.meta.get('activeEmployeeId'))?.value
       const attendant = activeId ? (await db.employees.get(activeId))?.name : undefined
       const content = renderTicket({
-        lines, total: t, payment, paid: pagoRecibido, change, attendant, ts: Date.now(),
+        lines, total: t, tip: propina, payment, paid: pagoRecibido, change, attendant, ts: Date.now(),
       })
       // recién cobrado la Point sigue ocupada con su propio comprobante y
       // rechaza la impresión: se reintenta un par de veces antes de rendirse
@@ -173,7 +183,7 @@ export default function Vender() {
   const cobrarEnTerminal = async () => {
     setTerminal({ msg: 'Enviando el cobro a la terminal…' })
     try {
-      const orderId = await chargeOnTerminal(total, `venta-${Date.now()}`)
+      const orderId = await chargeOnTerminal(aPagar, `venta-${Date.now()}`)
       terminalOrder.current = orderId
       setTerminal({ msg: 'Esperando el pago en la terminal…', orderId })
       // el estado real de la orden se muestra en pantalla: si nunca sale de
@@ -274,12 +284,13 @@ export default function Vender() {
                 <span className="font-display text-[30px] font-bold tabular-nums">{money(total)}</span>
               </div>
               <PaymentPicker payment={payment} setPayment={pickPayment} />
-              {payment === 'efectivo' && <CashChange total={total} paid={paid} setPaid={setPaid} />}
+              {conPropina && <TipPicker total={total} tip={tip} setTip={setTip} />}
+              {payment === 'efectivo' && <CashChange total={aPagar} paid={paid} setPaid={setPaid} />}
               {payment === 'tarjeta' && mpTerminalId && (
                 <p className="mb-3 -mt-1 text-xs text-berry-700/50">El cobro se manda solo a la terminal Point.</p>
               )}
               <Button className="w-full py-4 text-lg" onClick={cobrar}>
-                Cobrar · {money(total)}
+                Cobrar · {money(aPagar)}
               </Button>
               <p className="mt-3 text-center text-[11px] uppercase tracking-[0.18em] text-berry-900/35">Hechas al momento</p>
             </>
@@ -293,7 +304,7 @@ export default function Vender() {
             {!terminal.error && (
               <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-[3px] border-berry-200 border-t-berry-500" />
             )}
-            <div className="font-display text-xl font-semibold">{terminal.error ? 'No se cobró' : money(total)}</div>
+            <div className="font-display text-xl font-semibold">{terminal.error ? 'No se cobró' : money(aPagar)}</div>
             <p className={`mt-1 text-sm ${terminal.error ? 'text-red-700' : 'text-berry-700/70'}`}>{terminal.msg}</p>
             {!terminal.error && terminal.orderId && (
               <p className="mt-1 text-xs text-berry-700/45">
@@ -351,12 +362,13 @@ export default function Vender() {
           <span className="font-display text-[30px] font-bold tabular-nums">{money(total)}</span>
         </div>
         <PaymentPicker payment={payment} setPayment={pickPayment} />
-        {payment === 'efectivo' && <CashChange total={total} paid={paid} setPaid={setPaid} />}
+        {conPropina && <TipPicker total={total} tip={tip} setTip={setTip} />}
+        {payment === 'efectivo' && <CashChange total={aPagar} paid={paid} setPaid={setPaid} />}
         {payment === 'tarjeta' && mpTerminalId && (
           <p className="mb-3 -mt-1 text-xs text-berry-700/50">El cobro se manda solo a la terminal Point.</p>
         )}
         <Button className="w-full py-4 text-lg" disabled={count === 0} onClick={cobrar}>
-          Confirmar · {money(total)}
+          Confirmar · {money(aPagar)}
         </Button>
       </Sheet>
     </div>

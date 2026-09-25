@@ -23,10 +23,12 @@ export function salesSummary(sales: Sale[]): SalesSummary {
   return { total, cups, tickets: sales.length, avgTicket: sales.length ? round2(total / sales.length) : 0 }
 }
 
-export function profit(sales: Sale[]): { income: number; cost: number; profit: number } {
+/** ganancia bruta: ingresos menos insumos y menos la comisión de Mercado Pago de los cobros con tarjeta */
+export function profit(sales: Sale[]): { income: number; cost: number; fees: number; profit: number } {
   const income = round2(sales.reduce((s, x) => s + x.total, 0))
   const cost = round2(sales.reduce((s, x) => s + x.cost, 0))
-  return { income, cost, profit: round2(income - cost) }
+  const fees = round2(sales.reduce((s, x) => s + (x.fee ?? 0), 0))
+  return { income, cost, fees, profit: round2(income - cost - fees) }
 }
 
 export interface LineShare {

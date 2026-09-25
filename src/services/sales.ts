@@ -4,6 +4,7 @@ import { uid } from '../data/ids'
 import type { Ingredient, Payment, Product, SaleItem } from '../data/types'
 import { round2 } from '../lib/format'
 import { productCost } from './costing'
+import { feeFor } from './fees'
 import { enqueue } from './outbox'
 
 /** toppings incluidos en el precio de cada vaso */
@@ -59,9 +60,10 @@ function lineUnitCost(line: CartLine, ingredients: Map<string, Ingredient>): num
  * Registra la venta y descuenta insumos (receta base + toppings + extras)
  * en una sola transacción. El stock puede quedar negativo a propósito: en
  * el punto de venta nunca se bloquea una venta real; el faltante se
- * corrige con compras o mermas.
+ * corrige con compras o mermas. La propina va aparte del total; con
+ * tarjeta se guarda la comisión de Mercado Pago sobre todo lo cobrado.
  */
-export async function checkout(cart: CartLine[], payment: Payment): Promise<string> {
+export async function checkout(cart: CartLine[], payment: Payment, tip = 0): Promise<string> {
   return db.transaction('rw', [db.sales, db.ingredients, db.cashSessions, db.outbox, db.meta, db.employees], async () => {
     const ingredients = new Map((await db.ingredients.toArray()).map(i => [i.id, i]))
     const session = await openCashSession()
@@ -96,13 +98,17 @@ export async function checkout(cart: CartLine[], payment: Payment): Promise<stri
       await enqueue('ingredients', 'upsert', updated)
     }
 
+    const total = round2(items.reduce((s, i) => s + i.price * i.qty, 0))
+    const propina = round2(Math.max(0, tip))
     const sale = {
       id: uid(),
       ts: Date.now(),
       items,
-      total: round2(items.reduce((s, i) => s + i.price * i.qty, 0)),
+      total,
       cost: round2(items.reduce((s, i) => s + i.cost * i.qty, 0)),
       payment,
+      tip: propina || undefined,
+      fee: feeFor(payment, total, propina) || undefined,
       sessionId: session?.id,
       employeeName: employee?.name,
     }
@@ -156,12 +162,12 @@ export async function voidSale(saleId: string) {
   })
 }
 
-/** corrige el método de cobro de una venta ya registrada */
+/** corrige el método de cobro de una venta ya registrada (la comisión de tarjeta se recalcula) */
 export async function setSalePayment(saleId: string, payment: Payment) {
   return db.transaction('rw', [db.sales, db.outbox], async () => {
     const sale = await db.sales.get(saleId)
     if (!sale) return
-    const updated = { ...sale, payment }
+    const updated = { ...sale, payment, fee: feeFor(payment, sale.total, sale.tip ?? 0) || undefined }
     await db.sales.put(updated)
     await enqueue('sales', 'upsert', updated)
   })

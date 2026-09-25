@@ -2,6 +2,7 @@ import type { Expense, Payment, Sale } from '../../data/types'
 import { RECON_ID } from '../../services/history'
 import { salesSummary } from '../../services/analytics'
 import { fmtTime, money, round2 } from '../../lib/format'
+import { CARD_FEE_LABEL, totalFees, totalTips } from '../../services/fees'
 
 const PAGOS: { id: Payment; label: string }[] = [
   { id: 'efectivo', label: 'Efectivo' },
@@ -26,6 +27,8 @@ export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
     .map(p => ({ ...p, monto: round2(sales.filter(s => s.payment === p.id).reduce((a, s) => a + s.total, 0)) }))
     .filter(p => p.monto > 0)
   const ordenadas = [...sales].sort((a, b) => a.ts - b.ts)
+  const comision = totalFees(sales)
+  const propinas = totalTips(sales)
   const gastos = expenses.filter(e => (e.kind ?? 'gasto') === 'gasto')
   const retiros = expenses.filter(e => e.kind === 'retiro')
   const fecha = new Date(dayStart).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -40,6 +43,13 @@ export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
             <b className="text-berry-900">{resumen.cups}</b> vasos · {resumen.tickets} cobros
             {resumen.tickets > 0 && <> · ticket promedio {money(resumen.avgTicket)}</>}
           </div>
+          {(comision > 0 || propinas > 0) && (
+            <div className="mt-1 text-xs text-berry-700/55">
+              {comision > 0 && <>comisión de tarjeta ({CARD_FEE_LABEL}) {money(comision)}</>}
+              {comision > 0 && propinas > 0 && ' · '}
+              {propinas > 0 && <>propinas {money(propinas)}</>}
+            </div>
+          )}
         </div>
         {porPago.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -99,7 +109,9 @@ export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
             <div key={e.id} className={`flex items-center gap-3 px-4 py-2.5 ${i > 0 ? 'border-t border-cream-200/70' : ''}`}>
               <span className="w-12 shrink-0 text-sm tabular-nums text-berry-700/55">{fmtTime(e.ts)}</span>
               <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{e.concept}</span>
-              <span className="rounded-full bg-cream-200/70 px-2.5 py-0.5 text-xs text-berry-700/70">{e.kind === 'retiro' ? 'retiro' : 'gasto'}</span>
+              <span className="rounded-full bg-cream-200/70 px-2.5 py-0.5 text-xs text-berry-700/70">
+                {e.kind === 'retiro' ? 'retiro' : e.payment && e.payment !== 'efectivo' ? `gasto · ${e.payment}` : 'gasto'}
+              </span>
               <span className="w-20 shrink-0 text-right font-semibold tabular-nums text-red-600">−{money(e.amount)}</span>
             </div>
           ))}

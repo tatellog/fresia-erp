@@ -4,6 +4,7 @@ import { db } from '../../data/db'
 import type { Payment } from '../../data/types'
 import { delta, profit, salesSummary } from '../../services/analytics'
 import { money, round2, startOfDay } from '../../lib/format'
+import { CARD_FEE_LABEL } from '../../services/fees'
 import { GoalProgress } from './GoalProgress'
 
 const PERIODOS = [
@@ -43,7 +44,8 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
     const canales = CANALES.map(c => {
       const del = enPeriodo.filter(s => s.payment === c.id)
       const monto = round2(del.reduce((s, x) => s + x.total, 0))
-      return { ...c, monto, cobros: del.length, pct: resumen.total > 0 ? Math.round((monto / resumen.total) * 100) : 0 }
+      const fees = round2(del.reduce((s, x) => s + (x.fee ?? 0), 0))
+      return { ...c, monto, fees, neto: round2(monto - fees), cobros: del.length, pct: resumen.total > 0 ? Math.round((monto / resumen.total) * 100) : 0 }
     })
     return {
       def, resumen, utilidad, costsKnown, canales,
@@ -100,7 +102,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
             </div>
             <div className="mt-3 text-sm text-berry-700/70">
               {costsKnown
-                ? <>después de insumos · <b className="text-berry-900">{margen}%</b> de margen</>
+                ? <>después de insumos{utilidad.fees > 0 && <> y {money(utilidad.fees)} de comisión de tarjeta</>} · <b className="text-berry-900">{margen}%</b> de margen</>
                 : 'registra compras de insumos para calcularla'}
             </div>
           </div>
@@ -133,6 +135,9 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
               </span>
               <span className="tabular-nums">
                 <b>{money(c.monto)}</b> <span className="text-berry-700/60">· {c.pct}%</span>
+                {c.id === 'tarjeta' && c.fees > 0 && (
+                  <span className="block text-xs text-berry-700/50">te llegan {money(c.neto)} · comisión {CARD_FEE_LABEL}</span>
+                )}
               </span>
             </div>
             <div className="h-2.5 overflow-hidden rounded-full bg-cream-200/80">

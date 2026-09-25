@@ -2,6 +2,8 @@
 
 export type Unit = 'g' | 'ml' | 'pza'
 export type Payment = 'efectivo' | 'tarjeta' | 'transferencia' | 'rappi' | 'uber' | 'didi'
+/** con qué se pagó una salida de dinero (compra de insumos o gasto) */
+export type ExpensePayment = 'efectivo' | 'tarjeta' | 'transferencia'
 /** id de una lista de toppings elegibles (ver ToppingList); 'clasica' y 'balance' son las originales */
 export type ToppingGroup = string
 
@@ -87,6 +89,10 @@ export interface Sale {
   total: number
   cost: number
   payment: Payment
+  /** propina que dejó el cliente; va aparte del total y es del equipo */
+  tip?: number
+  /** comisión de Mercado Pago cuando se cobró con tarjeta (sobre total + propina) */
+  fee?: number
   sessionId?: string
   /** quién atendió la venta */
   employeeName?: string
@@ -130,6 +136,8 @@ export interface Expense {
   sessionId?: string
   /** ausente = gasto (compatibilidad con registros previos) */
   kind?: ExpenseKind
+  /** con qué se pagó; ausente = efectivo de la caja. Solo el efectivo baja el efectivo esperado */
+  payment?: ExpensePayment
 }
 
 export interface CashSession {

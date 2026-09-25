@@ -1,6 +1,7 @@
 import type { Payment } from '../../data/types'
 import { lineUnitPrice, type CartLine } from '../../services/sales'
 import { PAYMENT_LABEL } from '../../services/ticket'
+import { CARD_FEE_LABEL, feeFor } from '../../services/fees'
 import { money } from '../../lib/format'
 import { Button } from '../../components/ui'
 
@@ -8,6 +9,8 @@ export interface VentaHecha {
   saleId: string
   lines: CartLine[]
   total: number
+  /** propina que dejó el cliente (aparte de la venta) */
+  tip?: number
   payment: Payment
   /** con cuánto pagaron en efectivo */
   paid?: number
@@ -18,6 +21,8 @@ export interface VentaHecha {
 /** resumen de la venta recién cobrada: qué se llevó, cómo pagó y cuánto se le devuelve */
 export function VentaResumen({ venta, onUndo, onClose }: { venta: VentaHecha; onUndo: () => void; onClose: () => void }) {
   const count = venta.lines.reduce((s, l) => s + l.qty, 0)
+  const tip = venta.tip ?? 0
+  const fee = feeFor(venta.payment, venta.total, tip)
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-14 lg:items-center lg:pt-4">
       <div className="absolute inset-0" onClick={onClose} />
@@ -51,6 +56,18 @@ export function VentaResumen({ venta, onUndo, onClose }: { venta: VentaHecha; on
         </div>
 
         <div className="px-6 pb-5 pt-3">
+          {tip > 0 && (
+            <div className="mb-2 flex items-center justify-between rounded-xl bg-cream-200/60 px-4 py-2.5 text-sm">
+              <span className="text-berry-700/70">Propina para el equipo</span>
+              <span className="font-semibold tabular-nums">{money(tip)}</span>
+            </div>
+          )}
+          {fee > 0 && (
+            <div className="mb-2 flex items-center justify-between rounded-xl bg-cream-200/60 px-4 py-2.5 text-sm">
+              <span className="text-berry-700/70">Mercado Pago te deposita <span className="text-xs">(comisión {CARD_FEE_LABEL})</span></span>
+              <span className="font-semibold tabular-nums">{money(venta.total + tip - fee)}</span>
+            </div>
+          )}
           {venta.payment === 'efectivo' && venta.paid != null && (
             <div className="flex items-center justify-between rounded-xl bg-berry-50 px-4 py-2.5 text-berry-700">
               <div className="text-sm">

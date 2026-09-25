@@ -32,6 +32,8 @@ export const PAYMENT_LABEL: Record<Payment, string> = {
 export interface TicketData {
   lines: CartLine[]
   total: number
+  /** propina que dejó el cliente; se imprime aparte y se suma en "A PAGAR" */
+  tip?: number
   payment: Payment
   paid?: number
   change?: number
@@ -100,6 +102,10 @@ export function renderTicket(data: TicketData): string {
 
   regla()
   for (const r of fila('TOTAL', money(data.total))) push(`{w}${r}{/w}`)
+  if (data.tip) {
+    for (const r of fila('Propina', money(data.tip))) push(r)
+    for (const r of fila('A PAGAR', money(data.total + data.tip))) push(`{w}${r}{/w}`)
+  }
   push(`Pago: ${PAYMENT_LABEL[data.payment]}`)
   if (data.payment === 'efectivo' && data.paid != null && data.change != null) {
     push(`Recibido ${money(data.paid)} - Cambio ${money(data.change)}`)

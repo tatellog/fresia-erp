@@ -45,3 +45,18 @@ describe('ticket de texto para la Point', () => {
     expect(t).toContain('+ Crema extra')
   })
 })
+
+describe('ticket con propina', () => {
+  const t = renderTicket({ lines, total: 320, tip: 32, payment: 'tarjeta', ts: Date.UTC(2026, 8, 14, 21, 30) })
+
+  it('imprime la propina aparte y el total a pagar con ella', () => {
+    expect(t).toMatch(/Propina\s+\$32/)
+    expect(t).toMatch(/\{w\}A PAGAR\s+\$352\{\/w\}/)
+  })
+
+  it('sin propina no aparece el renglón', () => {
+    const sin = renderTicket({ lines, total: 320, payment: 'tarjeta', ts: Date.UTC(2026, 8, 14, 21, 30) })
+    expect(sin).not.toContain('Propina')
+    expect(sin).not.toContain('A PAGAR')
+  })
+})

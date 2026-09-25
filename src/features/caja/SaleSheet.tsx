@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Payment, Sale } from '../../data/types'
 import { setSalePayment, voidSale } from '../../services/sales'
 import { fmtTime, money } from '../../lib/format'
+import { CARD_FEE_LABEL, feeFor } from '../../services/fees'
 import { Button, Sheet } from '../../components/ui'
 import { PaymentPicker } from '../vender/PaymentPicker'
 
@@ -47,6 +48,17 @@ export function SaleSheet({ sale, onClose }: { sale: Sale; onClose: () => void }
         </span>
         <span className="font-display text-[26px] font-bold tabular-nums">{money(sale.total)}</span>
       </div>
+      {(sale.tip || feeFor(payment, sale.total, sale.tip ?? 0) > 0) ? (
+        <div className="mb-4 space-y-1 text-sm text-berry-700/70">
+          {!!sale.tip && <div className="flex justify-between"><span>Propina para el equipo</span><span className="tabular-nums">{money(sale.tip)}</span></div>}
+          {feeFor(payment, sale.total, sale.tip ?? 0) > 0 && (
+            <div className="flex justify-between">
+              <span>Comisión de Mercado Pago ({CARD_FEE_LABEL})</span>
+              <span className="tabular-nums">−{money(feeFor(payment, sale.total, sale.tip ?? 0))}</span>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-berry-700/50">Método de cobro</p>
       <PaymentPicker payment={payment} setPayment={setPayment} />

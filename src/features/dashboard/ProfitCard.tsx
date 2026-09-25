@@ -1,15 +1,18 @@
 import { money } from '../../lib/format'
+import { CARD_FEE_LABEL } from '../../services/fees'
 
-/** ganancia del día: ingresos, costo de insumos y ganancia con barras comparables */
-export function ProfitCard({ income, cost, profit, costsKnown }: {
+/** ganancia del día: ingresos, costo de insumos, comisión de tarjeta y ganancia con barras comparables */
+export function ProfitCard({ income, cost, fees, profit, costsKnown }: {
   income: number
   cost: number
+  fees: number
   profit: number
   costsKnown: boolean
 }) {
   const rows = [
     { label: 'Ingresos', value: income, color: 'var(--color-berry-500)' },
     { label: 'Costo de insumos', value: cost, color: 'var(--line-choco)' },
+    ...(fees > 0 ? [{ label: `Comisión de tarjeta · ${CARD_FEE_LABEL}`, value: fees, color: 'var(--color-blush)' }] : []),
     { label: 'Ganancia', value: profit, color: 'var(--line-olive)' },
   ]
   const max = Math.max(income, 1)
@@ -41,7 +44,7 @@ export function ProfitCard({ income, cost, profit, costsKnown }: {
         ))}
       </div>
       <p className="mt-4 text-xs text-berry-700/50">
-        Ganancia bruta: no incluye gastos del turno (hielo, gasolina…); esos se ven en Caja.
+        Ganancia bruta: ya descuenta la comisión de Mercado Pago de los cobros con tarjeta, pero no los gastos del turno (hielo, gasolina…); esos se ven en Caja.
       </p>
     </div>
   )

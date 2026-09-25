@@ -3,26 +3,29 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
 import { registerPurchase } from '../../services/inventory'
 import { money } from '../../lib/format'
-import { Button, Field, Input, Sheet } from '../../components/ui'
+import { Button, decimal, Field, NumberInput, Sheet } from '../../components/ui'
+import { ExpensePaymentPicker, type PurchasePayment } from './ExpensePaymentPicker'
 
 /**
- * Compra de insumos pagada con efectivo de la caja: en un solo paso
- * descuenta el gasto del turno y sube el stock con su costo promedio.
+ * Compra de insumos desde la caja: en un solo paso queda el gasto del
+ * turno con su forma de pago y sube el stock con su costo promedio.
+ * Solo lo pagado en efectivo baja el efectivo esperado del corte.
  */
 export function CompraInsumoSheet({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
   const ingredients = useLiveQuery(() => db.ingredients.orderBy('name').toArray())
   const [ingId, setIngId] = useState('')
   const [qty, setQty] = useState('')
   const [cost, setCost] = useState('')
+  const [payment, setPayment] = useState<PurchasePayment>('efectivo')
 
   const ing = ingredients?.find(i => i.id === ingId)
-  const q = parseFloat(qty), c = parseFloat(cost)
+  const q = decimal(qty), c = decimal(cost)
   const valid = !!ing && q > 0 && c > 0
 
   return (
     <Sheet open onClose={onClose} title="Compra de insumos">
       <p className="mb-3 text-sm text-berry-700/70">
-        Tomaste efectivo de la caja para comprar: aquí queda el gasto del turno y la entrada al inventario, de una vez.
+        Aquí queda el gasto del turno y la entrada al inventario, de una vez.
       </p>
       <Field label="Insumo">
         <select
@@ -39,14 +42,15 @@ export function CompraInsumoSheet({ sessionId, onClose }: { sessionId: string; o
       {ing && (
         <>
           <Field label={`Cantidad comprada (${ing.unit})`}>
-            <Input type="number" inputMode="decimal" value={qty} onChange={e => setQty(e.target.value)} />
+            <NumberInput value={qty} onChange={e => setQty(e.target.value)} />
           </Field>
           <Field label="Costo total pagado ($)">
-            <Input type="number" inputMode="decimal" value={cost} onChange={e => setCost(e.target.value)} />
+            <NumberInput value={cost} onChange={e => setCost(e.target.value)} />
           </Field>
+          <ExpensePaymentPicker value={payment} onChange={setPayment} />
           {valid && (
             <p className="mb-3 text-sm text-berry-700/70">
-              Sale de caja <b>{money(c)}</b> · entran <b>{qty} {ing.unit}</b> a {money(c / q)}/{ing.unit}
+              {payment === 'efectivo' ? 'Sale de caja' : 'Gasto del turno'} <b>{money(c)}</b> · entran <b>{qty} {ing.unit}</b> a {money(c / q)}/{ing.unit}
             </p>
           )}
         </>
@@ -54,7 +58,10 @@ export function CompraInsumoSheet({ sessionId, onClose }: { sessionId: string; o
       <Button
         className="w-full"
         disabled={!valid}
-        onClick={async () => { await registerPurchase(ing!.id, q, c, undefined, sessionId); onClose() }}
+        onClick={async () => {
+          await registerPurchase(ing!.id, q, c, undefined, sessionId, payment === 'fuera' ? 'efectivo' : payment)
+          onClose()
+        }}
       >
         Registrar compra
       </Button>

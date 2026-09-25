@@ -2,6 +2,7 @@ import { db } from '../data/db'
 import { uid } from '../data/ids'
 import type { Payment, Sale } from '../data/types'
 import { round2 } from '../lib/format'
+import { feeFor } from './fees'
 import { enqueue } from './outbox'
 
 /**
@@ -60,7 +61,7 @@ export async function saveDayRecon(dayStart: number, amounts: DayAmounts) {
       const ts = dayStart + RECON_HOUR[payment] * 3600_000 + 30 * 60_000
       const qty = Math.max(1, Math.round(amount / AVG_TICKET))
       const sale: Sale = {
-        id: uid(), ts, total: round2(amount), cost: 0, payment,
+        id: uid(), ts, total: round2(amount), cost: 0, payment, fee: feeFor(payment, amount) || undefined,
         items: [{ productId: RECON_ID, name: RECON_NAME, qty, price: round2(amount / qty), cost: 0 }],
       }
       await db.sales.add(sale)

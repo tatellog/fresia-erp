@@ -16,7 +16,7 @@ export const toCloud: Record<SyncTable, { table: string; map: (r: CloudRow, bran
   },
   sales: {
     table: 'sales',
-    map: (r, branch) => ({ id: r.id, ts: iso(r.ts), items: r.items, total: r.total, cost: r.cost, payment: r.payment, session_id: r.sessionId ?? null, employee: r.employeeName ?? null, branch }),
+    map: (r, branch) => ({ id: r.id, ts: iso(r.ts), items: r.items, total: r.total, cost: r.cost, payment: r.payment, tip: r.tip ?? 0, fee: r.fee ?? 0, session_id: r.sessionId ?? null, employee: r.employeeName ?? null, branch }),
   },
   employees: {
     table: 'employees',
@@ -40,7 +40,7 @@ export const toCloud: Record<SyncTable, { table: string; map: (r: CloudRow, bran
   },
   expenses: {
     table: 'expenses',
-    map: (r, branch) => ({ id: r.id, ts: iso(r.ts), concept: r.concept, amount: r.amount, session_id: r.sessionId ?? null, kind: r.kind ?? 'gasto', branch }),
+    map: (r, branch) => ({ id: r.id, ts: iso(r.ts), concept: r.concept, amount: r.amount, session_id: r.sessionId ?? null, kind: r.kind ?? 'gasto', payment: r.payment ?? 'efectivo', branch }),
   },
   cashSessions: {
     table: 'cash_sessions',

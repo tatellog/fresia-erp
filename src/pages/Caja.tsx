@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Sale } from '../data/types'
-import { expectedCash, openCashSession } from '../services/cash'
+import { expectedCash, openCashSession, paidInCash } from '../services/cash'
+import { saleNet, totalFees, totalTips } from '../services/fees'
 import { fmtTime, startOfDay } from '../lib/format'
 import { Empty } from '../components/ui'
 import { ArrowDownCircleIcon, BoxIcon, LockIcon, ReceiptIcon, UnlockIcon } from '../components/ui/icons'
@@ -61,7 +62,7 @@ export default function Caja() {
         label: e.concept,
         amount: e.amount,
         tone: 'out' as const,
-        tag: e.kind === 'retiro' ? 'retiro' : 'gasto',
+        tag: e.kind === 'retiro' ? 'retiro' : paidInCash(e) ? 'gasto' : `gasto · ${e.payment}`,
       })),
     ]
     return items.sort((a, b) => b.ts - a.ts).slice(0, 30)
@@ -70,7 +71,9 @@ export default function Caja() {
   if (session === undefined || !history || !todaySales) return null
 
   const expected = session ? expectedCash(session, sessionSales ?? [], sessionExpenses ?? []) : 0
-  const cardTotal = todaySales.filter(s => s.payment === 'tarjeta').reduce((s, x) => s + x.total, 0)
+  const cardSales = todaySales.filter(s => s.payment === 'tarjeta')
+  const cardTotal = cardSales.reduce((s, x) => s + x.total, 0)
+  const cardNet = cardSales.reduce((s, x) => s + saleNet(x), 0)
   const transferTotal = todaySales.filter(s => s.payment === 'transferencia').reduce((s, x) => s + x.total, 0)
   const deliveryTotal = todaySales.filter(s => s.payment === 'rappi' || s.payment === 'uber' || s.payment === 'didi').reduce((s, x) => s + x.total, 0)
   const dayTotal = todaySales.reduce((s, x) => s + x.total, 0)
@@ -113,7 +116,17 @@ export default function Caja() {
       )}
 
       {/* hero */}
-      <DailyTotals expected={expected} card={cardTotal} transfer={transferTotal} delivery={deliveryTotal} total={dayTotal} open={!!session} />
+      <DailyTotals
+        expected={expected}
+        card={cardTotal}
+        cardNet={cardNet}
+        cardFees={totalFees(cardSales)}
+        transfer={transferTotal}
+        delivery={deliveryTotal}
+        tips={totalTips(todaySales)}
+        total={dayTotal}
+        open={!!session}
+      />
 
       {/* acciones */}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">

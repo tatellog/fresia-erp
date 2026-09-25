@@ -15,7 +15,10 @@ export function ExpenseCard({ expenses, onAdd, canAdd }: { expenses: Expense[]; 
             <div key={e.id} className={`flex items-center justify-between py-3 ${i > 0 ? 'border-t border-cream-200/70' : ''}`}>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[15px] font-medium">{e.concept}</div>
-                <div className="text-xs text-berry-700/50">{fmtTime(e.ts)}</div>
+                <div className="text-xs text-berry-700/50">
+                  {fmtTime(e.ts)}
+                  {e.payment && e.payment !== 'efectivo' && <> · con {e.payment} · no sale del cajón</>}
+                </div>
               </div>
               <span className="font-semibold tabular-nums text-red-600">−{money(e.amount)}</span>
             </div>

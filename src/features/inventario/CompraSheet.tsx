@@ -5,13 +5,14 @@ import type { Ingredient } from '../../data/types'
 import { registerPurchase } from '../../services/inventory'
 import { money } from '../../lib/format'
 import { Button, decimal, Field, NumberInput, Sheet } from '../../components/ui'
+import { ExpensePaymentPicker, type PurchasePayment } from '../caja/ExpensePaymentPicker'
 
 /** registro de compra de un insumo (recalcula costo promedio) */
 export function CompraSheet({ ing, onClose }: { ing: Ingredient; onClose: () => void }) {
   const [qty, setQty] = useState('')
   const [cost, setCost] = useState('')
-  const [fromCash, setFromCash] = useState(true)
-  // caja abierta: la compra puede pagarse con efectivo del turno
+  const [payment, setPayment] = useState<PurchasePayment>('efectivo')
+  // caja abierta: la compra queda como gasto del turno con su forma de pago
   const session = useLiveQuery(async () => (await openCashSession()) ?? null)
   const q = decimal(qty), c = decimal(cost)
   const valid = q > 0 && c >= 0
@@ -28,25 +29,21 @@ export function CompraSheet({ ing, onClose }: { ing: Ingredient; onClose: () => 
           Costo unitario de esta compra: <b>{money(c / q)}</b> / {ing.unit}
         </p>
       )}
-      {session && (
-        <button
-          onClick={() => setFromCash(v => !v)}
-          className={`mb-3 flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors ${
-            fromCash ? 'border-berry-500 bg-berry-50 text-berry-700' : 'border-cream-300 text-berry-700/70'
-          }`}
-        >
-          <span>Se pagó con efectivo de la caja</span>
-          <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
-            fromCash ? 'bg-berry-500 text-white' : 'border border-cream-300'
-          }`}>
-            {fromCash ? '✓' : ''}
-          </span>
-        </button>
+      {session ? (
+        <ExpensePaymentPicker value={payment} onChange={setPayment} allowOutside />
+      ) : (
+        <p className="mb-3 rounded-xl bg-cream-200/60 px-3 py-2 text-xs text-berry-700/70">
+          La caja está cerrada: la compra solo entra al inventario. Para que cuente como gasto del turno, abre la caja primero.
+        </p>
       )}
       <Button
         className="w-full"
         disabled={!valid}
-        onClick={async () => { await registerPurchase(ing.id, q, c, undefined, session && fromCash ? session.id : undefined); onClose() }}
+        onClick={async () => {
+          const enCaja = session && payment !== 'fuera'
+          await registerPurchase(ing.id, q, c, undefined, enCaja ? session.id : undefined, enCaja ? payment : 'efectivo')
+          onClose()
+        }}
       >
         Registrar compra
       </Button>
