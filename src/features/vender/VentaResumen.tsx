@@ -63,9 +63,12 @@ export function VentaResumen({ venta, onUndo, onClose }: { venta: VentaHecha; on
             </div>
           )}
           {fee > 0 && (
-            <div className="mb-2 flex items-center justify-between rounded-xl bg-cream-200/60 px-4 py-2.5 text-sm">
-              <span className="text-berry-700/70">Mercado Pago te deposita <span className="text-xs">(comisión {CARD_FEE_LABEL})</span></span>
-              <span className="font-semibold tabular-nums">{money(venta.total + tip - fee)}</span>
+            <div className="mb-2 flex items-center justify-between gap-3 rounded-xl bg-cream-200/60 px-4 py-2.5 text-sm">
+              <span className="text-berry-700/70">
+                Mercado Pago te deposita
+                <span className="block text-xs text-berry-700/50">ya restó su comisión de {CARD_FEE_LABEL} ({money(fee)})</span>
+              </span>
+              <span className="shrink-0 font-semibold tabular-nums">{money(venta.total + tip - fee)}</span>
             </div>
           )}
           {venta.payment === 'efectivo' && venta.paid != null && (
