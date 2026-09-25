@@ -12,10 +12,11 @@ const PORCENTAJES = [10, 15]
  */
 export function TipPicker({ total, tip, setTip }: { total: number; tip: number; setTip: (v: number) => void }) {
   const [otra, setOtra] = useState('')
-  const sugeridas = PORCENTAJES.map(p => ({ p, v: round2(total * p / 100) })).filter(s => s.v > 0)
+  // en pesos cerrados: nadie deja $9.50 de propina
+  const sugeridas = PORCENTAJES.map(p => ({ p, v: Math.round(total * p / 100) })).filter(s => s.v > 0)
   const esSugerida = sugeridas.some(s => s.v === tip)
   const chip = (on: boolean) =>
-    `rounded-full border px-3 py-2 text-[13px] font-medium tabular-nums tracking-wide transition-colors ${
+    `rounded-full border px-2.5 py-2 text-[13px] font-medium tabular-nums tracking-wide transition-colors ${
       on ? 'border-berry-500 bg-berry-500 text-white' : 'border-cream-300 text-berry-700'
     }`
   return (
@@ -32,7 +33,7 @@ export function TipPicker({ total, tip, setTip }: { total: number; tip: number; 
         ))}
         <NumberInput
           placeholder="Otra"
-          className={`min-w-[5.5rem] flex-1 text-center tabular-nums ${tip > 0 && !esSugerida ? 'border-berry-500' : ''}`}
+          className={`w-20 min-w-0 flex-1 text-center tabular-nums ${tip > 0 && !esSugerida ? 'border-berry-500' : ''}`}
           value={otra}
           onChange={e => {
             setOtra(e.target.value)
