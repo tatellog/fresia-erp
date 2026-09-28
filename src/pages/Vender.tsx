@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
-import type { Ingredient, Payment, Product } from '../data/types'
+import type { Ingredient, OpenTab, Payment, Product } from '../data/types'
 import { checkout, lineUnitPrice, voidSale, type CartLine } from '../services/sales'
 import { cancelTerminalOrder, chargeOnTerminal, printTicket, waitForPayment, watchPrint } from '../services/mp'
 import { renderTicket } from '../services/ticket'
@@ -17,6 +17,10 @@ import { ToppingPickerSheet } from '../features/vender/ToppingPickerSheet'
 import { AttendantChip } from '../features/vender/AttendantChip'
 import { LineTabs, type LineFilter } from '../features/vender/LineTabs'
 import { VentaResumen, type VentaHecha } from '../features/vender/VentaResumen'
+import { OpenTabsChip } from '../features/vender/OpenTabsChip'
+import { OpenTabsSheet } from '../features/vender/OpenTabsSheet'
+import { SaveTabSheet } from '../features/vender/SaveTabSheet'
+import { saveTab, tabToCart, undoTabCharge } from '../services/tabs'
 
 interface Section {
   key: LineFilter
@@ -72,6 +76,17 @@ export default function Vender() {
 
   const mpTerminalId = useLiveQuery(async () => (await db.meta.get('mpTerminalId'))?.value)
 
+  /** cuentas abiertas de todos los dispositivos */
+  const openTabs = useLiveQuery(() => db.openTabs.toArray())
+  /** cuenta cargada en el ticket (para agregar o cobrar) */
+  const [tab, setTab] = useState<OpenTab | null>(null)
+  const [tabsSheet, setTabsSheet] = useState(false)
+  const [savingTab, setSavingTab] = useState(false)
+  /** aviso breve tras guardar una cuenta */
+  const [aviso, setAviso] = useState<string | null>(null)
+  /** la cuenta cargada se cobró o canceló en otro dispositivo mientras estaba aquí */
+  const tabPerdida = !!tab && !!openTabs && !openTabs.some(t => t.id === tab.id)
+
   const active = useMemo(() => (products ?? []).filter(p => p.active), [products])
   const secs = useMemo(() => sections(active), [active])
   const visibles = filter === 'todo' ? secs : secs.filter(s => s.key === filter)
@@ -121,12 +136,14 @@ export default function Vender() {
     const lines = cart
     const pagoRecibido = payment === 'efectivo' && paid != null ? paid : undefined
     const change = payment === 'efectivo' && paid != null && paid > t + propina ? paid - t - propina : undefined
-    const saleId = await checkout(cart, payment, propina)
+    const cuenta = tab ? await db.openTabs.get(tab.id) : undefined
+    const saleId = await checkout(cart, payment, propina, cuenta?.id)
     setCart([])
+    setTab(null)
     setPaying(false)
     setPaid(null)
     setTip(0)
-    setDone({ saleId, lines, total: t, tip: propina, payment, paid: pagoRecibido, change })
+    setDone({ saleId, lines, total: t, tip: propina, payment, paid: pagoRecibido, change, tab: cuenta })
     if (ocultarDone.current) clearTimeout(ocultarDone.current)
     ocultarDone.current = setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), 20000)
     void imprimirTicket(lines, t, propina, pagoRecibido, change, saleId)
@@ -230,17 +247,78 @@ export default function Vender() {
   /** anula la venta recién cobrada (cobro equivocado): repone insumos y sale del corte */
   const deshacer = async () => {
     if (!done) return
-    await voidSale(done.saleId)
+    if (done.tab) await undoTabCharge(done.saleId, done.tab)
+    else await voidSale(done.saleId)
     setDone(null)
   }
+
+  /** guarda el ticket como cuenta abierta (nueva o la que está cargada) */
+  const guardarCuenta = async (name: string) => {
+    await saveTab(cart, name, tab?.id)
+    const nombre = name.trim() || 'Cuenta'
+    setCart([])
+    setTab(null)
+    setSavingTab(false)
+    setPaying(false)
+    setPaid(null)
+    setTip(0)
+    setAviso(tab ? `Cambios guardados en «${nombre}»` : `Cuenta «${nombre}» guardada`)
+    setTimeout(() => setAviso(null), 3500)
+  }
+
+  /** carga una cuenta en el ticket para agregarle productos o cobrarla */
+  const abrirCuenta = async (t: OpenTab) => {
+    setCart(await tabToCart(t))
+    setTab(t)
+    setTabsSheet(false)
+    setPaid(null)
+    setTip(0)
+  }
+
+  /** deja la cuenta como estaba y limpia el ticket */
+  const soltarCuenta = () => {
+    setCart([])
+    setTab(null)
+    setPaying(false)
+  }
+
+  /** encabezado del ticket cuando hay una cuenta cargada */
+  const cuentaCargada = tab && (
+    <div className={`mb-3 rounded-2xl px-4 py-3 ${tabPerdida ? 'bg-red-50' : 'bg-berry-50'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-berry-500">Cuenta abierta</div>
+          <div className="truncate text-[15px] font-semibold">{tab.name}</div>
+        </div>
+        <button onClick={soltarCuenta} className="shrink-0 rounded-full border border-cream-300 px-3 py-1.5 text-xs font-medium text-berry-700">
+          Soltar sin cambios
+        </button>
+      </div>
+      {tabPerdida && (
+        <p className="mt-2 text-xs text-red-700">Esta cuenta ya se cobró o se canceló en otro dispositivo. Suéltala para no cobrarla dos veces.</p>
+      )}
+    </div>
+  )
+
+  /** botón secundario: guardar para cobrar al final */
+  const botonDespues = (
+    <button
+      onClick={() => setSavingTab(true)}
+      disabled={count === 0 || tabPerdida}
+      className="mt-2 w-full rounded-full border border-berry-500/40 py-3 text-sm font-semibold tracking-wide text-berry-600 disabled:opacity-40 active:bg-berry-50"
+    >
+      {tab ? 'Guardar cambios y cobrar después' : 'Cobrar después'}
+    </button>
+  )
 
   if (!products) return null
 
   return (
     <div className="pt-2 lg:flex lg:items-start lg:gap-6 lg:pt-0">
       <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center justify-between">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <AttendantChip />
+          <OpenTabsChip count={openTabs?.length ?? 0} onClick={() => setTabsSheet(true)} />
         </div>
         <LineTabs value={filter} onChange={setFilter} available={available} />
         {active.length === 0 && <Empty text="Agrega productos en la pestaña Menú para empezar a vender." />}
@@ -274,6 +352,7 @@ export default function Vender() {
               </span>
             )}
           </div>
+          {cuentaCargada}
           {cart.length === 0 ? (
             <p className="py-10 text-center font-display text-lg italic text-berry-700/45">Para mi bombón.</p>
           ) : (
@@ -289,9 +368,10 @@ export default function Vender() {
               {payment === 'tarjeta' && mpTerminalId && (
                 <p className="mb-3 -mt-1 text-xs text-berry-700/50">El cobro se manda solo a la terminal Point.</p>
               )}
-              <Button className="w-full py-4 text-lg" onClick={cobrar}>
+              <Button className="w-full py-4 text-lg" disabled={tabPerdida} onClick={cobrar}>
                 Cobrar · {money(aPagar)}
               </Button>
+              {botonDespues}
               <p className="mt-3 text-center text-[11px] uppercase tracking-[0.18em] text-berry-900/35">Hechas al momento</p>
             </>
           )}
@@ -336,11 +416,21 @@ export default function Vender() {
       {done && <VentaResumen venta={done} onUndo={deshacer} onClose={() => setDone(null)} />}
 
       {/* barra de cobro + hoja: teléfono e iPad vertical */}
-      {count > 0 && (
+      {(count > 0 || tab) && (
         <div className="fixed inset-x-0 bottom-[4.25rem] z-40 mx-auto max-w-lg px-4 pb-2 md:max-w-2xl lg:hidden">
-          <Button className="w-full py-4 text-lg shadow-lg" onClick={() => setPaying(true)}>
-            Cobrar {count} {count === 1 ? 'artículo' : 'artículos'} · {money(total)}
-          </Button>
+          {tab && (
+            <div className="mb-2 flex items-center justify-between gap-2 rounded-full bg-cream-50 py-1.5 pl-4 pr-1.5 shadow-md">
+              <span className="min-w-0 truncate text-xs font-semibold text-berry-600">Cuenta · {tab.name}</span>
+              <button onClick={soltarCuenta} className="shrink-0 rounded-full border border-cream-300 px-3 py-1 text-xs font-medium text-berry-700">
+                Soltar
+              </button>
+            </div>
+          )}
+          {count > 0 && (
+            <Button className="w-full py-4 text-lg shadow-lg" onClick={() => setPaying(true)}>
+              Cobrar {count} {count === 1 ? 'artículo' : 'artículos'} · {money(total)}
+            </Button>
+          )}
         </div>
       )}
 
@@ -355,7 +445,8 @@ export default function Vender() {
         />
       )}
 
-      <Sheet open={paying} onClose={() => setPaying(false)} title="Cobrar">
+      <Sheet open={paying} onClose={() => setPaying(false)} title={tab ? `Cobrar · ${tab.name}` : 'Cobrar'}>
+        {tabPerdida && cuentaCargada}
         <CartLines lines={cart} setQty={setQty} />
         <div className="mb-4 flex items-baseline justify-between border-t border-cream-200 pt-3.5">
           <span className="text-sm font-medium text-berry-700/70">Total</span>
@@ -367,10 +458,37 @@ export default function Vender() {
         {payment === 'tarjeta' && mpTerminalId && (
           <p className="mb-3 -mt-1 text-xs text-berry-700/50">El cobro se manda solo a la terminal Point.</p>
         )}
-        <Button className="w-full py-4 text-lg" disabled={count === 0} onClick={cobrar}>
+        <Button className="w-full py-4 text-lg" disabled={count === 0 || tabPerdida} onClick={cobrar}>
           Confirmar · {money(aPagar)}
         </Button>
+        {botonDespues}
       </Sheet>
+
+      {savingTab && (
+        <SaveTabSheet
+          total={total}
+          count={count}
+          initialName={tab?.name}
+          editing={!!tab}
+          onSave={guardarCuenta}
+          onClose={() => setSavingTab(false)}
+        />
+      )}
+
+      {tabsSheet && (
+        <OpenTabsSheet
+          tabs={openTabs ?? []}
+          blocked={cart.length > 0}
+          onOpen={abrirCuenta}
+          onClose={() => setTabsSheet(false)}
+        />
+      )}
+
+      {aviso && (
+        <div className="fixed inset-x-0 top-4 z-[60] mx-auto w-fit max-w-[90vw] rounded-full bg-berry-900 px-5 py-2.5 text-sm font-medium text-cream-50 shadow-xl">
+          {aviso}
+        </div>
+      )}
     </div>
   )
 }

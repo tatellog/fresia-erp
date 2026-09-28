@@ -1,4 +1,4 @@
-import type { Payment } from '../../data/types'
+import type { OpenTab, Payment } from '../../data/types'
 import { lineUnitPrice, type CartLine } from '../../services/sales'
 import { PAYMENT_LABEL } from '../../services/ticket'
 import { CARD_FEE_LABEL, feeFor } from '../../services/fees'
@@ -16,6 +16,8 @@ export interface VentaHecha {
   paid?: number
   change?: number
   ticketError?: string
+  /** cuenta abierta que se cobró; deshacer la vuelve a abrir */
+  tab?: OpenTab
 }
 
 /** resumen de la venta recién cobrada: qué se llevó, cómo pagó y cuánto se le devuelve */
@@ -31,7 +33,7 @@ export function VentaResumen({ venta, onUndo, onClose }: { venta: VentaHecha; on
           <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-xl text-green-700">✓</div>
           <div className="font-display text-3xl font-bold tabular-nums">{money(venta.total)}</div>
           <div className="mt-0.5 text-sm text-berry-700/60">
-            Venta registrada · {count} {count === 1 ? 'artículo' : 'artículos'} · {PAYMENT_LABEL[venta.payment]}
+            Venta registrada{venta.tab && <> · {venta.tab.name}</>} · {count} {count === 1 ? 'artículo' : 'artículos'} · {PAYMENT_LABEL[venta.payment]}
           </div>
         </div>
 

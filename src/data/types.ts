@@ -98,6 +98,37 @@ export interface Sale {
   employeeName?: string
 }
 
+/** renglón de una cuenta abierta: ids para rearmar el carrito y foto de cómo se veía */
+export interface TabLine {
+  productId: string
+  qty: number
+  /** ids de toppings; se repiten cuando van dobles */
+  toppingIds: string[]
+  extraIds: string[]
+  /** nombre, precio unitario, toppings y extras al guardar (por si el catálogo cambia) */
+  name: string
+  price: number
+  toppings?: string[]
+  extras?: string[]
+}
+
+/**
+ * Cuenta abierta: pedido ya servido que el cliente paga al final. Los
+ * insumos se descuentan al guardarla (se usaron al preparar); la venta
+ * solo existe cuando se cobra.
+ */
+export interface OpenTab {
+  id: string
+  /** cómo la reconoce la empleada: "Mesa 2", "Señora de rojo" */
+  name: string
+  openTs: number
+  lines: TabLine[]
+  total: number
+  /** insumos ya descontados del inventario por esta cuenta (id → cantidad) */
+  used: Record<string, number>
+  employeeName?: string
+}
+
 /** personal que atiende; el PIN firma ventas y cortes */
 export interface Employee {
   id: string
@@ -170,10 +201,11 @@ export interface Investment {
 /** tablas del dominio que se sincronizan con la nube */
 export type SyncTable =
   | 'ingredients' | 'products' | 'sales' | 'purchases' | 'wastes' | 'expenses' | 'cashSessions' | 'employees' | 'investments'
-  | 'toppingLists'
+  | 'toppingLists' | 'openTabs'
 
 export const DOMAIN_TABLES: SyncTable[] = [
   'ingredients', 'products', 'sales', 'purchases', 'wastes', 'expenses', 'cashSessions', 'employees', 'investments', 'toppingLists',
+  'openTabs',
 ]
 
 /** cola de cambios pendientes de subir a Supabase */

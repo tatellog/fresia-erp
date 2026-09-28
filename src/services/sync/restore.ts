@@ -17,6 +17,7 @@ export const fromCloud: Record<SyncTable, (r: CloudRow) => Record<string, unknow
   sales: r => ({ id: r.id, ts: ts(r.ts), items: r.items, total: r.total, cost: r.cost, payment: r.payment, tip: Number(r.tip) || undefined, fee: Number(r.fee) || undefined, sessionId: r.session_id ?? undefined, employeeName: r.employee ?? undefined }),
   employees: r => ({ id: r.id, name: r.name, active: r.active, pin: '' }),
   toppingLists: r => ({ id: r.id, name: r.name, sort: r.sort }),
+  openTabs: r => ({ id: r.id, name: r.name, openTs: ts(r.open_ts), lines: r.lines, total: Number(r.total), used: r.used ?? {}, employeeName: r.employee ?? undefined }),
   investments: r => ({ id: r.id, ts: ts(r.ts), concept: r.concept, amount: r.amount, paidBy: r.paid_by ?? '', pending: r.pending }),
   purchases: r => ({ id: r.id, ts: ts(r.ts), ingredientId: r.ingredient_id, ingredientName: r.ingredient_name, qty: r.qty, totalCost: r.total_cost, note: r.note ?? undefined }),
   wastes: r => ({ id: r.id, ts: ts(r.ts), ingredientId: r.ingredient_id, ingredientName: r.ingredient_name, qty: r.qty, reason: r.reason }),

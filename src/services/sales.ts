@@ -56,15 +56,48 @@ function lineUnitCost(line: CartLine, ingredients: Map<string, Ingredient>): num
   return round2(productCost(line.product, ingredients) + toppingsCost + extrasCost)
 }
 
+/** insumos que consume un carrito: receta base + porciones de toppings + recetas de extras */
+export function cartUsage(cart: CartLine[]): Map<string, number> {
+  const usage = new Map<string, number>()
+  const use = (ingredientId: string, qty: number) =>
+    usage.set(ingredientId, (usage.get(ingredientId) ?? 0) + qty)
+  for (const line of cart) {
+    for (const r of line.product.recipe) use(r.ingredientId, r.qty * line.qty)
+    for (const t of line.toppings) use(t.id, (t.portion ?? 0) * line.qty)
+    for (const e of line.extras)
+      for (const r of e.recipe) use(r.ingredientId, r.qty * line.qty)
+  }
+  return usage
+}
+
+/**
+ * Mueve la existencia de cada insumo según `delta` (positivo = se gastó).
+ * Debe llamarse dentro de una transacción que incluya ingredients y outbox.
+ */
+export async function applyUsage(delta: Map<string, number>) {
+  for (const [ingredientId, qty] of delta) {
+    if (!qty) continue
+    const ing = await db.ingredients.get(ingredientId)
+    if (!ing) continue
+    const updated = { ...ing, stock: round2(ing.stock - qty) }
+    await db.ingredients.put(updated)
+    await enqueue('ingredients', 'upsert', updated)
+  }
+}
+
 /**
  * Registra la venta y descuenta insumos (receta base + toppings + extras)
  * en una sola transacción. El stock puede quedar negativo a propósito: en
  * el punto de venta nunca se bloquea una venta real; el faltante se
  * corrige con compras o mermas. La propina va aparte del total; con
  * tarjeta se guarda la comisión de Mercado Pago sobre todo lo cobrado.
+ *
+ * Con `tabId` se cobra una cuenta abierta: sus insumos ya se habían
+ * descontado al guardarla, así que solo se descuenta lo que se agregó
+ * después, y la cuenta se cierra en la misma transacción.
  */
-export async function checkout(cart: CartLine[], payment: Payment, tip = 0): Promise<string> {
-  return db.transaction('rw', [db.sales, db.ingredients, db.cashSessions, db.outbox, db.meta, db.employees], async () => {
+export async function checkout(cart: CartLine[], payment: Payment, tip = 0, tabId?: string): Promise<string> {
+  return db.transaction('rw', [db.sales, db.ingredients, db.cashSessions, db.outbox, db.meta, db.employees, db.openTabs], async () => {
     const ingredients = new Map((await db.ingredients.toArray()).map(i => [i.id, i]))
     const session = await openCashSession()
     const activeId = (await db.meta.get('activeEmployeeId'))?.value
@@ -81,22 +114,14 @@ export async function checkout(cart: CartLine[], payment: Payment, tip = 0): Pro
     }))
 
     // consumo de insumos: receta base + porciones de toppings + recetas de extras
-    const usage = new Map<string, number>()
-    const use = (ingredientId: string, qty: number) =>
-      usage.set(ingredientId, (usage.get(ingredientId) ?? 0) + qty)
-    for (const line of cart) {
-      for (const r of line.product.recipe) use(r.ingredientId, r.qty * line.qty)
-      for (const t of line.toppings) use(t.id, (t.portion ?? 0) * line.qty)
-      for (const e of line.extras)
-        for (const r of e.recipe) use(r.ingredientId, r.qty * line.qty)
+    const usage = cartUsage(cart)
+    const tab = tabId ? await db.openTabs.get(tabId) : undefined
+    if (tab) {
+      for (const [id, qty] of Object.entries(tab.used)) usage.set(id, (usage.get(id) ?? 0) - qty)
+      await db.openTabs.delete(tab.id)
+      await enqueue('openTabs', 'delete', { id: tab.id })
     }
-    for (const [ingredientId, qty] of usage) {
-      const ing = ingredients.get(ingredientId)
-      if (!ing) continue
-      const updated = { ...ing, stock: round2(ing.stock - qty) }
-      await db.ingredients.put(updated)
-      await enqueue('ingredients', 'upsert', updated)
-    }
+    await applyUsage(usage)
 
     const total = round2(items.reduce((s, i) => s + i.price * i.qty, 0))
     const propina = round2(Math.max(0, tip))

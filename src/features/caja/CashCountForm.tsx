@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../../data/db'
 import type { CashSession } from '../../data/types'
 import { closeCash } from '../../services/cash'
 import { money, round2 } from '../../lib/format'
@@ -10,6 +13,9 @@ export function CashCountForm({ session, expected }: { session: CashSession; exp
   const [counted, setCounted] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const navigate = useNavigate()
+  // no se cierra la caja con pedidos servidos sin cobrar: alguien se iría sin pagar
+  const abiertas = useLiveQuery(() => db.openTabs.toArray())
   const c = parseFloat(counted)
   const hasValue = counted !== '' && c >= 0
   const diff = hasValue ? round2(c - expected) : 0
@@ -24,6 +30,20 @@ export function CashCountForm({ session, expected }: { session: CashSession; exp
     <div className="rounded-3xl border border-cream-200 bg-cream-50 p-6 lg:p-8">
       <h2 className="mb-1 text-2xl font-semibold">Corte de caja</h2>
       <p className="mb-6 text-sm text-berry-700/60">Cuenta el efectivo del cajón y captura el total.</p>
+
+      {!!abiertas?.length && (
+        <div className="mb-6 rounded-2xl border border-amber-600/25 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+          <p className="font-semibold">
+            {abiertas.length === 1
+              ? 'Hay 1 cuenta sin cobrar. Cóbrala o cancélala antes de cerrar la caja.'
+              : `Hay ${abiertas.length} cuentas sin cobrar. Cóbralas o cancélalas antes de cerrar la caja.`}
+          </p>
+          <p className="mt-1 text-xs">{abiertas.map(t => t.name).join(', ')}</p>
+          <button onClick={() => navigate('/')} className="mt-2 text-xs font-semibold underline underline-offset-2">
+            Ir a Vender
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
@@ -57,7 +77,7 @@ export function CashCountForm({ session, expected }: { session: CashSession; exp
           )}
           <Button
             className="w-full py-4 text-lg"
-            disabled={!hasValue || busy || (diff !== 0 && !note.trim())}
+            disabled={!hasValue || busy || (diff !== 0 && !note.trim()) || !!abiertas?.length}
             onClick={save}
           >
             Guardar corte
