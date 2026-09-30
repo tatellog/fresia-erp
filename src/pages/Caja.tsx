@@ -68,15 +68,19 @@ export default function Caja() {
     return items.sort((a, b) => b.ts - a.ts).slice(0, 30)
   }, [session, sessionSales, sessionExpenses])
 
-  if (session === undefined || !history || !todaySales) return null
+  if (session === undefined || !history || !todaySales || !sessionSales) return null
 
   const expected = session ? expectedCash(session, sessionSales ?? [], sessionExpenses ?? []) : 0
-  const cardSales = todaySales.filter(s => s.payment === 'tarjeta')
+  // con la caja abierta todo se cuenta del mismo turno que el efectivo esperado;
+  // antes tarjeta y total iban desde la medianoche y no cuadraban si la caja
+  // se quedaba abierta de un día para otro
+  const turno = session ? sessionSales : todaySales
+  const cardSales = turno.filter(s => s.payment === 'tarjeta')
   const cardTotal = cardSales.reduce((s, x) => s + x.total, 0)
   const cardNet = cardSales.reduce((s, x) => s + saleNet(x), 0)
-  const transferTotal = todaySales.filter(s => s.payment === 'transferencia').reduce((s, x) => s + x.total, 0)
-  const deliveryTotal = todaySales.filter(s => s.payment === 'rappi' || s.payment === 'uber' || s.payment === 'didi').reduce((s, x) => s + x.total, 0)
-  const dayTotal = todaySales.reduce((s, x) => s + x.total, 0)
+  const transferTotal = turno.filter(s => s.payment === 'transferencia').reduce((s, x) => s + x.total, 0)
+  const deliveryTotal = turno.filter(s => s.payment === 'rappi' || s.payment === 'uber' || s.payment === 'didi').reduce((s, x) => s + x.total, 0)
+  const dayTotal = turno.reduce((s, x) => s + x.total, 0)
 
   const openTooLong = session && Date.now() - session.openTs > DIEZ_HORAS
   const lastClosed = history[0]
@@ -123,7 +127,7 @@ export default function Caja() {
         cardFees={totalFees(cardSales)}
         transfer={transferTotal}
         delivery={deliveryTotal}
-        tips={totalTips(todaySales)}
+        tips={totalTips(turno)}
         total={dayTotal}
         open={!!session}
       />

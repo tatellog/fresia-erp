@@ -62,7 +62,9 @@ export default function Vender() {
   const [filter, setFilter] = useState<LineFilter>('todo')
   const [picking, setPicking] = useState<Product | null>(null)
   const [paying, setPaying] = useState(false)
-  const [payment, setPayment] = useState<Payment>('efectivo')
+  // sin forma de pago marcada: cada venta la escoge a propósito; si se quedaba
+  // la de la venta anterior, un cobro en efectivo se registraba como tarjeta
+  const [payment, setPayment] = useState<Payment | null>(null)
   /** con cuánto pagan en efectivo; null = sin capturar */
   const [paid, setPaid] = useState<number | null>(null)
   /** propina que deja el cliente; va aparte de la venta */
@@ -132,6 +134,7 @@ export default function Vender() {
   }
 
   const registrar = async () => {
+    if (!payment) return
     const t = total
     const propina = tip
     const lines = cart
@@ -144,6 +147,7 @@ export default function Vender() {
     setPaying(false)
     setPaid(null)
     setTip(0)
+    setPayment(null)
     setDone({ saleId, lines, total: t, tip: propina, payment, paid: pagoRecibido, change, tab: cuenta })
     if (ocultarDone.current) clearTimeout(ocultarDone.current)
     ocultarDone.current = setTimeout(() => setDone(d => (d?.saleId === saleId ? null : d)), 20000)
@@ -165,7 +169,7 @@ export default function Vender() {
 
   /** imprime el ticket en la Point vinculada; nunca frena ni deshace la venta */
   const imprimirTicket = async (lines: CartLine[], t: number, propina: number, pagoRecibido: number | undefined, change: number | undefined, saleId: string) => {
-    if (!mpTerminalId || !navigator.onLine || sinTicket(payment)) return
+    if (!mpTerminalId || !navigator.onLine || !payment || sinTicket(payment)) return
     try {
       const activeId = (await db.meta.get('activeEmployeeId'))?.value
       const attendant = activeId ? (await db.employees.get(activeId))?.name : undefined
@@ -234,6 +238,7 @@ export default function Vender() {
   }
 
   const cobrar = async () => {
+    if (!payment) return
     if (payment === 'tarjeta' && mpTerminalId && navigator.onLine) return cobrarEnTerminal()
     await registrar()
   }
@@ -369,8 +374,8 @@ export default function Vender() {
               {payment === 'tarjeta' && mpTerminalId && (
                 <p className="mb-3 -mt-1 text-xs text-berry-700/50">El cobro se manda solo a la terminal Point.</p>
               )}
-              <Button className="w-full py-4 text-lg" disabled={tabPerdida} onClick={cobrar}>
-                Cobrar · {money(aPagar)}
+              <Button className="w-full py-4 text-lg" disabled={tabPerdida || !payment} onClick={cobrar}>
+                {payment ? `Cobrar · ${money(aPagar)}` : '¿Cómo paga el cliente?'}
               </Button>
               {botonDespues}
               <p className="mt-3 text-center text-[11px] uppercase tracking-[0.18em] text-berry-900/35">Hechas al momento</p>
@@ -459,8 +464,8 @@ export default function Vender() {
         {payment === 'tarjeta' && mpTerminalId && (
           <p className="mb-3 -mt-1 text-xs text-berry-700/50">El cobro se manda solo a la terminal Point.</p>
         )}
-        <Button className="w-full py-4 text-lg" disabled={count === 0 || tabPerdida} onClick={cobrar}>
-          Confirmar · {money(aPagar)}
+        <Button className="w-full py-4 text-lg" disabled={count === 0 || tabPerdida || !payment} onClick={cobrar}>
+          {payment ? `Confirmar · ${money(aPagar)}` : '¿Cómo paga el cliente?'}
         </Button>
         {botonDespues}
       </Sheet>

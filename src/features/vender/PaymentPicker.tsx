@@ -14,7 +14,7 @@ const delivery: { id: Payment; label: string; dot: string }[] = [
 ]
 
 /** selector de método de cobro: mostrador y delivery */
-export function PaymentPicker({ payment, setPayment }: { payment: Payment; setPayment: (p: Payment) => void }) {
+export function PaymentPicker({ payment, setPayment }: { payment: Payment | null; setPayment: (p: Payment) => void }) {
   const btn = (id: Payment, label: string, dot?: string) => {
     const on = payment === id
     return (
