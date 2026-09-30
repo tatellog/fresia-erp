@@ -21,6 +21,7 @@ export type Line =
   | 'waffle'
   | 'bebidas'  // tés y agua
   | 'despensa' // miel y pepitas
+  | 'otros'    // lo que no es de ninguna línea: va en Extras del punto de venta
 
 export interface Ingredient {
   id: string

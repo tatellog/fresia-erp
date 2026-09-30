@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
-import type { Ingredient, Product, RecipeItem, ToppingGroup } from '../../data/types'
-import { deleteProduct, saveProduct } from '../../services/catalog'
+import type { Ingredient, Line, Product, RecipeItem, ToppingGroup } from '../../data/types'
+import { deleteProduct, productLine, saveProduct } from '../../services/catalog'
 import { EXTRA_TOPPING_PRICE, INCLUDED_TOPPINGS } from '../../services/sales'
 import { money } from '../../lib/format'
 import { toSquareJpeg } from '../../lib/image'
@@ -12,6 +12,21 @@ import { Button, Field, Input, Sheet } from '../../components/ui'
 import { CupIcon } from '../../components/ui/icons'
 import { ToppingListChips } from '../toppings/ToppingListChips'
 
+/** secciones del menú en el orden del punto de venta; "Otros" cae en Extras */
+const sections: { id: Line; label: string }[] = [
+  { id: 'nogada', label: 'Del mes' },
+  { id: 'clasica', label: 'Clásica' },
+  { id: 'uvas', label: 'Uvas' },
+  { id: 'mix', label: 'Mix' },
+  { id: 'granada', label: 'Granada' },
+  { id: 'balance', label: 'Balance' },
+  { id: 'chocolate', label: 'Choco Crema' },
+  { id: 'brulee', label: 'Brûlée' },
+  { id: 'waffle', label: 'Waffle' },
+  { id: 'bebidas', label: 'Bebidas' },
+  { id: 'despensa', label: 'Despensa' },
+  { id: 'otros', label: 'Otros' },
+]
 
 /** renglón de insumo: nombre, cantidad y unidad; resaltado si ya está en la receta */
 function RecipeRow({ ing, qty, onChange }: { ing: Ingredient; qty: number; onChange: (qty: number) => void }) {
@@ -103,6 +118,8 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
   const [name, setName] = useState(product?.name ?? '')
   const [price, setPrice] = useState(product ? String(product.price) : '')
   const [photo, setPhoto] = useState<string | undefined>(product?.photo)
+  // un producto nuevo no tiene sección hasta que se escoge: así no cae solo en Clásica
+  const [line, setLine] = useState<Line | undefined>(product ? (productLine(product) ?? 'otros') : undefined)
   const [active, setActive] = useState(product?.active ?? true)
   const [recipe, setRecipe] = useState<RecipeItem[]>(product?.recipe ?? [])
   const [toppingGroup, setToppingGroup] = useState<ToppingGroup | undefined>(product?.toppingGroup)
@@ -115,10 +132,10 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
   const qtyOf = (id: string) => recipe.find(r => r.ingredientId === id)?.qty ?? 0
   const cost = recipe.reduce((s, r) => s + (ingMap.get(r.ingredientId)?.cost ?? 0) * r.qty, 0)
   const p = parseFloat(price)
-  const valid = name.trim() && p > 0
+  const valid = name.trim() && p > 0 && !!line
 
   // la foto que se vería en el menú con lo capturado hasta ahora
-  const draft: Product = { id: '', emoji: '🍓', recipe: [], active: true, sort: 0, ...product, name, price: p || 0, photo }
+  const draft: Product = { id: '', emoji: '🍓', recipe: [], active: true, sort: 0, ...product, name, price: p || 0, photo, line }
   const preview = productPhoto(draft) ?? toppingPhoto(name)
 
   const pickPhoto = async (file: File) => {
@@ -148,6 +165,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
       emoji: product?.emoji ?? '🍓',
       price: p,
       photo,
+      line,
       recipe,
       active,
       toppingGroup,
@@ -178,6 +196,31 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
         </div>
       </div>
       {photoError && <p className="-mt-1 mb-3 text-xs text-berry-500">{photoError}</p>}
+
+      <div className="mb-4">
+        <div className="mb-1.5 text-sm font-medium text-berry-700">¿En qué sección del menú va?</div>
+        <div className="flex flex-wrap gap-1.5">
+          {sections.map(s => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setLine(s.id)}
+              className={`rounded-full px-3.5 py-2 text-sm font-semibold ${
+                line === s.id ? 'bg-berry-500 text-white' : 'bg-cream-200 text-berry-700'
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-xs text-berry-700/60">
+          {line === 'otros'
+            ? 'Aparece al final del punto de venta, en Extras.'
+            : line
+              ? 'Aparece junto a los demás productos de esa sección.'
+              : 'Escoge una para poder guardar.'}
+        </p>
+      </div>
 
       <label className="mb-4 flex items-center gap-2 text-sm font-medium">
         <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} className="h-5 w-5 accent-berry-500" />

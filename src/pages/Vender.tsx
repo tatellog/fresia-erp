@@ -34,7 +34,7 @@ interface Section {
 function sections(products: Product[]): Section[] {
   const grupo = (p: Product): LineFilter => {
     const line = productLine(p)
-    return line ?? 'extras'
+    return !line || line === 'otros' ? 'extras' : line
   }
   const defs: Omit<Section, 'items'>[] = [
     { key: 'nogada', title: 'Frésia en Nogada', dot: 'var(--line-nogada)', desc: 'Frésia del mes · edición limitada de septiembre. Fresas con crema Frèsia + nuez de Castilla y granada. · 1 topping incluido' },
