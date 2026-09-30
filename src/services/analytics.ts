@@ -12,15 +12,16 @@ const esVaso = (name: string) => name.includes('·')
 
 export interface SalesSummary {
   total: number
-  cups: number
+  /** productos vendidos: vasos, waffles, pan, bebidas, despensa y extras sueltos */
+  units: number
   tickets: number
   avgTicket: number
 }
 
 export function salesSummary(sales: Sale[]): SalesSummary {
   const total = round2(sales.reduce((s, x) => s + x.total, 0))
-  const cups = sales.reduce((s, x) => s + x.items.filter(i => esVaso(i.name)).reduce((a, i) => a + i.qty, 0), 0)
-  return { total, cups, tickets: sales.length, avgTicket: sales.length ? round2(total / sales.length) : 0 }
+  const units = sales.reduce((s, x) => s + x.items.reduce((a, i) => a + i.qty, 0), 0)
+  return { total, units, tickets: sales.length, avgTicket: sales.length ? round2(total / sales.length) : 0 }
 }
 
 /** ganancia bruta: ingresos menos insumos y menos la comisión de Mercado Pago de los cobros con tarjeta */
@@ -32,17 +33,17 @@ export function profit(sales: Sale[]): { income: number; cost: number; fees: num
 }
 
 export interface LineShare {
-  line: 'Del mes' | 'Clásica' | 'Uvas' | 'Mix' | 'Granada' | 'Balance' | 'Choco Crema' | 'Brûlée' | 'Waffle' | 'Bebidas' | 'Despensa'
+  line: 'Del mes' | 'Clásica' | 'Uvas' | 'Mix' | 'Granada' | 'Balance' | 'Choco Crema' | 'Brûlée' | 'Waffle' | 'Pan de muerto' | 'Bebidas' | 'Despensa' | 'Otros'
   total: number
   pct: number
 }
 
 export function salesByLine(sales: Sale[]): LineShare[] {
   const acc = new Map<LineShare['line'], number>(
-    (['Del mes', 'Clásica', 'Uvas', 'Mix', 'Granada', 'Balance', 'Choco Crema', 'Brûlée', 'Waffle', 'Bebidas', 'Despensa'] as const).map(l => [l, 0]),
+    (['Del mes', 'Clásica', 'Uvas', 'Mix', 'Granada', 'Balance', 'Choco Crema', 'Brûlée', 'Waffle', 'Pan de muerto', 'Bebidas', 'Despensa', 'Otros'] as const).map(l => [l, 0]),
   )
   /** línea comercial por el nombre del renglón vendido (los nombres viejos siguen contando) */
-  const lineOf = (name: string): LineShare['line'] | undefined => {
+  const lineOf = (name: string): LineShare['line'] => {
     if (name.includes('Nogada')) return 'Del mes'
     if (name.startsWith('Clásica')) return 'Clásica'
     if (name.startsWith('Uvas')) return 'Uvas'
@@ -52,14 +53,16 @@ export function salesByLine(sales: Sale[]): LineShare[] {
     if (name.startsWith('Choco')) return 'Choco Crema'   // Chocolate ·, Choco Crema · y Chocolate Turín ·
     if (name.startsWith('Frèsia Brûlée')) return 'Brûlée'
     if (name.startsWith('Waffle')) return 'Waffle'
+    if (name.startsWith('Pan de muerto')) return 'Pan de muerto'
     if (/^Té\b/.test(name) || name.startsWith('Agua')) return 'Bebidas'
     if (name.startsWith('Miel') || name.startsWith('Pepitas')) return 'Despensa'
-    return undefined
+    // extras sueltos y lo que no es de ninguna línea también es venta
+    return 'Otros'
   }
   for (const s of sales)
     for (const i of s.items) {
       const line = lineOf(i.name)
-      if (line) acc.set(line, acc.get(line)! + i.price * i.qty)
+      acc.set(line, acc.get(line)! + i.price * i.qty)
     }
   const sum = [...acc.values()].reduce((a, b) => a + b, 0)
   return [...acc.entries()].map(([line, total]) => ({
@@ -98,8 +101,7 @@ export function topToppings(sales: Sale[], n = 5): { name: string; count: number
 export function topProduct(sales: Sale[]): { name: string; count: number } | null {
   const acc = new Map<string, number>()
   for (const s of sales)
-    for (const i of s.items)
-      if (esVaso(i.name)) acc.set(i.name, (acc.get(i.name) ?? 0) + i.qty)
+    for (const i of s.items) acc.set(i.name, (acc.get(i.name) ?? 0) + i.qty)
   const top = [...acc.entries()].sort((a, b) => b[1] - a[1])[0]
   if (!top) return null
   // "Clásica · Mediana 500 ml" → línea + tamaño legibles

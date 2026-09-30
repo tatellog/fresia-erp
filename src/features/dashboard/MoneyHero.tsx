@@ -85,7 +85,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
           <div>
             <div className="font-display text-[56px] font-bold leading-none tabular-nums lg:text-[68px]">{money(resumen.total)}</div>
             <div className="mt-3 flex items-center gap-3 text-sm text-berry-700/70">
-              <span><b className="text-berry-900">{resumen.cups}</b> vasos · {resumen.tickets} cobros</span>
+              <span><b className="text-berry-900">{resumen.units}</b> productos · {resumen.tickets} cobros</span>
               {deltaAyer !== null && (
                 <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
                   deltaAyer >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'

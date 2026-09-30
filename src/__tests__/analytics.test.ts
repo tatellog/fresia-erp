@@ -22,12 +22,23 @@ const ventas: Sale[] = [
 ]
 
 describe('analítica del dashboard', () => {
-  it('resumen: total, vasos y ticket promedio', () => {
+  it('resumen: total, productos vendidos y ticket promedio', () => {
     const s = salesSummary(ventas)
     expect(s.total).toBe(230 + 270 + 155 + 109)
-    expect(s.cups).toBe(6)          // 2 medianos + 1 chico + 1 brûlée + 1 grande + 1 legado
+    expect(s.units).toBe(6)         // 2 medianos + 1 chico + 1 brûlée + 1 grande + 1 legado
     expect(s.tickets).toBe(4)
     expect(s.avgTicket).toBe(191)
+  })
+
+  it('cuenta todo lo vendido, no solo los vasos: waffle, pan de muerto, pepitas y bebidas', () => {
+    const s = salesSummary([
+      venta(hoy, [item('Waffle Frésia', 2, 95), item('Pan de muerto · Tradicional', 1, 40)]),
+      venta(hoy, [item('Pepitas (70 g)', 1, 25), item('Té Relajante', 1, 35), item('Clásica · Chico 12 oz', 1, 95)]),
+    ])
+    expect(s.units).toBe(6)
+    const lines = salesByLine([venta(hoy, [item('Pan de muerto · Relleno Frésia', 1, 95), item('Topping extra', 1, 18)])])
+    expect(lines.find(l => l.line === 'Pan de muerto')!.total).toBe(95)
+    expect(lines.find(l => l.line === 'Otros')!.total).toBe(18)
   })
 
   it('participación por línea suma 100% e incluye Brûlée', () => {

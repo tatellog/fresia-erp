@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { db } from '../../data/db'
 import { Button, Card, Field, Input } from '../../components/ui'
 
-/** metas diarias del dashboard: dinero y vasos */
+/** metas diarias del dashboard: dinero y productos vendidos */
 export function GoalsCard() {
   const [moneyGoal, setMoneyGoal] = useState('')
   const [cupsGoal, setCupsGoal] = useState('')
@@ -33,7 +33,7 @@ export function GoalsCard() {
           </Field>
         </div>
         <div className="flex-1">
-          <Field label="Meta de vasos">
+          <Field label="Meta de productos vendidos">
             <Input type="number" inputMode="numeric" value={cupsGoal} onChange={e => setCupsGoal(e.target.value)} />
           </Field>
         </div>

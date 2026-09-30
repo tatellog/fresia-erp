@@ -40,7 +40,7 @@ export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-berry-500">{fecha}</div>
           <div className="mt-1 font-display text-[40px] font-bold leading-none tabular-nums">{money(resumen.total)}</div>
           <div className="mt-2 text-sm text-berry-700/70">
-            <b className="text-berry-900">{resumen.cups}</b> vasos · {resumen.tickets} cobros
+            <b className="text-berry-900">{resumen.units}</b> productos · {resumen.tickets} cobros
             {resumen.tickets > 0 && <> · ticket promedio {money(resumen.avgTicket)}</>}
           </div>
           {(comision > 0 || propinas > 0) && (

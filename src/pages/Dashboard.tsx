@@ -125,13 +125,13 @@ export default function Dashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <KpiCard icon={BanknoteIcon} value={money(data.resumen.total)} label="Ventas del día" />
-        <KpiCard icon={CupIcon} value={String(data.resumen.cups)} label="Vasos vendidos" />
+        <KpiCard icon={CupIcon} value={String(data.resumen.units)} label="Productos vendidos" />
         <KpiCard icon={ReceiptIcon} value={money(data.resumen.avgTicket)} label="Ticket promedio" />
         <KpiCard
           icon={StarIcon}
           value={data.top ? data.top.name.split('·')[1]?.trim().split(' ')[0] ?? data.top.name : '·'}
           label="Más vendido hoy"
-          sub={data.top ? `${data.top.name.split('·')[0].trim()} · ${data.top.count} vasos` : 'aún sin ventas'}
+          sub={data.top ? `${data.top.name.split('·')[0].trim()} · ${data.top.count} vendidos` : 'aún sin ventas'}
         />
       </div>
 
@@ -153,9 +153,9 @@ export default function Dashboard() {
           <div className="rounded-3xl border border-cream-200 bg-cream-50 p-6">
             <h2 className="mb-4 text-xl font-semibold">Objetivo del día</h2>
             <GoalProgress
-              label={`Meta · ${goalCups} vasos`}
-              valueLabel={`${data.resumen.cups} vendidos · faltan ${Math.max(0, (goalCups ?? 30) - data.resumen.cups)}`}
-              pct={goalCups ? Math.round((data.resumen.cups / goalCups) * 100) : 0}
+              label={`Meta · ${goalCups} productos`}
+              valueLabel={`${data.resumen.units} vendidos · faltan ${Math.max(0, (goalCups ?? 30) - data.resumen.units)}`}
+              pct={goalCups ? Math.round((data.resumen.units / goalCups) * 100) : 0}
             />
           </div>
           <ComparisonCard today={data.resumen.total} yesterday={data.ayer} weekAgo={data.semanaPasada} />
