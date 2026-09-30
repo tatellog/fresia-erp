@@ -15,6 +15,7 @@ import { ToppingListChips } from '../toppings/ToppingListChips'
 /** secciones del menú en el orden del punto de venta; "Otros" cae en Extras */
 const sections: { id: Line; label: string }[] = [
   { id: 'nogada', label: 'Del mes' },
+  { id: 'pan', label: 'Pan de muerto' },
   { id: 'clasica', label: 'Clásica' },
   { id: 'uvas', label: 'Uvas' },
   { id: 'mix', label: 'Mix' },

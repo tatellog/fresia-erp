@@ -18,6 +18,7 @@ export type Line =
   | 'clasica' | 'chocolate' | 'balance' | 'brulee' | 'uvas' | 'mix'
   | 'granada'  // granada desgranada + crema, precios de Clásica
   | 'nogada'   // Frésia del mes (edición limitada)
+  | 'pan'      // pan de muerto de temporada: tradicional y relleno Frésia
   | 'waffle'
   | 'bebidas'  // tés y agua
   | 'despensa' // miel y pepitas

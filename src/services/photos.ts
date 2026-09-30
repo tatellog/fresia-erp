@@ -48,6 +48,7 @@ export function productPhoto(p: Product): string | undefined {
   if (p.photo) return p.photo
   switch (productLine(p)) {
     case 'nogada': return '/images/nogada.jpg'
+    case 'pan': return strip(p.name).includes('relleno') ? '/images/pan-relleno.jpg' : '/images/pan-tradicional.jpg'
     case 'uvas': return '/images/uvas.jpg'
     case 'granada': return '/images/granada.jpg'
     case 'mix': return '/images/mix.jpg'

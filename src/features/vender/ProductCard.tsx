@@ -29,6 +29,7 @@ const accents: Record<string, { chip: string; bar: string; cup: string }> = {
   waffle: { chip: 'bg-[var(--chip-waffle-bg)] text-[var(--chip-waffle-fg)]', bar: 'var(--line-waffle)', cup: 'text-[var(--chip-waffle-fg)]' },
   bebidas: { chip: 'bg-[var(--chip-te-bg)] text-[var(--chip-te-fg)]', bar: 'var(--line-te)', cup: 'text-[var(--chip-te-fg)]' },
   despensa: { chip: 'bg-[var(--chip-miel-bg)] text-[var(--chip-miel-fg)]', bar: 'var(--line-miel)', cup: 'text-[var(--chip-miel-fg)]' },
+  pan: { chip: 'bg-[var(--chip-pan-bg)] text-[var(--chip-pan-fg)]', bar: 'var(--line-pan)', cup: 'text-[var(--chip-pan-fg)]' },
   otros: { chip: 'bg-cream-200 text-berry-700', bar: 'var(--color-blush)', cup: 'text-berry-300' },
 }
 

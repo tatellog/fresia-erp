@@ -59,6 +59,9 @@
   --line-waffle: #b8862b;
   --line-te: #6f9a76;
   --line-miel: #d9a52a;
+  --chip-pan-bg: #fbe9dc;
+  --chip-pan-fg: #a85a26;
+  --line-pan: #c8753a;
 }
 
 /*
@@ -132,6 +135,9 @@
   --line-waffle: #d9a94f;
   --line-te: #9dc4a3;
   --line-miel: #e6c26a;
+  --chip-pan-bg: #33241a;
+  --chip-pan-fg: #e8a476;
+  --line-pan: #d98a52;
 }
 
 html {

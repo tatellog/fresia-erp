@@ -38,6 +38,7 @@ function sections(products: Product[]): Section[] {
   }
   const defs: Omit<Section, 'items'>[] = [
     { key: 'nogada', title: 'Frésia en Nogada', dot: 'var(--line-nogada)', desc: 'Frésia del mes · edición limitada de septiembre. Fresas con crema Frèsia + nuez de Castilla y granada. · 1 topping incluido' },
+    { key: 'pan', title: 'Pan de muerto', dot: 'var(--line-pan)', desc: 'De temporada. Tradicional, o relleno Frésia con fresas frescas y nuestra crema Frèsia. · El relleno lleva 1 topping incluido' },
     { key: 'clasica', title: 'Frésia Clásica', dot: 'var(--color-berry-500)', desc: 'Fresas frescas + nuestra crema Frèsia. · 2 toppings incluidos' },
     { key: 'uvas', title: 'Uvas', dot: 'var(--line-uva)', desc: 'Uvas verdes + crema Frèsia. · 2 toppings incluidos' },
     { key: 'mix', title: 'Mix Frésia', dot: 'var(--line-mix)', desc: 'Uvas verdes + fresas + crema Frèsia. · 2 toppings incluidos' },

@@ -5,6 +5,7 @@ export type LineFilter = 'todo' | Line | 'extras'
 const tabs: { id: LineFilter; label: string; dot?: string }[] = [
   { id: 'todo', label: 'Todo' },
   { id: 'nogada', label: 'Del mes', dot: 'var(--line-nogada)' },
+  { id: 'pan', label: 'Pan de muerto', dot: 'var(--line-pan)' },
   { id: 'clasica', label: 'Clásica', dot: 'var(--color-berry-500)' },
   { id: 'uvas', label: 'Uvas', dot: 'var(--line-uva)' },
   { id: 'mix', label: 'Mix', dot: 'var(--line-mix)' },
