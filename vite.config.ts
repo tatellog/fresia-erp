@@ -15,6 +15,10 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
         navigateFallback: '/index.html',
+        // con injectRegister: false el plugin no los prende solo; sin ellos la
+        // versión nueva se queda esperando hasta cerrar todas las ventanas
+        skipWaiting: true,
+        clientsClaim: true,
       },
       manifest: {
         name: 'Frésia OS',
