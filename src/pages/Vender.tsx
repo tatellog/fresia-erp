@@ -215,7 +215,9 @@ export default function Vender() {
       const result = await waitForPayment(orderId, {
         onStatus: (estado, detalle) => {
           console.info('[Frésia] orden %s: %s%s', orderId, estado, detalle ? ` (${detalle})` : '')
-          setTerminal(t => (t?.orderId === orderId ? { ...t, estado, lento: Date.now() - desde > 30_000 } : t))
+          // después de cada pago la Point sale de «Cobros automáticos» y el siguiente
+          // cobro se queda en «created»: se avisa pronto para no volver a mandarlo
+          setTerminal(t => (t?.orderId === orderId ? { ...t, estado, lento: estado === 'created' && Date.now() - desde > 8_000 } : t))
         },
       })
       if (terminalOrder.current !== orderId) return // se canceló desde el POS
@@ -399,11 +401,11 @@ export default function Vender() {
               </p>
             )}
             {terminal.lento && (
-              <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                Si la terminal no muestra el cobro, abre en ella <b>«Cobros vinculados → Cobros
-                automáticos»</b> y déjala en esa pantalla: es donde la Point espera los cobros de la
-                app. Puedes cancelar aquí y cobrar de otra forma.
-              </p>
+              <div className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
+                <b>La Point todavía no tomó el cobro.</b> En la terminal entra a
+                <b> «Cobros vinculados → Cobros automáticos»</b>: el cobro aparece solo en unos segundos.
+                <span className="mt-1 block text-xs text-amber-800">No lo canceles ni lo vuelvas a mandar: sigue esperando aquí hasta 5 minutos.</span>
+              </div>
             )}
             <div className="mt-4 flex justify-center gap-2">
               {terminal.error ? (
