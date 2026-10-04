@@ -2,7 +2,7 @@ import type { Expense, Payment, Sale } from '../../data/types'
 import { RECON_ID } from '../../services/history'
 import { salesSummary } from '../../services/analytics'
 import { fmtTime, money, round2 } from '../../lib/format'
-import { CARD_FEE_LABEL, totalFees, totalTips } from '../../services/fees'
+import { CARD_FEE_LABEL, saleNet, totalFees, totalTips } from '../../services/fees'
 
 const PAGOS: { id: Payment; label: string }[] = [
   { id: 'efectivo', label: 'Efectivo' },
@@ -24,7 +24,8 @@ export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
 }) {
   const resumen = salesSummary(sales)
   const porPago = PAGOS
-    .map(p => ({ ...p, monto: round2(sales.filter(s => s.payment === p.id).reduce((a, s) => a + s.total, 0)) }))
+    // en tarjeta va lo que llega a Mercado Pago: cobrado + propina − comisión
+    .map(p => ({ ...p, monto: round2(sales.filter(s => s.payment === p.id).reduce((a, s) => a + (p.id === 'tarjeta' ? saleNet(s) : s.total), 0)) }))
     .filter(p => p.monto > 0)
   const ordenadas = [...sales].sort((a, b) => a.ts - b.ts)
   const comision = totalFees(sales)
@@ -94,7 +95,15 @@ export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
                   {s.employeeName && <span className="block text-xs text-berry-700/50">atendió {s.employeeName}</span>}
                 </span>
                 <span className="rounded-full bg-cream-200/70 px-2.5 py-0.5 text-xs capitalize text-berry-700/70">{s.payment}</span>
-                <span className="w-20 shrink-0 text-right font-semibold tabular-nums text-green-700">{money(s.total)}</span>
+                <span className="w-24 shrink-0 text-right tabular-nums">
+                  <span className="block font-semibold text-green-700">{money(s.total)}</span>
+                  {(s.fee ?? 0) > 0 && (
+                    <>
+                      <span className="block text-[11px] text-berry-700/55">comisión −{money(s.fee ?? 0)}</span>
+                      <span className="block text-xs font-semibold text-berry-900">te llega {money(saleNet(s))}</span>
+                    </>
+                  )}
+                </span>
               </Row>
             )
           })}
