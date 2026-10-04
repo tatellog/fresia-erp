@@ -1,6 +1,6 @@
 import { BagIcon, BanknoteIcon, CreditCardIcon, BankIcon, ReceiptIcon, StarIcon } from '../../components/ui/icons'
 import { CARD_FEE_LABEL } from '../../services/fees'
-import { money } from '../../lib/format'
+import { money, moneyInt } from '../../lib/format'
 import { CashSummaryCard } from './CashSummaryCard'
 
 /** hero de Caja: efectivo esperado, tarjeta (con lo que de verdad llega), transferencias, delivery, propinas y total del turno (o del día con la caja cerrada) */
@@ -36,7 +36,7 @@ export function DailyTotals({ expected, card, cardNet, cardFees, transfer, deliv
       <CashSummaryCard icon={BankIcon} label="Transferencias" value={money(transfer)} />
       <CashSummaryCard icon={BagIcon} label="Delivery · Rappi, DiDi y Uber" value={money(delivery)} hint="la app te lo deposita después" />
       <CashSummaryCard icon={StarIcon} label="Propinas" value={money(tips)} hint="para el equipo · no cuentan en la caja" />
-      <CashSummaryCard icon={ReceiptIcon} label={open ? 'Ventas del turno' : 'Ventas del día'} value={money(total)} hint={`ya sin la comisión de tarjeta${open ? ' · desde que se abrió la caja' : ''}`} />
+      <CashSummaryCard icon={ReceiptIcon} label={open ? 'Ventas del turno' : 'Ventas del día'} value={moneyInt(total)} hint={`ya sin la comisión de tarjeta${open ? ' · desde que se abrió la caja' : ''}`} />
     </div>
   )
 }

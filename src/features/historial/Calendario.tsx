@@ -1,4 +1,4 @@
-import { money } from '../../lib/format'
+import { moneyInt } from '../../lib/format'
 
 const DIAS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
@@ -80,7 +80,7 @@ export function Calendario({ month, selected, totals, onSelect, onMonth }: {
               <span className="text-sm font-semibold tabular-nums leading-none">{new Date(ts).getDate()}</span>
               {total > 0 && (
                 <span className={`mt-1 text-[10px] font-medium tabular-nums leading-none ${activo ? 'text-white/85' : 'text-berry-700/60'}`}>
-                  {money(total)}
+                  {moneyInt(total)}
                 </span>
               )}
             </button>

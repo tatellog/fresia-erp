@@ -4,6 +4,9 @@ const conCentavos = new Intl.NumberFormat('es-MX', { style: 'currency', currency
 /** $99 para cantidades cerradas, $99.50 cuando hay centavos */
 export const money = (n: number) => (Number.isInteger(round2(n)) ? entero.format(n) : conCentavos.format(n))
 
+/** totales grandes sin centavos: $2,304 */
+export const moneyInt = (n: number) => entero.format(Math.round(n))
+
 export const round2 = (n: number) => Math.round(n * 100) / 100
 
 export const fmtDate = (ts: number) =>

@@ -1,7 +1,7 @@
 import type { Expense, Payment, Sale } from '../../data/types'
 import { RECON_ID } from '../../services/history'
 import { salesSummary } from '../../services/analytics'
-import { fmtTime, money, round2 } from '../../lib/format'
+import { fmtTime, money, moneyInt, round2 } from '../../lib/format'
 import { CARD_FEE_LABEL, saleNet, totalFees, totalTips } from '../../services/fees'
 
 const PAGOS: { id: Payment; label: string }[] = [
@@ -39,7 +39,7 @@ export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-berry-500">{fecha}</div>
-          <div className="mt-1 font-display text-[40px] font-bold leading-none tabular-nums">{money(resumen.net)}</div>
+          <div className="mt-1 font-display text-[40px] font-bold leading-none tabular-nums">{moneyInt(resumen.net)}</div>
           <div className="mt-2 text-sm text-berry-700/70">
             <b className="text-berry-900">{resumen.units}</b> productos · {resumen.tickets} cobros
             {resumen.tickets > 0 && <> · ticket promedio {money(resumen.avgTicket)}</>}

@@ -6,7 +6,7 @@ import { db } from '../data/db'
 import {
   cupsBySize, delta, hourlySales, profit, salesByLine, salesSummary, stockStatus, topProduct, topToppings,
 } from '../services/analytics'
-import { money, round2, startOfDay } from '../lib/format'
+import { money, moneyInt, round2, startOfDay } from '../lib/format'
 import { saleReceived } from '../services/fees'
 import { BagIcon, BanknoteIcon, BoxIcon, CupIcon, PlusIcon, ReceiptIcon, StarIcon, WalletIcon } from '../components/ui/icons'
 import { CashStatusBadge } from '../features/caja/CashStatusBadge'
@@ -125,7 +125,7 @@ export default function Dashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <KpiCard icon={BanknoteIcon} value={money(data.resumen.net)} label="Ventas del día" />
+        <KpiCard icon={BanknoteIcon} value={moneyInt(data.resumen.net)} label="Ventas del día" />
         <KpiCard icon={CupIcon} value={String(data.resumen.units)} label="Productos vendidos" />
         <KpiCard icon={ReceiptIcon} value={money(data.resumen.avgTicket)} label="Ticket promedio" />
         <KpiCard

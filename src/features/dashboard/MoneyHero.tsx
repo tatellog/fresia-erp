@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
 import type { Payment } from '../../data/types'
 import { delta, profit, salesSummary } from '../../services/analytics'
-import { money, round2, startOfDay } from '../../lib/format'
+import { money, moneyInt, round2, startOfDay } from '../../lib/format'
 import { GoalProgress } from './GoalProgress'
 
 const PERIODOS = [
@@ -83,7 +83,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex flex-wrap items-end gap-x-10 gap-y-6">
           <div>
-            <div className="font-display text-[56px] font-bold leading-none tabular-nums lg:text-[68px]">{money(resumen.net)}</div>
+            <div className="font-display text-[56px] font-bold leading-none tabular-nums lg:text-[68px]">{moneyInt(resumen.net)}</div>
             <div className="mt-3 flex items-center gap-3 text-sm text-berry-700/70">
               <span><b className="text-berry-900">{resumen.units}</b> productos · {resumen.tickets} cobros</span>
               {deltaAyer !== null && (
@@ -111,13 +111,13 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
           {periodo === 'hoy' ? (
             <GoalProgress
               label="Meta diaria"
-              valueLabel={`${money(resumen.net)} de ${money(goalMoney)}`}
+              valueLabel={`${moneyInt(resumen.net)} de ${money(goalMoney)}`}
               pct={goalMoney > 0 ? Math.round((resumen.net / goalMoney) * 100) : 0}
             />
           ) : (
             <div className="text-right">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-berry-700/60">Promedio diario</div>
-              <div className="mt-1.5 font-display text-[28px] font-bold tabular-nums">{money(data.promedioDiario)}</div>
+              <div className="mt-1.5 font-display text-[28px] font-bold tabular-nums">{moneyInt(data.promedioDiario)}</div>
             </div>
           )}
         </div>
