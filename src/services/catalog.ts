@@ -36,6 +36,18 @@ export async function saveProduct(data: Omit<Product, 'id' | 'sort'>, existing?:
   })
 }
 
+/** prende o apaga varios productos de un jalón (una sección completa del menú) */
+export async function setProductsActive(products: Product[], active: boolean) {
+  return db.transaction('rw', [db.products, db.outbox], async () => {
+    for (const p of products) {
+      if (p.active === active) continue
+      const row = { ...p, active }
+      await db.products.put(row)
+      await enqueue('products', 'upsert', row)
+    }
+  })
+}
+
 export async function deleteProduct(id: string) {
   return db.transaction('rw', [db.products, db.outbox], async () => {
     await db.products.delete(id)

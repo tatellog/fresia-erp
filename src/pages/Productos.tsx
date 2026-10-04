@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Product } from '../data/types'
-import { productLine } from '../services/catalog'
+import { productLine, setProductsActive } from '../services/catalog'
 import { productCost } from '../services/costing'
 import { Button, Empty } from '../components/ui'
 import { ProductRow } from '../features/productos/ProductRow'
@@ -53,13 +53,27 @@ export default function Productos() {
 
       {products.length === 0 && <Empty text="Crea tu primer producto con su receta." />}
 
-      {secciones.map(sec => (
+      {secciones.map(sec => {
+        const prendida = sec.items.some(p => p.active)
+        return (
         <section key={sec.key} className="mb-7 mt-4">
           <h2 className="mb-2.5 flex items-center gap-2 text-base font-semibold">
             <span className="h-2 w-2 rounded-full" style={{ background: sec.dot }} />
             {sec.title}
             <span className="text-xs font-normal text-berry-700/45">
               {sec.items.length} {sec.key === 'bebidas' || sec.key === 'despensa' || sec.key === 'pan' ? (sec.items.length === 1 ? 'producto' : 'productos') : (sec.items.length === 1 ? 'tamaño' : 'tamaños')}
+            </span>
+            <span className="ml-auto flex items-center gap-2 text-xs font-normal text-berry-700/60">
+              {prendida ? 'a la venta' : 'pausado'}
+              <button
+                role="switch"
+                aria-checked={prendida}
+                aria-label={`${prendida ? 'Pausar' : 'Poner a la venta'} ${sec.title}`}
+                onClick={() => setProductsActive(sec.items, !prendida)}
+                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${prendida ? 'bg-berry-500' : 'bg-cream-300'}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${prendida ? 'translate-x-5' : ''}`} />
+              </button>
             </span>
           </h2>
           <div className="space-y-2">
@@ -68,7 +82,8 @@ export default function Productos() {
             ))}
           </div>
         </section>
-      ))}
+        )
+      })}
 
       {editing && (
         <ProductFormSheet
