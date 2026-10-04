@@ -7,6 +7,7 @@ import {
   cupsBySize, delta, hourlySales, profit, salesByLine, salesSummary, stockStatus, topProduct, topToppings,
 } from '../services/analytics'
 import { money, round2, startOfDay } from '../lib/format'
+import { saleReceived } from '../services/fees'
 import { BagIcon, BanknoteIcon, BoxIcon, CupIcon, PlusIcon, ReceiptIcon, StarIcon, WalletIcon } from '../components/ui/icons'
 import { CashStatusBadge } from '../features/caja/CashStatusBadge'
 import { QuickActionButton } from '../features/caja/QuickActionButton'
@@ -61,9 +62,9 @@ export default function Dashboard() {
     const resumen = salesSummary(today)
     return {
       resumen,
-      ayer: salesSummary(yesterday).total,
-      semanaPasada: salesSummary(weekAgo).total,
-      deltaAyer: delta(resumen.total, salesSummary(yesterday).total),
+      ayer: salesSummary(yesterday).net,
+      semanaPasada: salesSummary(weekAgo).net,
+      deltaAyer: delta(resumen.net, salesSummary(yesterday).net),
       lineas: salesByLine(today),
       tamanos: cupsBySize(today),
       toppings: topToppings(week, 5),
@@ -74,7 +75,7 @@ export default function Dashboard() {
       dias: Array.from({ length: CHART_DAYS }, (_, i) => {
         const ts = startOfDay(CHART_DAYS - 1 - i)
         const end = ts + 24 * 3600_000
-        return { ts, total: round2(sales14.filter(s => s.ts >= ts && s.ts < end).reduce((x, s) => x + s.total, 0)) }
+        return { ts, total: round2(sales14.filter(s => s.ts >= ts && s.ts < end).reduce((x, s) => x + saleReceived(s), 0)) }
       }),
     }
   }, [sales14])
@@ -124,7 +125,7 @@ export default function Dashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <KpiCard icon={BanknoteIcon} value={money(data.resumen.total)} label="Ventas del día" />
+        <KpiCard icon={BanknoteIcon} value={money(data.resumen.net)} label="Ventas del día" />
         <KpiCard icon={CupIcon} value={String(data.resumen.units)} label="Productos vendidos" />
         <KpiCard icon={ReceiptIcon} value={money(data.resumen.avgTicket)} label="Ticket promedio" />
         <KpiCard
@@ -158,7 +159,7 @@ export default function Dashboard() {
               pct={goalCups ? Math.round((data.resumen.units / goalCups) * 100) : 0}
             />
           </div>
-          <ComparisonCard today={data.resumen.total} yesterday={data.ayer} weekAgo={data.semanaPasada} />
+          <ComparisonCard today={data.resumen.net} yesterday={data.ayer} weekAgo={data.semanaPasada} />
         </div>
       </div>
 

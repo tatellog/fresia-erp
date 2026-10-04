@@ -19,6 +19,9 @@ export const feeFor = (payment: Sale['payment'], total: number, tip = 0) =>
 /** lo que de verdad llega por una venta: total + propina − comisión */
 export const saleNet = (s: Sale) => round2(s.total + (s.tip ?? 0) - (s.fee ?? 0))
 
+/** lo que le queda al negocio de una venta: total − comisión (las propinas son del equipo) */
+export const saleReceived = (s: Sale) => round2(s.total - (s.fee ?? 0))
+
 /** comisiones acumuladas de un grupo de ventas */
 export const totalFees = (sales: Sale[]) => round2(sales.reduce((a, s) => a + (s.fee ?? 0), 0))
 

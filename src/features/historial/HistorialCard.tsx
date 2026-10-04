@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
 import type { Sale } from '../../data/types'
 import { round2, startOfDay } from '../../lib/format'
+import { saleReceived } from '../../services/fees'
 import { SaleSheet } from '../caja/SaleSheet'
 import { Calendario, dayStartOf, monthOf } from './Calendario'
 import { DiaDetalle } from './DiaDetalle'
@@ -30,7 +31,7 @@ export function HistorialCard() {
     const m = new Map<number, number>()
     for (const s of salesMes ?? []) {
       const k = dayStartOf(new Date(s.ts))
-      m.set(k, round2((m.get(k) ?? 0) + s.total))
+      m.set(k, round2((m.get(k) ?? 0) + saleReceived(s)))
     }
     return m
   }, [salesMes])

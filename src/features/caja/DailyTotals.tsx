@@ -28,15 +28,15 @@ export function DailyTotals({ expected, card, cardNet, cardFees, transfer, deliv
       <CashSummaryCard
         icon={CreditCardIcon}
         label="Ventas con tarjeta"
-        value={money(card)}
+        value={money(cardNet)}
         hint={card > 0
-          ? `Mercado Pago te deposita ${money(cardNet)}: ya restó su comisión de ${CARD_FEE_LABEL} (${money(cardFees)})`
+          ? `lo que te deposita Mercado Pago · cobraste ${money(card)} y restó su comisión de ${CARD_FEE_LABEL} (${money(cardFees)})`
           : `Mercado Pago descuenta ${CARD_FEE_LABEL} de cada cobro`}
       />
       <CashSummaryCard icon={BankIcon} label="Transferencias" value={money(transfer)} />
       <CashSummaryCard icon={BagIcon} label="Delivery · Rappi, DiDi y Uber" value={money(delivery)} hint="la app te lo deposita después" />
       <CashSummaryCard icon={StarIcon} label="Propinas" value={money(tips)} hint="para el equipo · no cuentan en la caja" />
-      <CashSummaryCard icon={ReceiptIcon} label={open ? 'Ventas del turno' : 'Ventas del día'} value={money(total)} hint={open ? 'desde que se abrió la caja' : undefined} />
+      <CashSummaryCard icon={ReceiptIcon} label={open ? 'Ventas del turno' : 'Ventas del día'} value={money(total)} hint={`ya sin la comisión de tarjeta${open ? ' · desde que se abrió la caja' : ''}`} />
     </div>
   )
 }

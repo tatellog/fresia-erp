@@ -4,7 +4,6 @@ import { db } from '../../data/db'
 import type { Payment } from '../../data/types'
 import { delta, profit, salesSummary } from '../../services/analytics'
 import { money, round2, startOfDay } from '../../lib/format'
-import { CARD_FEE_LABEL } from '../../services/fees'
 import { GoalProgress } from './GoalProgress'
 
 const PERIODOS = [
@@ -40,18 +39,19 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
     const resumen = salesSummary(enPeriodo)
     const utilidad = profit(enPeriodo)
     const costsKnown = enPeriodo.some(s => s.cost > 0) || enPeriodo.length === 0
-    const ayer = salesSummary(sales30.filter(s => s.ts >= startOfDay(1) && s.ts < startOfDay(0))).total
+    const ayer = salesSummary(sales30.filter(s => s.ts >= startOfDay(1) && s.ts < startOfDay(0))).net
     const canales = CANALES.map(c => {
       const del = enPeriodo.filter(s => s.payment === c.id)
       const monto = round2(del.reduce((s, x) => s + x.total, 0))
       const fees = round2(del.reduce((s, x) => s + (x.fee ?? 0), 0))
-      return { ...c, monto, fees, neto: round2(monto - fees), cobros: del.length, pct: resumen.total > 0 ? Math.round((monto / resumen.total) * 100) : 0 }
+      const neto = round2(monto - fees)
+      return { ...c, monto, fees, neto, cobros: del.length, pct: resumen.net > 0 ? Math.round((neto / resumen.net) * 100) : 0 }
     })
     return {
       def, resumen, utilidad, costsKnown, canales,
-      deltaAyer: periodo === 'hoy' ? delta(resumen.total, ayer) : null,
+      deltaAyer: periodo === 'hoy' ? delta(resumen.net, ayer) : null,
       margen: resumen.total > 0 ? Math.round((utilidad.profit / resumen.total) * 100) : 0,
-      promedioDiario: round2(resumen.total / def.days),
+      promedioDiario: round2(resumen.net / def.days),
     }
   }, [sales30, periodo])
 
@@ -83,7 +83,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex flex-wrap items-end gap-x-10 gap-y-6">
           <div>
-            <div className="font-display text-[56px] font-bold leading-none tabular-nums lg:text-[68px]">{money(resumen.total)}</div>
+            <div className="font-display text-[56px] font-bold leading-none tabular-nums lg:text-[68px]">{money(resumen.net)}</div>
             <div className="mt-3 flex items-center gap-3 text-sm text-berry-700/70">
               <span><b className="text-berry-900">{resumen.units}</b> productos · {resumen.tickets} cobros</span>
               {deltaAyer !== null && (
@@ -111,8 +111,8 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
           {periodo === 'hoy' ? (
             <GoalProgress
               label="Meta diaria"
-              valueLabel={`${money(resumen.total)} de ${money(goalMoney)}`}
-              pct={goalMoney > 0 ? Math.round((resumen.total / goalMoney) * 100) : 0}
+              valueLabel={`${money(resumen.net)} de ${money(goalMoney)}`}
+              pct={goalMoney > 0 ? Math.round((resumen.net / goalMoney) * 100) : 0}
             />
           ) : (
             <div className="text-right">
@@ -134,9 +134,9 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
                 {c.cobros > 0 && <span className="text-xs text-berry-700/50">· {c.cobros}</span>}
               </span>
               <span className="tabular-nums">
-                <b>{money(c.monto)}</b> <span className="text-berry-700/60">· {c.pct}%</span>
+                <b>{money(c.neto)}</b> <span className="text-berry-700/60">· {c.pct}%</span>
                 {c.id === 'tarjeta' && c.fees > 0 && (
-                  <span className="block text-xs text-berry-700/50">te llegan {money(c.neto)} · comisión {CARD_FEE_LABEL}</span>
+                  <span className="block text-xs text-berry-700/50">cobraste {money(c.monto)} · comisión −{money(c.fees)}</span>
                 )}
               </span>
             </div>

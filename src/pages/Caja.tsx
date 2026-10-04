@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Sale } from '../data/types'
 import { expectedCash, openCashSession, paidInCash } from '../services/cash'
-import { saleNet, totalFees, totalTips } from '../services/fees'
+import { saleNet, saleReceived, totalFees, totalTips } from '../services/fees'
 import { fmtTime, startOfDay } from '../lib/format'
 import { Empty } from '../components/ui'
 import { ArrowDownCircleIcon, BoxIcon, LockIcon, ReceiptIcon, UnlockIcon } from '../components/ui/icons'
@@ -80,7 +80,7 @@ export default function Caja() {
   const cardNet = cardSales.reduce((s, x) => s + saleNet(x), 0)
   const transferTotal = turno.filter(s => s.payment === 'transferencia').reduce((s, x) => s + x.total, 0)
   const deliveryTotal = turno.filter(s => s.payment === 'rappi' || s.payment === 'uber' || s.payment === 'didi').reduce((s, x) => s + x.total, 0)
-  const dayTotal = turno.reduce((s, x) => s + x.total, 0)
+  const dayTotal = turno.reduce((s, x) => s + saleReceived(x), 0)
 
   const openTooLong = session && Date.now() - session.openTs > DIEZ_HORAS
   const lastClosed = history[0]

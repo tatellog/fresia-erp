@@ -1,5 +1,6 @@
 import type { Ingredient, Sale } from '../data/types'
 import { round2 } from '../lib/format'
+import { saleReceived } from './fees'
 
 /**
  * Analítica del negocio: funciones puras sobre ventas e inventario.
@@ -11,7 +12,10 @@ import { round2 } from '../lib/format'
 const esVaso = (name: string) => name.includes('·')
 
 export interface SalesSummary {
+  /** lo vendido, lo que pagaron los clientes */
   total: number
+  /** lo que de verdad entra: vendido − comisión de tarjeta */
+  net: number
   /** productos vendidos: vasos, waffles, pan, bebidas, despensa y extras sueltos */
   units: number
   tickets: number
@@ -21,7 +25,8 @@ export interface SalesSummary {
 export function salesSummary(sales: Sale[]): SalesSummary {
   const total = round2(sales.reduce((s, x) => s + x.total, 0))
   const units = sales.reduce((s, x) => s + x.items.reduce((a, i) => a + i.qty, 0), 0)
-  return { total, units, tickets: sales.length, avgTicket: sales.length ? round2(total / sales.length) : 0 }
+  const net = round2(sales.reduce((s, x) => s + saleReceived(x), 0))
+  return { total, net, units, tickets: sales.length, avgTicket: sales.length ? round2(total / sales.length) : 0 }
 }
 
 /** ganancia bruta: ingresos menos insumos y menos la comisión de Mercado Pago de los cobros con tarjeta */
@@ -113,7 +118,7 @@ export function hourlySales(sales: Sale[]): { hour: number; total: number; ticke
   const acc = Array.from({ length: 24 }, (_, hour) => ({ hour, total: 0, tickets: 0 }))
   for (const s of sales) {
     const h = new Date(s.ts).getHours()
-    acc[h].total = round2(acc[h].total + s.total)
+    acc[h].total = round2(acc[h].total + saleReceived(s))
     acc[h].tickets++
   }
   return acc

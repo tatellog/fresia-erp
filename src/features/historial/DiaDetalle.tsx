@@ -30,8 +30,6 @@ export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
   const ordenadas = [...sales].sort((a, b) => a.ts - b.ts)
   const comision = totalFees(sales)
   const propinas = totalTips(sales)
-  // lo que de verdad entra: cobrado + propinas − comisión de tarjeta
-  const recibido = round2(sales.reduce((a, s) => a + saleNet(s), 0))
   const gastos = expenses.filter(e => (e.kind ?? 'gasto') === 'gasto')
   const retiros = expenses.filter(e => e.kind === 'retiro')
   const fecha = new Date(dayStart).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -41,7 +39,7 @@ export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-berry-500">{fecha}</div>
-          <div className="mt-1 font-display text-[40px] font-bold leading-none tabular-nums">{money(recibido)}</div>
+          <div className="mt-1 font-display text-[40px] font-bold leading-none tabular-nums">{money(resumen.net)}</div>
           <div className="mt-2 text-sm text-berry-700/70">
             <b className="text-berry-900">{resumen.units}</b> productos · {resumen.tickets} cobros
             {resumen.tickets > 0 && <> · ticket promedio {money(resumen.avgTicket)}</>}
