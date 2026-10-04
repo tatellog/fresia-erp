@@ -26,7 +26,7 @@ export const PAYMENT_LABEL: Record<Payment, string> = {
   transferencia: 'Transferencia',
   rappi: 'Rappi',
   didi: 'DiDi',
-  uber: 'Uber Eats',
+  office: 'Frésia Office',
 }
 
 export interface TicketData {

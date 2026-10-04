@@ -47,3 +47,10 @@ db.version(4).stores({
 db.version(5).stores({
   openTabs: 'id, openTs',
 })
+
+// Uber Eats se cambió por Frésia Office; las ventas que estaban como Uber fueron por transferencia
+db.version(6).stores({}).upgrade(tx =>
+  tx.table('sales').toCollection().modify((s: { payment: string }) => {
+    if (s.payment === 'uber') s.payment = 'transferencia'
+  }),
+)

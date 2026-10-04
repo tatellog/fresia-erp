@@ -79,7 +79,7 @@ export default function Caja() {
   const cardTotal = cardSales.reduce((s, x) => s + x.total, 0)
   const cardNet = cardSales.reduce((s, x) => s + saleNet(x), 0)
   const transferTotal = turno.filter(s => s.payment === 'transferencia').reduce((s, x) => s + x.total, 0)
-  const deliveryTotal = turno.filter(s => s.payment === 'rappi' || s.payment === 'uber' || s.payment === 'didi').reduce((s, x) => s + x.total, 0)
+  const deliveryTotal = turno.filter(s => s.payment === 'rappi' || s.payment === 'office' || s.payment === 'didi').reduce((s, x) => s + x.total, 0)
   const dayTotal = turno.reduce((s, x) => s + saleReceived(x), 0)
 
   const openTooLong = session && Date.now() - session.openTs > DIEZ_HORAS

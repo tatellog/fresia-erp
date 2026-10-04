@@ -130,7 +130,7 @@ export default function Vender() {
   const pickPayment = (p: Payment) => {
     setPayment(p)
     if (p !== 'efectivo') setPaid(null)
-    if (p === 'rappi' || p === 'uber' || p === 'didi') setTip(0)
+    if (p === 'rappi' || p === 'office' || p === 'didi') setTip(0)
   }
 
   const registrar = async () => {
@@ -165,7 +165,7 @@ export default function Vender() {
    * siguiente. Queda la transferencia, con la terminal parada y atenta.
    */
   const sinTicket = (p: Payment) =>
-    p === 'efectivo' || p === 'tarjeta' || p === 'rappi' || p === 'didi' || p === 'uber'
+    p === 'efectivo' || p === 'tarjeta' || p === 'rappi' || p === 'didi' || p === 'office'
 
   /** imprime el ticket en la Point vinculada; nunca frena ni deshace la venta */
   const imprimirTicket = async (lines: CartLine[], t: number, propina: number, pagoRecibido: number | undefined, change: number | undefined, saleId: string) => {

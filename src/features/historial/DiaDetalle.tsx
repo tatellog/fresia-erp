@@ -10,7 +10,7 @@ const PAGOS: { id: Payment; label: string }[] = [
   { id: 'transferencia', label: 'Transferencia' },
   { id: 'rappi', label: 'Rappi' },
   { id: 'didi', label: 'DiDi' },
-  { id: 'uber', label: 'Uber Eats' },
+  { id: 'office', label: 'Frésia Office' },
 ]
 
 const esReconstruida = (s: Sale) => s.items[0]?.productId === RECON_ID

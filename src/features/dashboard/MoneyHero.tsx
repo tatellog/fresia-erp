@@ -20,7 +20,7 @@ const CANALES: { id: Payment; label: string; color: string }[] = [
   { id: 'transferencia', label: 'Transferencia', color: '#6b9fe8' },
   { id: 'rappi', label: 'Rappi', color: '#FF441F' },
   { id: 'didi', label: 'DiDi', color: '#FF7C33' },
-  { id: 'uber', label: 'Uber Eats', color: '#06C167' },
+  { id: 'office', label: 'Frésia Office', color: 'var(--color-berry-500)' },
 ]
 
 /**

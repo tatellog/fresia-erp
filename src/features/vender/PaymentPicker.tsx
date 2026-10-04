@@ -10,7 +10,7 @@ const mostrador: { id: Payment; label: string }[] = [
 const delivery: { id: Payment; label: string; dot: string }[] = [
   { id: 'rappi', label: 'Rappi', dot: '#FF441F' },
   { id: 'didi', label: 'DiDi', dot: '#FF7C33' },
-  { id: 'uber', label: 'Uber Eats', dot: '#06C167' },
+  { id: 'office', label: 'Frésia Office', dot: 'var(--color-berry-500)' },
 ]
 
 /** selector de método de cobro: mostrador y delivery */
