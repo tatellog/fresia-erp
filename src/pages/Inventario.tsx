@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
 import type { Ingredient } from '../data/types'
 import { Button, Empty } from '../components/ui'
 import { PlusIcon } from '../components/ui/icons'
+import { daysSinceLastCount, shoppingList } from '../services/stock'
+import { useStock } from '../features/inventario/useStock'
 import { IngredientRow } from '../features/inventario/IngredientRow'
 import { AttentionRow, needsAttention } from '../features/inventario/AttentionRow'
 import { RegistrarCompraSheet } from '../features/inventario/RegistrarCompraSheet'
@@ -21,14 +24,17 @@ const VISIBLES = 6
  * receta, así que aquí casi solo se registran compras.
  */
 export default function Inventario() {
-  const ingredients = useLiveQuery(() => db.ingredients.orderBy('name').toArray())
+  const data = useStock()
   const hasPurchases = useLiveQuery(async () => (await db.purchases.count()) > 0)
   const [action, setAction] = useState<Action>(null)
   const [verTodo, setVerTodo] = useState(false)
   const [todosAvisos, setTodosAvisos] = useState(false)
 
-  if (!ingredients || hasPurchases === undefined) return null
-  const atencion = needsAttention(ingredients)
+  if (!data || hasPurchases === undefined) return null
+  const { ingredients, usage, counts, snoozed } = data
+  const atencion = needsAttention(ingredients, usage)
+  const urgentes = shoppingList(ingredients, usage, snoozed).filter(i => i.priority === 'urgente').length
+  const hace = daysSinceLastCount(counts)
   const avisos = todosAvisos ? atencion : atencion.slice(0, VISIBLES)
 
   return (
@@ -37,7 +43,7 @@ export default function Inventario() {
 
       <button
         onClick={() => setAction({ kind: 'compra' })}
-        className="mb-6 flex w-full items-center gap-4 rounded-3xl bg-berry-500 px-5 py-4 text-left text-white shadow-sm transition-colors active:bg-berry-600"
+        className="mb-3 flex w-full items-center gap-4 rounded-3xl bg-berry-500 px-5 py-4 text-left text-white shadow-sm transition-colors active:bg-berry-600"
       >
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
           <PlusIcon className="h-5 w-5" />
@@ -47,6 +53,21 @@ export default function Inventario() {
           <span className="block text-xs text-white/75">Varios insumos de una vez: sube el inventario, el costo y el gasto</span>
         </span>
       </button>
+
+      <div className="mb-6 grid grid-cols-2 gap-3">
+        <Link to="/inventario/conteo" className="rounded-3xl border border-cream-200 bg-cream-50 px-4 py-3.5 transition-colors active:bg-cream-100">
+          <span className="block font-semibold">Conteo rápido</span>
+          <span className={`block text-xs ${hace !== undefined && hace >= 7 ? 'font-medium text-amber-700' : 'text-berry-700/60'}`}>
+            {hace === undefined ? 'nunca se ha hecho' : hace === 0 ? 'último: hoy' : `último: hace ${hace} ${hace === 1 ? 'día' : 'días'}`}
+          </span>
+        </Link>
+        <Link to="/inventario/lista" className="rounded-3xl border border-cream-200 bg-cream-50 px-4 py-3.5 transition-colors active:bg-cream-100">
+          <span className="block font-semibold">Lista de compra</span>
+          <span className={`block text-xs ${urgentes > 0 ? 'font-medium text-red-600' : 'text-berry-700/60'}`}>
+            {urgentes > 0 ? `${urgentes} ${urgentes === 1 ? 'urgente' : 'urgentes'}` : 'nada urgente'}
+          </span>
+        </Link>
+      </div>
 
       {!hasPurchases && ingredients.length > 0 && (
         <div className="mb-5 rounded-2xl bg-cream-200/70 px-4 py-3 text-sm text-berry-700/80">
@@ -63,12 +84,12 @@ export default function Inventario() {
         </h2>
         {atencion.length === 0 ? (
           <p className="rounded-2xl border border-cream-200 bg-cream-50 px-4 py-5 text-center text-sm text-berry-700/60">
-            Todo en orden: ningún insumo está bajo su mínimo.
+            Todo en orden: nada se acaba en los próximos días.
           </p>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-cream-200 bg-cream-50">
-            {avisos.map((ing, i) => (
-              <AttentionRow key={ing.id} ing={ing} first={i === 0} onCompra={() => setAction({ kind: 'compra', ing })} />
+            {avisos.map((a, i) => (
+              <AttentionRow key={a.ing.id} item={a} first={i === 0} onCompra={() => setAction({ kind: 'compra', ing: a.ing })} />
             ))}
             {atencion.length > VISIBLES && (
               <button
@@ -103,6 +124,7 @@ export default function Inventario() {
               <IngredientRow
                 key={ing.id}
                 ing={ing}
+                usage={usage.get(ing.id)}
                 onEdit={() => setAction({ kind: 'editar', ing })}
                 onCompra={() => setAction({ kind: 'compra', ing })}
                 onMerma={() => setAction({ kind: 'merma', ing })}
@@ -112,7 +134,7 @@ export default function Inventario() {
         </>
       )}
 
-      {action?.kind === 'compra' && <RegistrarCompraSheet ingredientId={action.ing?.id} onClose={() => setAction(null)} />}
+      {action?.kind === 'compra' && <RegistrarCompraSheet items={action.ing ? [{ ingredientId: action.ing.id, unit: action.ing.unit }] : undefined} onClose={() => setAction(null)} />}
       {action?.kind === 'merma' && <MermaSheet ing={action.ing} onClose={() => setAction(null)} />}
       {action?.kind === 'editar' && <IngredientFormSheet ing={action.ing} onClose={() => setAction(null)} />}
     </div>

@@ -8,7 +8,7 @@ type CloudRow = Record<string, unknown>
 export const toCloud: Record<SyncTable, { table: string; map: (r: CloudRow, branch: string) => CloudRow }> = {
   ingredients: {
     table: 'ingredients',
-    map: (r, branch) => ({ id: r.id, name: r.name, unit: r.unit, stock: r.stock, cost: r.cost, min_stock: r.minStock, topping_groups: r.toppingGroups ?? null, portion: r.portion ?? null, premium_price: r.premiumPrice ?? null, branch, updated_at: new Date().toISOString() }),
+    map: (r, branch) => ({ id: r.id, name: r.name, unit: r.unit, stock: r.stock, cost: r.cost, min_stock: r.minStock, topping_groups: r.toppingGroups ?? null, portion: r.portion ?? null, premium_price: r.premiumPrice ?? null, kind: r.kind ?? null, branch, updated_at: new Date().toISOString() }),
   },
   products: {
     table: 'products',
@@ -33,6 +33,10 @@ export const toCloud: Record<SyncTable, { table: string; map: (r: CloudRow, bran
   investments: {
     table: 'investments',
     map: (r, branch) => ({ id: r.id, ts: iso(r.ts), concept: r.concept, amount: r.amount, paid_by: r.paidBy || null, pending: r.pending, branch, updated_at: new Date().toISOString() }),
+  },
+  counts: {
+    table: 'inventory_counts',
+    map: (r, branch) => ({ id: r.id, ts: iso(r.ts), ingredient_id: r.ingredientId, ingredient_name: r.ingredientName, expected: r.expected, counted: r.counted, diff: r.diff, diff_cost: r.diffCost, reason: r.reason, employee: r.employeeName ?? null, branch }),
   },
   purchases: {
     table: 'purchases',

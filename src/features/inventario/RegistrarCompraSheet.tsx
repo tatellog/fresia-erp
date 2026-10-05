@@ -31,13 +31,25 @@ const nueva = (ingredientId = '', qty = '', cost = '', bulk = true): Linea => ({
  * cómo se pagó. Al guardar sube el inventario, recalcula el costo promedio
  * de cada insumo (y con él recetas y márgenes) y deja un solo gasto.
  */
-export function RegistrarCompraSheet({ ingredientId, onClose }: { ingredientId?: string; onClose: () => void }) {
+export function RegistrarCompraSheet({ items, onClose }: {
+  /** insumos con los que abre la compra; qty en la unidad del insumo (g, ml, pza) */
+  items?: { ingredientId: string; qty?: number; unit?: Ingredient['unit'] }[]
+  onClose: () => void
+}) {
   const ingredients = useLiveQuery(() => db.ingredients.orderBy('name').toArray())
   const pasadas = useLiveQuery(() => recentPurchases(60))
   const session = useLiveQuery(async () => (await openCashSession()) ?? null)
   const [supplier, setSupplier] = useState('')
   const [fecha, setFecha] = useState(hoyISO())
-  const [lineas, setLineas] = useState<Linea[]>(() => [nueva(ingredientId)])
+  const [lineas, setLineas] = useState<Linea[]>(() =>
+    items?.length
+      ? items.map(it => {
+        const bulk = !!it.unit && !!bulkUnit(it.unit)
+        const qty = it.qty ? (bulk ? it.qty / 1000 : it.qty) : undefined
+        return nueva(it.ingredientId, qty ? String(Math.round(qty * 100) / 100) : '', '', it.unit ? bulk : true)
+      })
+      : [nueva()],
+  )
   const [payment, setPayment] = useState<PurchasePayment>('efectivo')
   const [guardando, setGuardando] = useState(false)
 

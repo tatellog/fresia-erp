@@ -24,6 +24,13 @@ export type Line =
   | 'despensa' // miel y pepitas
   | 'otros'    // lo que no es de ninguna línea: va en Extras del punto de venta
 
+/**
+ * Qué tanto control lleva un insumo: los críticos se cuentan y se cuida su
+ * merma; el empaque se descuenta por venta y se cuenta de vez en cuando; los
+ * consumibles (servilletas, cucharas) solo se marcan como hay, poco o nada.
+ */
+export type InventoryKind = 'critico' | 'empaque' | 'consumible'
+
 export interface Ingredient {
   id: string
   name: string
@@ -40,6 +47,8 @@ export interface Ingredient {
   portion?: number
   /** topping premium (Pistache, Lotus): siempre se cobra este precio y no gasta un incluido */
   premiumPrice?: number
+  /** ausente = se deduce del nombre (ver ingredientKind) */
+  kind?: InventoryKind
 }
 
 export interface RecipeItem {
@@ -162,6 +171,24 @@ export interface Waste {
   reason: string
 }
 
+/** renglón de un conteo físico: lo que el sistema esperaba contra lo que había */
+export interface InventoryCount {
+  id: string
+  ts: number
+  ingredientId: string
+  ingredientName: string
+  /** existencia que marcaba el sistema al contar */
+  expected: number
+  counted: number
+  /** counted − expected */
+  diff: number
+  /** valor de la diferencia al costo promedio de ese momento */
+  diffCost: number
+  /** 'merma' = faltó sin explicación; 'ajuste' = corrección de datos (sobró, o el sistema venía en negativo) */
+  reason: 'ajuste' | 'merma'
+  employeeName?: string
+}
+
 /** salida de dinero: gasto operativo o retiro de efectivo (a banco/caja fuerte) */
 export type ExpenseKind = 'gasto' | 'retiro'
 
@@ -207,11 +234,11 @@ export interface Investment {
 /** tablas del dominio que se sincronizan con la nube */
 export type SyncTable =
   | 'ingredients' | 'products' | 'sales' | 'purchases' | 'wastes' | 'expenses' | 'cashSessions' | 'employees' | 'investments'
-  | 'toppingLists' | 'openTabs'
+  | 'toppingLists' | 'openTabs' | 'counts'
 
 export const DOMAIN_TABLES: SyncTable[] = [
   'ingredients', 'products', 'sales', 'purchases', 'wastes', 'expenses', 'cashSessions', 'employees', 'investments', 'toppingLists',
-  'openTabs',
+  'openTabs', 'counts',
 ]
 
 /** cola de cambios pendientes de subir a Supabase */

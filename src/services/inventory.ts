@@ -1,6 +1,6 @@
 import { db } from '../data/db'
 import { uid } from '../data/ids'
-import type { Expense, ExpensePayment, Ingredient, Purchase } from '../data/types'
+import type { Expense, ExpensePayment, Ingredient, InventoryCount, Purchase } from '../data/types'
 import { round2 } from '../lib/format'
 import { enqueue } from './outbox'
 
@@ -78,6 +78,41 @@ export async function recentPurchases(limit = 30) {
   return [...groups.values()].slice(0, limit)
 }
 
+/**
+ * Conteo físico: la existencia pasa a lo que se contó y queda registrada
+ * la diferencia contra lo que esperaba el sistema. Lo que faltó se
+ * clasifica como merma no identificada; lo que sobró, o un insumo que el
+ * sistema traía en negativo (ventas sin compras capturadas), es ajuste.
+ * Se relee cada insumo dentro de la transacción: una venta pudo moverlo
+ * mientras se contaba.
+ */
+export async function applyCount(entries: { ingredientId: string; counted: number; approximate?: boolean }[]) {
+  return db.transaction('rw', [db.ingredients, db.counts, db.outbox, db.meta, db.employees], async () => {
+    const activeId = (await db.meta.get('activeEmployeeId'))?.value
+    const employee = activeId ? await db.employees.get(activeId) : undefined
+    const ts = Date.now()
+    const out: InventoryCount[] = []
+    for (const e of entries) {
+      const ing = await db.ingredients.get(e.ingredientId)
+      if (!ing || !(e.counted >= 0)) continue
+      const diff = round2(e.counted - ing.stock)
+      const reason: InventoryCount['reason'] = e.approximate || ing.stock < 0 || diff >= 0 ? 'ajuste' : 'merma'
+      const row: InventoryCount = {
+        id: uid(), ts, ingredientId: ing.id, ingredientName: ing.name,
+        expected: ing.stock, counted: e.counted, diff, diffCost: round2(diff * ing.cost), reason,
+        employeeName: employee?.name,
+      }
+      const updated = { ...ing, stock: round2(e.counted) }
+      await db.ingredients.put(updated)
+      await enqueue('ingredients', 'upsert', updated)
+      await db.counts.add(row)
+      await enqueue('counts', 'upsert', row)
+      out.push(row)
+    }
+    return out
+  })
+}
+
 /** merma: baja stock y deja registro del motivo */
 export async function registerWaste(ingredientId: string, qty: number, reason: string) {
   return db.transaction('rw', [db.ingredients, db.wastes, db.outbox], async () => {
@@ -111,4 +146,23 @@ export async function deleteIngredient(id: string) {
     await db.ingredients.delete(id)
     await enqueue('ingredients', 'delete', { id })
   })
+}
+
+const SNOOZE_KEY = 'shopSnooze'
+
+/** insumos que la lista de compra ignora por ahora (solo en este dispositivo) */
+export async function snoozedIngredients(now = Date.now()): Promise<Set<string>> {
+  const raw = (await db.meta.get(SNOOZE_KEY))?.value
+  const map: Record<string, number> = raw ? JSON.parse(raw) : {}
+  return new Set(Object.entries(map).filter(([, hasta]) => hasta > now).map(([id]) => id))
+}
+
+/** saca un insumo de la lista de compra por unos días */
+export async function snoozeIngredient(id: string, days = 3) {
+  const raw = (await db.meta.get(SNOOZE_KEY))?.value
+  const map: Record<string, number> = raw ? JSON.parse(raw) : {}
+  const now = Date.now()
+  for (const [k, v] of Object.entries(map)) if (v <= now) delete map[k]
+  map[id] = now + days * 24 * 3600_000
+  await db.meta.put({ key: SNOOZE_KEY, value: JSON.stringify(map) })
 }

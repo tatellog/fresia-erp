@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
-import type { Ingredient, ToppingGroup, Unit } from '../../data/types'
+import type { Ingredient, InventoryKind, ToppingGroup, Unit } from '../../data/types'
+import { ingredientKind, KIND_LABEL } from '../../services/stock'
 import { deleteIngredient, saveIngredient } from '../../services/inventory'
 import { Button, decimal as num, Field, Input, NumberInput, Sheet } from '../../components/ui'
 import { ToppingListChips } from '../toppings/ToppingListChips'
@@ -11,6 +12,8 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
   const lists = useLiveQuery(() => db.toppingLists.orderBy('sort').toArray())
   const [name, setName] = useState(ing?.name ?? '')
   const [unit, setUnit] = useState<Unit>(ing?.unit ?? 'pza')
+  // sin elegir, se deduce del nombre y la unidad al guardar
+  const [kind, setKind] = useState<InventoryKind | undefined>(ing?.kind)
   const [cost, setCost] = useState(ing ? String(ing.cost) : '0')
   const [minStock, setMinStock] = useState(ing ? String(ing.minStock) : '0')
   const [groups, setGroups] = useState<ToppingGroup[]>(ing?.toppingGroups ?? [])
@@ -46,6 +49,7 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
         unit,
         cost: num(cost),
         minStock: num(minStock),
+        kind,
         toppingGroups: esTopping ? groups : undefined,
         portion: esTopping ? num(portion) : undefined,
         premiumPrice: esTopping && num(premium) > 0 ? num(premium) : undefined,
@@ -75,6 +79,30 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
             </button>
           ))}
         </div>
+      </Field>
+      <Field label="Qué tanto control lleva">
+        <div className="grid grid-cols-3 gap-2">
+          {(['critico', 'empaque', 'consumible'] as InventoryKind[]).map(k => {
+            const on = (kind ?? ingredientKind({ name, unit })) === k
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setKind(k)}
+                className={`rounded-xl py-2.5 font-semibold ${on ? 'bg-berry-500 text-white' : 'bg-cream-200 text-berry-700'}`}
+              >
+                {KIND_LABEL[k]}
+              </button>
+            )
+          })}
+        </div>
+        <span className="mt-1.5 block text-xs text-berry-700/55">
+          {{
+            critico: 'Se cuenta en el conteo semanal y se le sigue la merma (fresa, crema, chocolate).',
+            empaque: 'Se descuenta en cada venta y se cuenta de vez en cuando (vasos, tapas, stickers).',
+            consumible: 'Solo se marca si hay, queda poco o se acabó (servilletas, cucharas).',
+          }[kind ?? ingredientKind({ name, unit })]}
+        </span>
       </Field>
       <Field label={`Costo por ${unit} ($)`}>
         <NumberInput value={cost} onChange={e => setCost(e.target.value)} placeholder="0" />

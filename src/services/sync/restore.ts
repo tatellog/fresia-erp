@@ -12,7 +12,7 @@ const ts = (v: unknown) => (typeof v === 'string' ? new Date(v).getTime() : unde
 
 /** forma local (camelCase) de cada fila que llega de Postgres; inverso de `toCloud` */
 export const fromCloud: Record<SyncTable, (r: CloudRow) => Record<string, unknown>> = {
-  ingredients: r => ({ id: r.id, name: r.name, unit: r.unit, stock: r.stock, cost: r.cost, minStock: r.min_stock, toppingGroups: r.topping_groups ?? undefined, portion: r.portion ?? undefined, premiumPrice: r.premium_price ?? undefined }),
+  ingredients: r => ({ id: r.id, name: r.name, unit: r.unit, stock: r.stock, cost: r.cost, minStock: r.min_stock, toppingGroups: r.topping_groups ?? undefined, portion: r.portion ?? undefined, premiumPrice: r.premium_price ?? undefined, kind: r.kind ?? undefined }),
   products: r => ({ id: r.id, name: r.name, emoji: r.emoji, price: r.price, recipe: r.recipe, active: r.active, sort: r.sort, toppingGroup: r.topping_group ?? undefined, includedToppings: r.included_toppings ?? undefined, freePremium: r.free_premium ?? undefined, line: r.line ?? undefined, extraScope: r.extra_scope ?? undefined, photo: r.photo ?? undefined }),
   sales: r => ({ id: r.id, ts: ts(r.ts), items: r.items, total: r.total, cost: r.cost, payment: r.payment === 'uber' ? 'transferencia' : r.payment, tip: Number(r.tip) || undefined, fee: Number(r.fee) || undefined, sessionId: r.session_id ?? undefined, employeeName: r.employee ?? undefined }),
   employees: r => ({ id: r.id, name: r.name, active: r.active, pin: '' }),
@@ -20,6 +20,7 @@ export const fromCloud: Record<SyncTable, (r: CloudRow) => Record<string, unknow
   openTabs: r => ({ id: r.id, name: r.name, openTs: ts(r.open_ts), lines: r.lines, total: Number(r.total), used: r.used ?? {}, employeeName: r.employee ?? undefined }),
   investments: r => ({ id: r.id, ts: ts(r.ts), concept: r.concept, amount: r.amount, paidBy: r.paid_by ?? '', pending: r.pending }),
   purchases: r => ({ id: r.id, ts: ts(r.ts), ingredientId: r.ingredient_id, ingredientName: r.ingredient_name, qty: r.qty, totalCost: r.total_cost, note: r.note ?? undefined, supplier: r.supplier ?? undefined, batchId: r.batch_id ?? undefined }),
+  counts: r => ({ id: r.id, ts: ts(r.ts), ingredientId: r.ingredient_id, ingredientName: r.ingredient_name, expected: Number(r.expected), counted: Number(r.counted), diff: Number(r.diff), diffCost: Number(r.diff_cost), reason: r.reason, employeeName: r.employee ?? undefined }),
   wastes: r => ({ id: r.id, ts: ts(r.ts), ingredientId: r.ingredient_id, ingredientName: r.ingredient_name, qty: r.qty, reason: r.reason }),
   expenses: r => ({ id: r.id, ts: ts(r.ts), concept: r.concept, amount: r.amount, sessionId: r.session_id ?? undefined, kind: r.kind ?? 'gasto', payment: r.payment ?? 'efectivo' }),
   cashSessions: r => ({ id: r.id, openTs: ts(r.open_ts), closeTs: ts(r.close_ts), openAmount: r.open_amount, closeAmount: r.close_amount ?? undefined, expected: r.expected ?? undefined, employeeName: r.employee ?? undefined, note: r.note ?? undefined }),

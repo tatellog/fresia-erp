@@ -6,6 +6,8 @@ import { TabBar } from './components/layout/TabBar'
 import Vender from './pages/Vender'
 import Productos from './pages/Productos'
 import Inventario from './pages/Inventario'
+import ConteoRapido from './pages/ConteoRapido'
+import ListaCompra from './pages/ListaCompra'
 import Caja from './pages/Caja'
 import Inversion from './pages/Inversion'
 import Dashboard from './pages/Dashboard'
@@ -23,6 +25,8 @@ export default function App() {
             <Route path="/" element={<Vender />} />
             <Route path="/productos" element={<Productos />} />
             <Route path="/inventario" element={<Inventario />} />
+            <Route path="/inventario/conteo" element={<ConteoRapido />} />
+            <Route path="/inventario/lista" element={<ListaCompra />} />
             <Route path="/caja" element={<Caja />} />
             <Route path="/inversion" element={<Inversion />} />
             <Route path="/reportes" element={<Dashboard />} />
