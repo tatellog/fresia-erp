@@ -9,6 +9,7 @@ import { daysSinceLastCount, shoppingList } from '../services/stock'
 import { useStock } from '../features/inventario/useStock'
 import { IngredientRow } from '../features/inventario/IngredientRow'
 import { AttentionRow, needsAttention } from '../features/inventario/AttentionRow'
+import { WasteCard } from '../features/inventario/WasteCard'
 import { RegistrarCompraSheet } from '../features/inventario/RegistrarCompraSheet'
 import { MermaSheet } from '../features/inventario/MermaSheet'
 import { IngredientFormSheet } from '../features/inventario/IngredientFormSheet'
@@ -102,6 +103,8 @@ export default function Inventario() {
           </div>
         )}
       </section>
+
+      <WasteCard counts={counts} ingredients={ingredients} />
 
       <button
         onClick={() => setVerTodo(v => !v)}

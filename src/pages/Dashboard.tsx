@@ -22,7 +22,7 @@ import { needsAttention } from '../features/inventario/AttentionRow'
 import { useStock } from '../features/inventario/useStock'
 import { ProfitCard } from '../features/dashboard/ProfitCard'
 import { HourlySalesChart } from '../features/dashboard/HourlySalesChart'
-import { AlertBanner } from '../features/dashboard/AlertBanner'
+import { AlertsCard } from '../features/dashboard/AlertsCard'
 import { ComparisonCard } from '../features/dashboard/ComparisonCard'
 import { SalesChart } from '../features/dashboard/SalesChart'
 import { HistorialCard } from '../features/historial/HistorialCard'
@@ -85,8 +85,6 @@ export default function Dashboard() {
   const atencion = needsAttention(stock.ingredients, stock.usage)
 
   const alerts: string[] = []
-  for (const a of atencion.filter(x => x.tone === 'red').slice(0, 2))
-    alerts.push(`${a.ing.name}: ${a.label.toLowerCase()}. Revisa Inventario.`)
   if (openSession && Date.now() - openSession.openTs > 10 * 3600_000)
     alerts.push('La caja lleva abierta más tiempo de lo habitual: haz el corte.')
   if (!openSession && data.resumen.tickets === 0 && now.getHours() >= 10 && now.getHours() < 20)
@@ -117,6 +115,8 @@ export default function Dashboard() {
         <QuickActionButton icon={WalletIcon} label="Ir a Caja" onClick={() => navigate('/caja')} />
         <QuickActionButton icon={BagIcon} label="Ver menú" onClick={() => navigate('/productos')} />
       </div>
+
+      <AlertsCard caja={alerts} />
 
       <MoneyHero goalMoney={goalMoney ?? 2500} />
 
@@ -149,7 +149,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <AlertBanner alerts={alerts} />
 
       <div className="rounded-3xl border border-cream-200 bg-cream-50 p-6">
         <h2 className="mb-2 text-xl font-semibold">Tendencia · últimos 14 días</h2>
