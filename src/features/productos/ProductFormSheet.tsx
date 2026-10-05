@@ -230,7 +230,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
 
       <Section title="Toppings que elige el cliente" summary={toppingsSummary} defaultOpen={!!toppingGroup}>
         <p className="mb-3 text-xs text-berry-700/60">
-          Si el producto lleva toppings, al venderlo el cliente los escoge de una lista. Una lista es el conjunto de toppings que se le ofrecen; a cada topping se le asignan sus listas desde Insumos.
+          Si el producto lleva toppings, al venderlo el cliente los escoge de una lista. Una lista es el conjunto de toppings que se le ofrecen; a cada topping se le asignan sus listas desde Inventario.
         </p>
         <div className="grid grid-cols-2 gap-2">
           {([false, true] as const).map(yes => (
@@ -259,7 +259,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
             />
             {(countByList.get(toppingGroup) ?? 0) === 0 && (
               <p className="mt-2 text-xs text-amber-700">
-                Esta lista aún no tiene toppings. Entra a Insumos, abre cada topping y márcale esta lista.
+                Esta lista aún no tiene toppings. Entra a Inventario, abre cada topping y márcale esta lista.
               </p>
             )}
 
@@ -303,7 +303,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
         )}
 
         {ingredients.length === 0 ? (
-          <p className="text-sm text-berry-700/60">Primero registra insumos en la pestaña Insumos.</p>
+          <p className="text-sm text-berry-700/60">Primero registra insumos en la pestaña Inventario.</p>
         ) : (
           <>
             <Input

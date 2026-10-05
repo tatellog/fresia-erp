@@ -17,7 +17,7 @@ import { CashCountForm } from '../features/caja/CashCountForm'
 import { HistoryRow } from '../features/caja/HistoryRow'
 import { AbrirSheet } from '../features/caja/AbrirSheet'
 import { GastoSheet } from '../features/caja/GastoSheet'
-import { CompraInsumoSheet } from '../features/caja/CompraInsumoSheet'
+import { RegistrarCompraSheet } from '../features/inventario/RegistrarCompraSheet'
 import { RetiroSheet } from '../features/caja/RetiroSheet'
 import { SaleSheet } from '../features/caja/SaleSheet'
 
@@ -172,7 +172,7 @@ export default function Caja() {
 
       {sheet === 'abrir' && <AbrirSheet onClose={() => setSheet(null)} />}
       {sheet === 'gasto' && session && <GastoSheet sessionId={session.id} onClose={() => setSheet(null)} />}
-      {sheet === 'compra' && session && <CompraInsumoSheet sessionId={session.id} onClose={() => setSheet(null)} />}
+      {sheet === 'compra' && session && <RegistrarCompraSheet onClose={() => setSheet(null)} />}
       {sheet === 'retiro' && session && <RetiroSheet sessionId={session.id} onClose={() => setSheet(null)} />}
       {saleDetail && <SaleSheet sale={saleDetail} onClose={() => setSaleDetail(null)} />}
     </div>

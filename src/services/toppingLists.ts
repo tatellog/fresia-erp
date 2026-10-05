@@ -16,7 +16,7 @@ export async function ensureToppingLists() {
   if (missing.length) await db.toppingLists.bulkPut(missing)
 }
 
-/** crea una lista nueva (vacía: los toppings se le asignan desde Insumos) y devuelve su id */
+/** crea una lista nueva (vacía: los toppings se le asignan desde Inventario) y devuelve su id */
 export async function createToppingList(name: string): Promise<ToppingGroup> {
   const id = uid()
   return db.transaction('rw', [db.toppingLists, db.outbox], async () => {

@@ -36,7 +36,7 @@ export const toCloud: Record<SyncTable, { table: string; map: (r: CloudRow, bran
   },
   purchases: {
     table: 'purchases',
-    map: (r, branch) => ({ id: r.id, ts: iso(r.ts), ingredient_id: r.ingredientId, ingredient_name: r.ingredientName, qty: r.qty, total_cost: r.totalCost, note: r.note ?? null, branch }),
+    map: (r, branch) => ({ id: r.id, ts: iso(r.ts), ingredient_id: r.ingredientId, ingredient_name: r.ingredientName, qty: r.qty, total_cost: r.totalCost, note: r.note ?? null, supplier: r.supplier ?? null, batch_id: r.batchId ?? null, branch }),
   },
   wastes: {
     table: 'wastes',

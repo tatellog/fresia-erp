@@ -147,6 +147,10 @@ export interface Purchase {
   qty: number
   totalCost: number
   note?: string
+  /** dónde se compró: Costco, mercado… */
+  supplier?: string
+  /** renglones que salieron de la misma compra comparten este id */
+  batchId?: string
 }
 
 export interface Waste {

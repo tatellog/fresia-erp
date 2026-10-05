@@ -1,5 +1,5 @@
 import type { Ingredient, Product } from '../../data/types'
-import { productCost } from '../../services/costing'
+import { costBreakdown } from '../../services/costing'
 import { money } from '../../lib/format'
 import { Card } from '../../components/ui'
 import { CupIcon } from '../../components/ui/icons'
@@ -12,7 +12,12 @@ export function ProductRow({ product, ingredients, onEdit }: {
   ingredients: Map<string, Ingredient>
   onEdit: () => void
 }) {
-  const cost = productCost(product, ingredients)
+  const { cost, noRecipe, missing } = costBreakdown(product, ingredients)
+  const falta = noRecipe
+    ? 'Falta configurar receta'
+    : missing.length > 0
+      ? `Falta precio de compra: ${missing.slice(0, 2).join(', ')}${missing.length > 2 ? ` y ${missing.length - 2} más` : ''}`
+      : null
   const margin = product.price > 0 ? ((product.price - cost) / product.price) * 100 : 0
   const photo = productPhoto(product) ?? toppingPhoto(product.name)
   const { main, sub } = parts(product)
@@ -43,17 +48,18 @@ export function ProductRow({ product, ingredients, onEdit }: {
 
         <div className="shrink-0 text-right">
           <div className="font-display text-xl font-bold text-berry-500">{money(product.price)}</div>
-          {cost > 0 ? (
-            <div className="text-xs font-medium text-green-700">
-              deja {money(product.price - cost)} · {margin.toFixed(0)}%
+          {cost > 0 && (
+            <div className="text-xs tabular-nums text-berry-700/60">
+              costo {money(cost)} · <span className="font-medium text-green-700">deja {money(product.price - cost)} · {margin.toFixed(0)}%</span>
             </div>
-          ) : (
-            <span className="mt-0.5 inline-block rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700">
-              costo pendiente
-            </span>
           )}
         </div>
       </div>
+      {falta && (
+        <div className="mt-2.5 rounded-xl bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+          {cost > 0 ? `Costo incompleto. ${falta}` : falta}
+        </div>
+      )}
     </Card>
   )
 }

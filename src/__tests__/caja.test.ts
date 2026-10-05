@@ -45,7 +45,7 @@ describe('caja: dinero del día', () => {
 
     const fresa = await db.ingredients.get('i-fresa')
     expect(fresa?.stock).toBe(1100)
-    expect(fresa?.cost).toBe(0.24) // (100×0.1 + 250) / 1100, redondeado a centavos
+    expect(fresa?.cost).toBeCloseTo(0.236364, 6) // (100×0.1 + 250) / 1100, sin perder decimales
 
     const compra = (await db.expenses.toArray()).find(e => e.concept === 'Compra · Fresa fresca')
     expect(compra?.amount).toBe(250)
