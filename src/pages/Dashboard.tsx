@@ -4,20 +4,22 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { openCashSession } from '../services/cash'
 import { db } from '../data/db'
 import {
-  cupsBySize, delta, hourlySales, profit, salesByLine, salesSummary, stockStatus, topProduct, topToppings,
+  cupsBySize, delta, hourlySales, profit, salesByLine, salesSummary, topToppings,
 } from '../services/analytics'
-import { money, moneyInt, round2, startOfDay } from '../lib/format'
+import { round2, startOfDay } from '../lib/format'
 import { saleReceived } from '../services/fees'
-import { BagIcon, BanknoteIcon, BoxIcon, CupIcon, PlusIcon, ReceiptIcon, StarIcon, WalletIcon } from '../components/ui/icons'
+import { BagIcon, BoxIcon, PlusIcon, WalletIcon } from '../components/ui/icons'
 import { CashStatusBadge } from '../features/caja/CashStatusBadge'
 import { QuickActionButton } from '../features/caja/QuickActionButton'
 import { MoneyHero } from '../features/dashboard/MoneyHero'
-import { KpiCard } from '../features/dashboard/KpiCard'
+import { MonthGoalCard } from '../features/dashboard/MonthGoalCard'
 import { GoalProgress } from '../features/dashboard/GoalProgress'
 import { SalesCard } from '../features/dashboard/SalesCard'
 import { TopSellingCard } from '../features/dashboard/TopSellingCard'
 import { TopToppingsCard } from '../features/dashboard/TopToppingsCard'
 import { InventoryAlert } from '../features/dashboard/InventoryAlert'
+import { needsAttention } from '../features/inventario/AttentionRow'
+import { useStock } from '../features/inventario/useStock'
 import { ProfitCard } from '../features/dashboard/ProfitCard'
 import { HourlySalesChart } from '../features/dashboard/HourlySalesChart'
 import { AlertBanner } from '../features/dashboard/AlertBanner'
@@ -41,8 +43,6 @@ export default function Dashboard() {
   }, [])
 
   const sales14 = useLiveQuery(() => db.sales.where('ts').aboveOrEqual(startOfDay(CHART_DAYS - 1)).toArray())
-  const ingredients = useLiveQuery(() => db.ingredients.toArray())
-  const hasPurchases = useLiveQuery(async () => (await db.purchases.count()) > 0)
   const openSession = useLiveQuery(async () => (await openCashSession()) ?? null)
   const lastClosed = useLiveQuery(() => db.cashSessions.orderBy('openTs').reverse().filter(s => s.closeTs !== undefined).first())
   const branch = useLiveQuery(async () => (await db.meta.get('branch'))?.value || 'Principal')
@@ -68,7 +68,6 @@ export default function Dashboard() {
       lineas: salesByLine(today),
       tamanos: cupsBySize(today),
       toppings: topToppings(week, 5),
-      top: topProduct(today),
       utilidad: profit(today),
       costsKnown: today.some(s => s.cost > 0) || today.length === 0,
       horas: hourlySales(week),
@@ -80,16 +79,14 @@ export default function Dashboard() {
     }
   }, [sales14])
 
-  const stocks = useMemo(
-    () => (ingredients && hasPurchases ? stockStatus(ingredients).slice(0, 6) : []),
-    [ingredients, hasPurchases],
-  )
+  const stock = useStock()
 
-  if (!data || !ingredients || hasPurchases === undefined || openSession === undefined) return null
+  if (!data || !stock || openSession === undefined) return null
+  const atencion = needsAttention(stock.ingredients, stock.usage)
 
   const alerts: string[] = []
-  for (const st of stocks.filter(s => s.level === 'critico').slice(0, 3))
-    alerts.push(`Quedan ${round2(st.ingredient.stock)} ${st.ingredient.unit} de ${st.ingredient.name}: comprar hoy.`)
+  for (const a of atencion.filter(x => x.tone === 'red').slice(0, 2))
+    alerts.push(`${a.ing.name}: ${a.label.toLowerCase()}. Revisa Inventario.`)
   if (openSession && Date.now() - openSession.openTs > 10 * 3600_000)
     alerts.push('La caja lleva abierta más tiempo de lo habitual: haz el corte.')
   if (!openSession && data.resumen.tickets === 0 && now.getHours() >= 10 && now.getHours() < 20)
@@ -123,18 +120,7 @@ export default function Dashboard() {
 
       <MoneyHero goalMoney={goalMoney ?? 2500} />
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <KpiCard icon={BanknoteIcon} value={moneyInt(data.resumen.net)} label="Ventas del día" />
-        <KpiCard icon={CupIcon} value={String(data.resumen.units)} label="Productos vendidos" />
-        <KpiCard icon={ReceiptIcon} value={money(data.resumen.avgTicket)} label="Ticket promedio" />
-        <KpiCard
-          icon={StarIcon}
-          value={data.top ? data.top.name.split('·')[1]?.trim().split(' ')[0] ?? data.top.name : '·'}
-          label="Más vendido hoy"
-          sub={data.top ? `${data.top.name.split('·')[0].trim()} · ${data.top.count} vendidos` : 'aún sin ventas'}
-        />
-      </div>
+      <MonthGoalCard dailyGoal={goalMoney ?? 2500} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ProfitCard {...data.utilidad} costsKnown={data.costsKnown} />
@@ -146,7 +132,7 @@ export default function Dashboard() {
         <TopToppingsCard toppings={data.toppings} />
       </div>
 
-      <InventoryAlert statuses={stocks} />
+      <InventoryAlert items={atencion} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <HourlySalesChart hours={data.horas} subtitle="Suma de los últimos 7 días · para saber cuándo necesitas más manos" />

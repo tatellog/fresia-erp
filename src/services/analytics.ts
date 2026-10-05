@@ -1,4 +1,4 @@
-import type { Ingredient, Sale } from '../data/types'
+import type { Sale } from '../data/types'
 import { round2 } from '../lib/format'
 import { saleReceived } from './fees'
 
@@ -128,26 +128,4 @@ export function hourlySales(sales: Sale[]): { hour: number; total: number; ticke
 export function delta(current: number, previous: number): number | null {
   if (previous <= 0) return null
   return Math.round(((current - previous) / previous) * 100)
-}
-
-export type StockLevel = 'critico' | 'bajo' | 'ok'
-
-export interface StockStatus {
-  ingredient: Ingredient
-  /** proporción contra el mínimo: <1 crítico, <2 bajo */
-  ratio: number
-  level: StockLevel
-  /** porcentaje visual contra un inventario "sano" (3× el mínimo) */
-  pct: number
-}
-
-export function stockStatus(ingredients: Ingredient[]): StockStatus[] {
-  return ingredients
-    .filter(i => i.minStock > 0)
-    .map(i => {
-      const ratio = i.stock / i.minStock
-      const level: StockLevel = ratio <= 1 ? 'critico' : ratio <= 2 ? 'bajo' : 'ok'
-      return { ingredient: i, ratio, level, pct: Math.max(0, Math.min(100, Math.round((i.stock / (i.minStock * 3)) * 100))) }
-    })
-    .sort((a, b) => a.ratio - b.ratio)
 }
