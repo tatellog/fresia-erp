@@ -5,6 +5,7 @@ import type { Ingredient, Line, Product, RecipeItem, ToppingGroup } from '../../
 import { deleteProduct, productLine, saveProduct } from '../../services/catalog'
 import { EXTRA_TOPPING_PRICE, INCLUDED_TOPPINGS } from '../../services/sales'
 import { money } from '../../lib/format'
+import { ozOf, scaleRecipe } from '../../services/costing'
 import { toSquareJpeg } from '../../lib/image'
 import { productPhoto, strip, toppingPhoto } from '../../services/photos'
 import { toppingCountByList, toppingListName } from '../../services/toppingLists'
@@ -116,6 +117,7 @@ function PhotoPicker({ photo, custom, onPick, onClear }: {
 export function ProductFormSheet({ product, nextSort, onClose }: { product?: Product; nextSort: number; onClose: () => void }) {
   const ingredients = useLiveQuery(() => db.ingredients.orderBy('name').toArray())
   const lists = useLiveQuery(() => db.toppingLists.orderBy('sort').toArray())
+  const products = useLiveQuery(() => db.products.toArray())
   const [name, setName] = useState(product?.name ?? '')
   const [price, setPrice] = useState(product ? String(product.price) : '')
   const [photo, setPhoto] = useState<string | undefined>(product?.photo)
@@ -128,7 +130,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
   const [query, setQuery] = useState('')
   const [photoError, setPhotoError] = useState('')
 
-  if (!ingredients || !lists) return null
+  if (!ingredients || !lists || !products) return null
   const ingMap = new Map(ingredients.map(i => [i.id, i]))
   const qtyOf = (id: string) => recipe.find(r => r.ingredientId === id)?.qty ?? 0
   const cost = recipe.reduce((s, r) => s + (ingMap.get(r.ingredientId)?.cost ?? 0) * r.qty, 0)
@@ -175,12 +177,21 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
     onClose()
   }
 
+  // otros tamaños de la misma sección con receta, del más parecido al menos: de ahí se copia
+  const ozNuevo = ozOf(name)
+  const hermanos = recipe.length === 0 && line
+    ? products
+      .filter(o => o.id !== product?.id && o.recipe.length > 0 && productLine(o) === line)
+      .sort((a, b) => Math.abs((ozOf(a.name) ?? 0) - (ozNuevo ?? 0)) - Math.abs((ozOf(b.name) ?? 0) - (ozNuevo ?? 0)))
+      .slice(0, 3)
+    : []
+
   const countByList = toppingCountByList(ingredients)
   const toppingsSummary = toppingGroup
     ? `escoge de la lista ${toppingListName(lists, toppingGroup)} · ${included} sin costo`
     : 'no lleva'
   const recipeSummary = enReceta.length === 0
-    ? 'sin insumos'
+    ? hermanos.length > 0 ? 'sin insumos · cópiala de otro tamaño' : 'sin insumos'
     : `${enReceta.length} ${enReceta.length === 1 ? 'insumo' : 'insumos'} · costo ${money(cost)}`
 
   return (
@@ -293,6 +304,26 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
         <p className="mb-3 text-xs text-berry-700/60">
           Insumos que se gastan por cada unidad vendida. Con esto se calcula el costo real y se descuenta el inventario en cada venta. Es opcional: sin receta el producto se vende igual, solo no verás su ganancia.
         </p>
+
+        {hermanos.length > 0 && (
+          <div className="mb-3 rounded-xl bg-cream-200/60 p-3">
+            <p className="mb-2 text-xs text-berry-700/70">
+              Copia la receta de otro tamaño{ozNuevo ? `; se ajusta sola a ${ozNuevo} oz` : ''}. Luego solo revisa.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {hermanos.map(h => (
+                <button
+                  key={h.id}
+                  type="button"
+                  onClick={() => setRecipe(scaleRecipe(h.recipe, ozOf(h.name), ozNuevo, ingredients))}
+                  className="rounded-full border border-cream-300 bg-cream-50 px-3 py-1.5 text-[13px] text-berry-700 active:bg-cream-200"
+                >
+                  Copiar de {h.name.replace(' · ', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {enReceta.length > 0 && (
           <div className="mb-3 grid gap-1.5 md:grid-cols-2">

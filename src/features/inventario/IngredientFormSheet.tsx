@@ -3,6 +3,9 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
 import type { Ingredient, InventoryKind, ToppingGroup, Unit } from '../../data/types'
 import { ingredientKind, KIND_LABEL } from '../../services/stock'
+import { bulkUnit, fmtQty, fmtUnitCost } from '../../services/units'
+import { suggestedMinStock } from '../../services/suggestions'
+import { useStock } from './useStock'
 import { deleteIngredient, saveIngredient } from '../../services/inventory'
 import { Button, decimal as num, Field, Input, NumberInput, Sheet } from '../../components/ui'
 import { ToppingListChips } from '../toppings/ToppingListChips'
@@ -14,7 +17,10 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
   const [unit, setUnit] = useState<Unit>(ing?.unit ?? 'pza')
   // sin elegir, se deduce del nombre y la unidad al guardar
   const [kind, setKind] = useState<InventoryKind | undefined>(ing?.kind)
-  const [cost, setCost] = useState(ing ? String(ing.cost) : '0')
+  // el costo sale de las compras; escribirlo es la excepción (insumo nuevo o corrección)
+  const [corrigiendo, setCorrigiendo] = useState(!ing || ing.cost === 0)
+  const grande = bulkUnit(unit)
+  const [cost, setCost] = useState(ing && ing.cost > 0 ? String(Math.round(ing.cost * (bulkUnit(ing.unit) ? 1000 : 1) * 100) / 100) : '')
   const [minStock, setMinStock] = useState(ing ? String(ing.minStock) : '0')
   const [groups, setGroups] = useState<ToppingGroup[]>(ing?.toppingGroups ?? [])
   const [portion, setPortion] = useState(ing?.portion ? String(ing.portion) : '')
@@ -22,6 +28,8 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const otros = useLiveQuery(() => db.ingredients.toArray(), []) ?? []
+  const stock = useStock()
+  const sugerido = ing ? suggestedMinStock(stock?.usage.get(ing.id), unit) : undefined
 
   const esTopping = groups.length > 0
   const limpio = name.trim()
@@ -47,7 +55,7 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
       await saveIngredient({
         name: limpio,
         unit,
-        cost: num(cost),
+        cost: corrigiendo ? num(cost) / (grande ? 1000 : 1) : ing?.cost ?? 0,
         minStock: num(minStock),
         kind,
         toppingGroups: esTopping ? groups : undefined,
@@ -104,12 +112,31 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
           }[kind ?? ingredientKind({ name, unit })]}
         </span>
       </Field>
-      <Field label={`Costo por ${unit} ($)`}>
-        <NumberInput value={cost} onChange={e => setCost(e.target.value)} placeholder="0" />
-      </Field>
+      {corrigiendo ? (
+        <Field label={`Precio por ${grande ?? 'pieza'} ($)${ing ? '' : ' · opcional'}`}>
+          <NumberInput value={cost} onChange={e => setCost(e.target.value)} placeholder={ing ? '' : 'Si ya lo sabes; si no, sale de la primera compra'} />
+        </Field>
+      ) : (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-cream-200/60 px-3 py-2.5">
+          <div>
+            <div className="text-sm font-medium text-berry-700">Costo: {fmtUnitCost(ing!.cost, ing!.unit)}</div>
+            <div className="text-xs text-berry-700/60">Se calcula solo con cada compra registrada.</div>
+          </div>
+          <button type="button" onClick={() => setCorrigiendo(true)} className="shrink-0 text-sm font-medium text-berry-600">Corregir</button>
+        </div>
+      )}
       <Field label={`Avisarme cuando queden menos de (${unit})`}>
         <NumberInput value={minStock} onChange={e => setMinStock(e.target.value)} placeholder="0" />
       </Field>
+      {sugerido !== undefined && num(minStock) !== sugerido && (
+        <button
+          type="button"
+          onClick={() => setMinStock(String(sugerido))}
+          className="-mt-1 mb-3 rounded-full border border-cream-300 px-3 py-1.5 text-xs text-berry-700 active:bg-cream-200"
+        >
+          Usar {fmtQty(sugerido, unit)}: lo que se gasta en 2 días
+        </button>
+      )}
       <Field label="¿Es un topping que el cliente puede elegir? Marca en qué listas aparece">
         <ToppingListChips
           lists={lists}

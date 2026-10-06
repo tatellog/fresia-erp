@@ -163,6 +163,19 @@ export default function ConteoRapido() {
                   )}
                 </div>
               </div>
+              {diff === undefined && ing.stock > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const enGrande = c.bulk && grande
+                    const v = enGrande ? ing.stock / 1000 : ing.stock
+                    setCaptura(m => ({ ...m, [ing.id]: { ...c, valor: String(Math.round(v * 100) / 100) } }))
+                  }}
+                  className="mt-2 rounded-full border border-cream-300 px-3 py-1.5 text-xs font-medium text-berry-700 active:bg-cream-200"
+                >
+                  Cuadra: hay {fmtQty(ing.stock, ing.unit)}
+                </button>
+              )}
               {diff !== undefined && (
                 <div className={`mt-2 text-xs font-medium ${diff === 0 ? 'text-green-700' : merma ? 'text-red-600' : 'text-berry-700/70'}`}>
                   {diff === 0

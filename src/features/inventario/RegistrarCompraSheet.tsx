@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
-import type { Ingredient } from '../../data/types'
+import type { Ingredient, Purchase } from '../../data/types'
 import { openCashSession } from '../../services/cash'
 import { recentPurchases, registerPurchaseBatch } from '../../services/inventory'
 import { bulkUnit, fmtUnitCost } from '../../services/units'
+import { lastPurchasePayment, purchaseHistory, rememberPurchasePayment } from '../../services/suggestions'
+import { IngredientSearch } from './IngredientSearch'
 import { money } from '../../lib/format'
 import { Button, decimal, Field, Input, NumberInput, Sheet } from '../../components/ui'
 import { ExpensePaymentPicker, type PurchasePayment } from '../caja/ExpensePaymentPicker'
@@ -16,6 +18,8 @@ interface Linea {
   /** captura en kg o L en vez de g o ml */
   bulk: boolean
   cost: string
+  /** el precio escrito es por kg, L o pieza en vez del total del renglón */
+  perUnit: boolean
 }
 
 const hoyISO = () => {
@@ -24,7 +28,14 @@ const hoyISO = () => {
 }
 
 let siguiente = 1
-const nueva = (ingredientId = '', qty = '', cost = '', bulk = true): Linea => ({ key: siguiente++, ingredientId, qty, cost, bulk })
+const nueva = (ingredientId = '', qty = '', cost = '', bulk = true): Linea => ({ key: siguiente++, ingredientId, qty, cost, bulk, perUnit: false })
+const redondo = (n: number) => String(Math.round(n * 100) / 100)
+
+/** cantidad de una compra pasada en la unidad cómoda: 7 kg en vez de 7000 g */
+function comoSeCompro(p: Pick<Purchase, 'qty'>, ing: Ingredient): { qty: string; bulk: boolean } {
+  const bulk = !!bulkUnit(ing.unit) && p.qty >= 1000
+  return { qty: redondo(bulk ? p.qty / 1000 : p.qty), bulk: bulkUnit(ing.unit) ? bulk : true }
+}
 
 /**
  * Una compra completa en un solo paso: proveedor, fecha, varios insumos y
@@ -39,6 +50,7 @@ export function RegistrarCompraSheet({ items, onClose }: {
   const ingredients = useLiveQuery(() => db.ingredients.orderBy('name').toArray())
   const pasadas = useLiveQuery(() => recentPurchases(60))
   const session = useLiveQuery(async () => (await openCashSession()) ?? null)
+  const historial = useLiveQuery(() => purchaseHistory())
   const [supplier, setSupplier] = useState('')
   const [fecha, setFecha] = useState(hoyISO())
   const [lineas, setLineas] = useState<Linea[]>(() =>
@@ -55,6 +67,23 @@ export function RegistrarCompraSheet({ items, onClose }: {
 
   const ingMap = useMemo(() => new Map((ingredients ?? []).map(i => [i.id, i])), [ingredients])
 
+  // al abrir: proveedor y forma de pago de la última vez, y precio estimado de lo que llegó de la lista
+  const prellenado = useRef(false)
+  useEffect(() => {
+    if (prellenado.current || !historial || !ingredients) return
+    prellenado.current = true
+    if (historial.lastSupplier && !items?.length) setSupplier(s => s || historial.lastSupplier!)
+    lastPurchasePayment().then(p => p && setPayment(p))
+    setLineas(ls => ls.map(l => {
+      const ing = ingMap.get(l.ingredientId)
+      const ultima = historial.last.get(l.ingredientId)
+      if (!ing || !ultima || l.cost) return l
+      if (!l.qty) return { ...l, ...comoSeCompro(ultima, ing), cost: redondo(ultima.totalCost) }
+      const q = decimal(l.qty) * (l.bulk && bulkUnit(ing.unit) ? 1000 : 1)
+      return { ...l, cost: redondo((ultima.totalCost / ultima.qty) * q) }
+    }))
+  }, [historial, ingredients, ingMap, items])
+
   // la última compra de cada proveedor, para repetirla cambiando solo cantidades o precios
   const frecuentes = useMemo(() => {
     const vistos = new Set<string>()
@@ -70,9 +99,20 @@ export function RegistrarCompraSheet({ items, onClose }: {
     [pasadas],
   )
 
-  if (!ingredients || pasadas === undefined || session === undefined) return null
+  if (!ingredients || pasadas === undefined || session === undefined || !historial) return null
 
   const set = (key: number, patch: Partial<Linea>) => setLineas(ls => ls.map(l => (l.key === key ? { ...l, ...patch } : l)))
+  /** al elegir un insumo se llena con lo de su última compra; solo se corrige lo que cambió */
+  const elegir = (key: number, ingredientId: string) => {
+    const ing = ingMap.get(ingredientId)
+    const ultima = historial.last.get(ingredientId)
+    setLineas(ls => ls.map(l => {
+      if (l.key !== key) return l
+      const base = { ...l, ingredientId, perUnit: false }
+      if (!ing || !ultima) return { ...base, bulk: true, qty: '', cost: '' }
+      return { ...base, ...comoSeCompro(ultima, ing), cost: redondo(ultima.totalCost) }
+    }))
+  }
   const quitar = (key: number) => setLineas(ls => (ls.length === 1 ? [nueva()] : ls.filter(l => l.key !== key)))
 
   const repetir = (g: (typeof frecuentes)[number]) => {
@@ -86,8 +126,10 @@ export function RegistrarCompraSheet({ items, onClose }: {
   }
 
   const qtyBase = (l: Linea, ing?: Ingredient) => decimal(l.qty) * (ing && l.bulk && bulkUnit(ing.unit) ? 1000 : 1)
+  /** total del renglón: lo escrito, o precio por unidad × cantidad */
+  const totalDe = (l: Linea) => (l.perUnit ? Math.round(decimal(l.cost) * decimal(l.qty) * 100) / 100 : decimal(l.cost))
   const completas = lineas.filter(l => ingMap.has(l.ingredientId) && decimal(l.qty) > 0 && decimal(l.cost) >= 0 && l.cost.trim() !== '')
-  const total = completas.reduce((a, l) => a + decimal(l.cost), 0)
+  const total = completas.reduce((a, l) => a + totalDe(l), 0)
   const repetidos = new Set(lineas.map(l => l.ingredientId).filter((id, i, arr) => id && arr.indexOf(id) !== i))
   const valid = completas.length > 0 && completas.length === lineas.filter(l => l.ingredientId || l.qty || l.cost).length && repetidos.size === 0
 
@@ -99,7 +141,7 @@ export function RegistrarCompraSheet({ items, onClose }: {
       const ts = esHoy ? Date.now() : new Date(y, m - 1, d, 12).getTime()
       const fuera = payment === 'fuera'
       await registerPurchaseBatch({
-        lines: completas.map(l => ({ ingredientId: l.ingredientId, qty: qtyBase(l, ingMap.get(l.ingredientId)), totalCost: decimal(l.cost) })),
+        lines: completas.map(l => ({ ingredientId: l.ingredientId, qty: qtyBase(l, ingMap.get(l.ingredientId)), totalCost: totalDe(l) })),
         supplier,
         ts,
         expense: !fuera,
@@ -107,6 +149,7 @@ export function RegistrarCompraSheet({ items, onClose }: {
         sessionId: !fuera && esHoy && session ? session.id : undefined,
         payment: fuera ? 'efectivo' : payment,
       })
+      await rememberPurchasePayment(payment)
       onClose()
     } finally {
       setGuardando(false)
@@ -156,15 +199,14 @@ export function RegistrarCompraSheet({ items, onClose }: {
           const c = decimal(l.cost)
           return (
             <div key={l.key} className="rounded-2xl border border-cream-200 bg-cream-100/40 p-3">
-              <div className="flex items-center gap-2">
-                <select
+              <div className="flex items-start gap-2">
+                <IngredientSearch
+                  ingredients={ingredients}
                   value={l.ingredientId}
-                  onChange={e => set(l.key, { ingredientId: e.target.value })}
-                  className="min-w-0 flex-1 appearance-none rounded-xl border border-cream-300 bg-cream-50 px-3 py-2.5 text-base outline-none focus:border-berry-400"
-                >
-                  <option value="">Elige un insumo…</option>
-                  {ingredients.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                </select>
+                  times={historial.times}
+                  onChange={id => elegir(l.key, id)}
+                  autoFocus={!l.ingredientId && lineas.length > 1}
+                />
                 <button
                   type="button"
                   onClick={() => quitar(l.key)}
@@ -193,14 +235,31 @@ export function RegistrarCompraSheet({ items, onClose }: {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm text-berry-700/60">$</span>
-                    <NumberInput value={l.cost} onChange={e => set(l.key, { cost: e.target.value })} placeholder="Pagado" />
+                    <NumberInput value={l.cost} onChange={e => set(l.key, { cost: e.target.value })} placeholder={l.perUnit ? 'Precio' : 'Pagado'} />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // al cambiar de modo se convierte lo escrito para no perderlo
+                        const qd = decimal(l.qty)
+                        const c = decimal(l.cost)
+                        const cost = l.cost.trim() === '' || qd <= 0 ? l.cost : redondo(l.perUnit ? c * qd : c / qd)
+                        set(l.key, { perUnit: !l.perUnit, cost })
+                      }}
+                      className="shrink-0 rounded-full border border-cream-300 px-2.5 py-2 text-xs font-semibold text-berry-700"
+                      title="Precio total o por unidad"
+                    >
+                      {l.perUnit ? `por ${unidad === 'pza' ? 'pza' : unidad}` : 'total'}
+                    </button>
                   </div>
                 </div>
+              )}
+              {ing && l.perUnit && totalDe(l) > 0 && (
+                <p className="mt-1.5 text-xs text-berry-700/60">Total del renglón: {money(totalDe(l))}</p>
               )}
               {ing && repetidos.has(l.ingredientId) && (
                 <p className="mt-1.5 text-xs text-red-600">Este insumo ya está en la compra; suma las cantidades en un solo renglón.</p>
               )}
-              {ing && q > 0 && c > 0 && (
+              {ing && q > 0 && c > 0 && !l.perUnit && (
                 <p className="mt-1.5 text-xs text-berry-700/60">
                   {fmtUnitCost(c / q, ing.unit)}
                   {ing.cost > 0 && Math.abs(c / q - ing.cost) / ing.cost >= 0.05 && (

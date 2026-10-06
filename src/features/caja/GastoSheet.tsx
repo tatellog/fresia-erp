@@ -1,11 +1,14 @@
 import { useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import type { ExpensePayment } from '../../data/types'
 import { addExpense } from '../../services/cash'
-import { Button, decimal, Field, Input, NumberInput, Sheet } from '../../components/ui'
+import { frequentConcepts } from '../../services/suggestions'
+import { Button, decimal, Field, Input, NumberInput, QuickChips, Sheet } from '../../components/ui'
 import { ExpensePaymentPicker } from './ExpensePaymentPicker'
 
-/** registro de un gasto del turno con su forma de pago */
+/** registro de un gasto del turno con su forma de pago; los conceptos de siempre van a un toque */
 export function GastoSheet({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
+  const conceptos = useLiveQuery(() => frequentConcepts('gasto'))
   const [concept, setConcept] = useState('')
   const [amount, setAmount] = useState('')
   const [payment, setPayment] = useState<ExpensePayment>('efectivo')
@@ -13,7 +16,8 @@ export function GastoSheet({ sessionId, onClose }: { sessionId: string; onClose:
   return (
     <Sheet open onClose={onClose} title="Registrar gasto">
       <Field label="Concepto">
-        <Input value={concept} onChange={e => setConcept(e.target.value)} placeholder="Hielo, bolsas, gasolina…" autoFocus />
+        <QuickChips options={conceptos ?? []} value={concept} onPick={setConcept} />
+        <Input value={concept} onChange={e => setConcept(e.target.value)} placeholder="O escribe otro…" />
       </Field>
       <Field label="Monto ($)">
         <NumberInput value={amount} onChange={e => setAmount(e.target.value)} />
