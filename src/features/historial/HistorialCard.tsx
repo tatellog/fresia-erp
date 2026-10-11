@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
-import type { Sale } from '../../data/types'
+import type { Expense, Sale } from '../../data/types'
 import { round2, startOfDay } from '../../lib/format'
 import { saleReceived } from '../../services/fees'
 import { SaleSheet } from '../caja/SaleSheet'
 import { Calendario, dayStartOf, monthOf } from './Calendario'
 import { DiaDetalle } from './DiaDetalle'
+import { GastoSheet } from './GastoSheet'
 import { PastDaysCard } from './PastDaysCard'
 
 const DIA = 24 * 3600_000
@@ -19,6 +20,7 @@ export function HistorialCard() {
   const [selected, setSelected] = useState(() => startOfDay(1))
   const [month, setMonth] = useState(() => monthOf(new Date(selected)))
   const [saleDetail, setSaleDetail] = useState<Sale | null>(null)
+  const [gastoDetail, setGastoDetail] = useState<Expense | null>(null)
   const [capturando, setCapturando] = useState(false)
 
   const monthStart = month.getTime()
@@ -45,13 +47,13 @@ export function HistorialCard() {
   return (
     <div className="rounded-3xl border border-cream-200 bg-cream-50 p-6">
       <h2 className="mb-1 text-xl font-semibold">Historial</h2>
-      <p className="mb-4 text-sm text-berry-700/70">Toca un día para ver sus ventas, gastos y retiros.</p>
+      <p className="mb-4 text-sm text-berry-700/70">Toca un día para ver sus ventas, gastos y retiros. Toca cualquiera para ver su detalle.</p>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_1fr]">
         <Calendario month={month} selected={selected} totals={totals} onSelect={elegir} onMonth={moverMes} />
         <div className="min-w-0">
           {salesDia && expensesDia && (
-            <DiaDetalle dayStart={selected} sales={salesDia} expenses={expensesDia} onOpenSale={setSaleDetail} />
+            <DiaDetalle dayStart={selected} sales={salesDia} expenses={expensesDia} onOpenSale={setSaleDetail} onOpenExpense={setGastoDetail} />
           )}
 
           <div className="mt-5 border-t border-cream-200 pt-4">
@@ -72,6 +74,7 @@ export function HistorialCard() {
       </div>
 
       {saleDetail && <SaleSheet sale={saleDetail} onClose={() => setSaleDetail(null)} />}
+      {gastoDetail && <GastoSheet expense={gastoDetail} onClose={() => setGastoDetail(null)} />}
     </div>
   )
 }

@@ -16,11 +16,12 @@ const PAGOS: { id: Payment; label: string }[] = [
 const esReconstruida = (s: Sale) => s.items[0]?.productId === RECON_ID
 
 /** todo lo que pasó un día: totales, formas de pago, ventas una por una, gastos y retiros */
-export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
+export function DiaDetalle({ dayStart, sales, expenses, onOpenSale, onOpenExpense }: {
   dayStart: number
   sales: Sale[]
   expenses: Expense[]
   onOpenSale: (s: Sale) => void
+  onOpenExpense: (e: Expense) => void
 }) {
   const resumen = salesSummary(sales)
   const porPago = PAGOS
@@ -115,14 +116,18 @@ export function DiaDetalle({ dayStart, sales, expenses, onOpenSale }: {
           <h3 className="mb-2 text-base font-semibold">Gastos y retiros</h3>
           <div className="overflow-hidden rounded-xl bg-cream-50">
           {[...gastos, ...retiros].sort((a, b) => a.ts - b.ts).map((e, i) => (
-            <div key={e.id} className={`flex items-center gap-3 px-4 py-2.5 ${i > 0 ? 'border-t border-cream-200/70' : ''}`}>
+            <button
+              key={e.id}
+              onClick={() => onOpenExpense(e)}
+              className={`flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cream-100/60 active:bg-cream-100 ${i > 0 ? 'border-t border-cream-200/70' : ''}`}
+            >
               <span className="w-12 shrink-0 text-sm tabular-nums text-berry-700/55">{fmtTime(e.ts)}</span>
               <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{e.concept}</span>
               <span className="rounded-full bg-cream-200/70 px-2.5 py-0.5 text-xs text-berry-700/70">
                 {e.kind === 'retiro' ? 'retiro' : e.payment && e.payment !== 'efectivo' ? `gasto · ${e.payment}` : 'gasto'}
               </span>
               <span className="w-20 shrink-0 text-right font-semibold tabular-nums text-red-600">−{money(e.amount)}</span>
-            </div>
+            </button>
           ))}
           </div>
         </div>
