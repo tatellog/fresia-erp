@@ -25,6 +25,7 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
   const [groups, setGroups] = useState<ToppingGroup[]>(ing?.toppingGroups ?? [])
   const [portion, setPortion] = useState(ing?.portion ? String(ing.portion) : '')
   const [premium, setPremium] = useState(ing?.premiumPrice ? String(ing.premiumPrice) : '')
+  const [incluido, setIncluido] = useState(!!ing?.included)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const otros = useLiveQuery(() => db.ingredients.toArray(), []) ?? []
@@ -55,7 +56,9 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
       await saveIngredient({
         name: limpio,
         unit,
-        cost: corrigiendo ? num(cost) / (grande ? 1000 : 1) : ing?.cost ?? 0,
+        cost: incluido ? 0 : corrigiendo ? num(cost) / (grande ? 1000 : 1) : ing?.cost ?? 0,
+        // false (no ausente) al desmarcar, para que se suba el cambio
+        included: incluido || (ing?.included ? false : undefined),
         minStock: num(minStock),
         kind,
         toppingGroups: esTopping ? groups : undefined,
@@ -112,7 +115,14 @@ export function IngredientFormSheet({ ing, onClose }: { ing?: Ingredient; onClos
           }[kind ?? ingredientKind({ name, unit })]}
         </span>
       </Field>
-      {corrigiendo ? (
+      <label className="mb-3 flex items-start gap-2 text-sm font-medium">
+        <input type="checkbox" checked={incluido} onChange={e => setIncluido(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-berry-500" />
+        <span>
+          No cuesta: viene incluido con otro insumo
+          <span className="block text-xs font-normal text-berry-700/55">Por ejemplo, las tapas que vienen con los vasos. Se sigue descontando del inventario.</span>
+        </span>
+      </label>
+      {incluido ? null : corrigiendo ? (
         <Field label={`Precio por ${grande ?? 'pieza'} ($)${ing ? '' : ' · opcional'}`}>
           <NumberInput value={cost} onChange={e => setCost(e.target.value)} placeholder={ing ? '' : 'Si ya lo sabes; si no, sale de la primera compra'} />
         </Field>

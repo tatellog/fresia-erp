@@ -49,6 +49,22 @@ export interface Ingredient {
   premiumPrice?: number
   /** ausente = se deduce del nombre (ver ingredientKind) */
   kind?: InventoryKind
+  /**
+   * se prepara en la tienda con otros insumos en vez de comprarse; null = se
+   * le quitó la receta (ausente no se sube, para que un dispositivo que aún
+   * no la baja no la borre al vender)
+   */
+  prep?: Prep | null
+  /** no tiene costo propio porque viene incluido con otro insumo (las tapas con los vasos) */
+  included?: boolean
+}
+
+/** receta de un insumo preparado: con `items` salen `yield` unidades (en la unidad del insumo) */
+export interface Prep {
+  yield: number
+  /** lote que se suele preparar; ausente = el rendimiento de la receta */
+  batch?: number
+  items: RecipeItem[]
 }
 
 export interface RecipeItem {

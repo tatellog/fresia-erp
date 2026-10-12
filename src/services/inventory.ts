@@ -60,6 +60,46 @@ export async function registerPurchaseBatch({ lines, supplier, ts = Date.now(), 
   })
 }
 
+/** qué gasta preparar `qty` de un insumo preparado (en su unidad) y cuánto cuesta con los costos de hoy */
+export function prepPlan(ing: Ingredient, qty: number, ingMap: Map<string, Ingredient>) {
+  const f = ing.prep && ing.prep.yield > 0 ? qty / ing.prep.yield : 0
+  const lines = (ing.prep?.items ?? []).map(it => {
+    const comp = ingMap.get(it.ingredientId)
+    const q = round2(it.qty * f)
+    return { ingredientId: it.ingredientId, ing: comp, qty: q, cost: (comp?.cost ?? 0) * q }
+  })
+  const total = round2(lines.reduce((a, l) => a + l.cost, 0))
+  return { lines, total, perUnit: qty > 0 ? total / qty : 0, sinCosto: lines.filter(l => l.ing && l.ing.cost === 0 && !l.ing.included).map(l => l.ing!.name) }
+}
+
+/**
+ * Preparación en la tienda (un lote de crema): baja cada ingrediente según la
+ * receta escalada y sube el insumo preparado, con su costo promedio
+ * recalculado igual que en una compra. Se relee todo dentro de la
+ * transacción porque una venta pudo mover las existencias.
+ */
+export async function registerPreparation(ingredientId: string, qty: number) {
+  if (!(qty > 0)) throw new Error('Escribe cuánto preparaste')
+  return db.transaction('rw', [db.ingredients, db.outbox], async () => {
+    const ing = await db.ingredients.get(ingredientId)
+    if (!ing?.prep) throw new Error('Este insumo no tiene receta de preparación')
+    const comps = await db.ingredients.bulkGet(ing.prep.items.map(i => i.ingredientId))
+    const plan = prepPlan(ing, qty, new Map(comps.filter(c => !!c).map(c => [c!.id, c!])))
+    for (const l of plan.lines) {
+      if (!l.ing || l.ingredientId === ing.id) continue
+      const updated = { ...l.ing, stock: round2(l.ing.stock - l.qty) }
+      await db.ingredients.put(updated)
+      await enqueue('ingredients', 'upsert', updated)
+    }
+    const base = Math.max(ing.stock, 0)
+    const cost = plan.total > 0 ? (base * ing.cost + plan.total) / (base + qty) : ing.cost
+    const updated = { ...ing, stock: round2(ing.stock + qty), cost: Math.round(cost * 1e6) / 1e6 }
+    await db.ingredients.put(updated)
+    await enqueue('ingredients', 'upsert', updated)
+    return plan
+  })
+}
+
 /** compra de un solo insumo; con `cashSessionId` queda como gasto del turno */
 export async function registerPurchase(ingredientId: string, qty: number, totalCost: number, note?: string, cashSessionId?: string, payment: ExpensePayment = 'efectivo') {
   return registerPurchaseBatch({ lines: [{ ingredientId, qty, totalCost }], note, expense: !!cashSessionId, sessionId: cashSessionId, payment })

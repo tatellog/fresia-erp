@@ -49,7 +49,7 @@ export function needsAttention(ingredients: Ingredient[], usage: Map<string, num
 
 const TONOS = { red: 'bg-red-50 text-red-700', amber: 'bg-amber-50 text-amber-700' }
 
-/** renglón de "Necesitan atención": nombre, qué pasa y acceso directo a comprarlo */
+/** renglón de "Necesitan atención": nombre, qué pasa y acceso directo a comprarlo (o prepararlo) */
 export function AttentionRow({ item, first, onCompra }: { item: Attention; first: boolean; onCompra: () => void }) {
   return (
     <div className={`flex items-center gap-3 px-4 py-3 ${first ? '' : 'border-t border-cream-200/70'}`}>
@@ -64,7 +64,7 @@ export function AttentionRow({ item, first, onCompra }: { item: Attention; first
         onClick={onCompra}
         className="shrink-0 rounded-full border border-cream-300 px-3 py-1.5 text-xs font-medium text-berry-700 active:bg-cream-200"
       >
-        Comprar
+        {item.ing.prep ? 'Preparar' : 'Comprar'}
       </button>
     </div>
   )

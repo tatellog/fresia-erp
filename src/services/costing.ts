@@ -23,7 +23,7 @@ export interface CostBreakdown {
 export function costBreakdown(product: Product, ingredients: Map<string, Ingredient>): CostBreakdown {
   const missing = product.recipe
     .map(r => ingredients.get(r.ingredientId))
-    .filter((ing): ing is Ingredient | undefined => !ing || ing.cost <= 0)
+    .filter((ing): ing is Ingredient | undefined => !ing || (ing.cost <= 0 && !ing.included))
     .map(ing => ing?.name ?? 'un insumo que ya no existe')
   return { cost: productCost(product, ingredients), noRecipe: product.recipe.length === 0, missing }
 }

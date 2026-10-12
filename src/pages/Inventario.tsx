@@ -13,8 +13,10 @@ import { WasteCard } from '../features/inventario/WasteCard'
 import { RegistrarCompraSheet } from '../features/inventario/RegistrarCompraSheet'
 import { MermaSheet } from '../features/inventario/MermaSheet'
 import { IngredientFormSheet } from '../features/inventario/IngredientFormSheet'
+import { PrepararSheet } from '../features/inventario/PrepararSheet'
+import { fmtQty } from '../services/units'
 
-type Action = { kind: 'compra'; ing?: Ingredient } | { kind: 'merma'; ing: Ingredient } | { kind: 'editar'; ing?: Ingredient } | null
+type Action = { kind: 'compra'; ing?: Ingredient } | { kind: 'preparar'; ing: Ingredient } | { kind: 'merma'; ing: Ingredient } | { kind: 'editar'; ing?: Ingredient } | null
 
 /** cuántos avisos se ven antes de "ver todos" */
 const VISIBLES = 6
@@ -37,6 +39,9 @@ export default function Inventario() {
   const urgentes = shoppingList(ingredients, usage, snoozed).filter(i => i.priority === 'urgente').length
   const hace = daysSinceLastCount(counts)
   const avisos = todosAvisos ? atencion : atencion.slice(0, VISIBLES)
+  const preparados = ingredients.filter(i => i.prep?.items.length)
+  // lo que se prepara en la tienda no se compra: su botón abre «Preparé»
+  const reponer = (ing: Ingredient) => setAction(ing.prep ? { kind: 'preparar', ing } : { kind: 'compra', ing })
 
   return (
     <div className="mx-auto max-w-2xl pt-2 lg:pt-0">
@@ -54,6 +59,20 @@ export default function Inventario() {
           <span className="block text-xs text-white/75">Varios insumos de una vez: sube el inventario, el costo y el gasto</span>
         </span>
       </button>
+
+      {preparados.map(p => (
+        <button
+          key={p.id}
+          onClick={() => setAction({ kind: 'preparar', ing: p })}
+          className="mb-3 flex w-full items-center justify-between gap-3 rounded-3xl border border-cream-200 bg-cream-50 px-5 py-3.5 text-left transition-colors active:bg-cream-100"
+        >
+          <span>
+            <span className="block font-semibold">Preparé {p.name.toLowerCase()}</span>
+            <span className="block text-xs text-berry-700/60">Descuenta los ingredientes y suma lo que salió, con su costo</span>
+          </span>
+          <span className="shrink-0 text-xs text-berry-700/60">lote de {fmtQty(p.prep!.batch ?? p.prep!.yield, p.unit)}</span>
+        </button>
+      ))}
 
       <div className="mb-6 grid grid-cols-2 gap-3">
         <Link to="/inventario/conteo" className="rounded-3xl border border-cream-200 bg-cream-50 px-4 py-3.5 transition-colors active:bg-cream-100">
@@ -90,7 +109,7 @@ export default function Inventario() {
         ) : (
           <div className="overflow-hidden rounded-2xl border border-cream-200 bg-cream-50">
             {avisos.map((a, i) => (
-              <AttentionRow key={a.ing.id} item={a} first={i === 0} onCompra={() => setAction({ kind: 'compra', ing: a.ing })} />
+              <AttentionRow key={a.ing.id} item={a} first={i === 0} onCompra={() => reponer(a.ing)} />
             ))}
             {atencion.length > VISIBLES && (
               <button
@@ -129,7 +148,7 @@ export default function Inventario() {
                 ing={ing}
                 usage={usage.get(ing.id)}
                 onEdit={() => setAction({ kind: 'editar', ing })}
-                onCompra={() => setAction({ kind: 'compra', ing })}
+                onCompra={() => reponer(ing)}
                 onMerma={() => setAction({ kind: 'merma', ing })}
               />
             ))}
@@ -138,6 +157,7 @@ export default function Inventario() {
       )}
 
       {action?.kind === 'compra' && <RegistrarCompraSheet items={action.ing ? [{ ingredientId: action.ing.id, unit: action.ing.unit }] : undefined} onClose={() => setAction(null)} />}
+      {action?.kind === 'preparar' && <PrepararSheet ing={action.ing} onClose={() => setAction(null)} />}
       {action?.kind === 'merma' && <MermaSheet ing={action.ing} onClose={() => setAction(null)} />}
       {action?.kind === 'editar' && <IngredientFormSheet ing={action.ing} onClose={() => setAction(null)} />}
     </div>

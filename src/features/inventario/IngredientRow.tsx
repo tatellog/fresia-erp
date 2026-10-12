@@ -9,6 +9,7 @@ export function IngredientRow({ ing, usage, onEdit, onCompra, onMerma }: {
   /** consumo diario medido; sin él no se muestran días */
   usage?: number
   onEdit: () => void
+  /** con receta de preparación abre «Preparé» en vez de la compra */
   onCompra: () => void
   onMerma: () => void
 }) {
@@ -20,7 +21,7 @@ export function IngredientRow({ ing, usage, onEdit, onCompra, onMerma }: {
         <button className="min-w-0 flex-1 text-left" onClick={onEdit}>
           <div className="font-semibold">{ing.name}</div>
           <div className="text-xs text-berry-700/60">
-            {KIND_LABEL[kind]} · {ing.cost > 0 ? fmtUnitCost(ing.cost, ing.unit) : 'sin costo aún'}
+            {KIND_LABEL[kind]} · {ing.cost > 0 ? fmtUnitCost(ing.cost, ing.unit) : ing.included ? 'viene incluido, sin costo' : 'sin costo aún'}
           </div>
         </button>
         {kind === 'consumible' ? (
@@ -37,7 +38,7 @@ export function IngredientRow({ ing, usage, onEdit, onCompra, onMerma }: {
         )}
         <div className="flex gap-1.5">
           <Button variant="soft" className="px-2.5 py-1.5 text-xs" onClick={onCompra}>
-            Compra
+            {ing.prep ? 'Preparar' : 'Compra'}
           </Button>
           <Button variant="ghost" className="px-2.5 py-1.5 text-xs" onClick={onMerma}>
             Merma
