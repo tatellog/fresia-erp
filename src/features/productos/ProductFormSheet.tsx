@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
 import type { Ingredient, Line, Product, RecipeItem, ToppingGroup } from '../../data/types'
 import { deleteProduct, productLine, saveProduct } from '../../services/catalog'
+import { saveIngredient } from '../../services/inventory'
 import { EXTRA_TOPPING_PRICE, INCLUDED_TOPPINGS } from '../../services/sales'
 import { money } from '../../lib/format'
 import { ozOf, scaleRecipe } from '../../services/costing'
@@ -49,6 +50,61 @@ function RecipeRow({ ing, qty, onChange }: { ing: Ingredient; qty: number; onCha
       />
       <span className="w-7 shrink-0 text-xs text-berry-700/60">{ing.unit}</span>
     </label>
+  )
+}
+
+/** nombre del insumo de un producto que se compra hecho: «Pan de muerto · Tradicional» → «Pan de muerto» */
+const nombreComprado = (producto: string) => producto.split(' · ')[0].trim()
+
+/**
+ * Producto que se compra ya hecho (pan, agua, pepitas): cada venta gasta una
+ * pieza de un insumo con el mismo nombre. Usa el insumo si ya existe o lo
+ * crea; su costo se llena solo al registrar la compra.
+ */
+function CompradoHecho({ productName, ingredients, onUse }: {
+  productName: string
+  ingredients: Ingredient[]
+  onUse: (ing: Ingredient) => void
+}) {
+  // sigue al nombre del producto mientras se escribe, hasta que se cambia a mano
+  const [editado, setNombre] = useState<string>()
+  const nombre = editado ?? nombreComprado(productName)
+  const [costo, setCosto] = useState('')
+  const [busy, setBusy] = useState(false)
+  const n = nombre.trim()
+  const existente = ingredients.find(i => i.unit === 'pza' && strip(i.name) === strip(n))
+
+  const usar = async () => {
+    if (existente) return onUse(existente)
+    setBusy(true)
+    const c = parseFloat(costo)
+    onUse(await saveIngredient({ name: n, unit: 'pza', cost: c > 0 ? c : 0, minStock: 0 }))
+    setBusy(false)
+  }
+
+  return (
+    <div className="mb-3 rounded-xl bg-cream-200/60 p-3">
+      <p className="mb-2 text-sm font-medium text-berry-700">¿Lo compras ya hecho, como el pan o el agua?</p>
+      <p className="mb-2.5 text-xs text-berry-700/60">
+        Cada venta gasta 1 pieza de este insumo. Cuando registres la compra, el costo y la existencia se llenan solos.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre del insumo" className="min-w-0 flex-1 py-2" />
+        {!existente && (
+          <Input
+            type="number"
+            inputMode="decimal"
+            value={costo}
+            onChange={e => setCosto(e.target.value)}
+            placeholder="Costo por pieza (opcional)"
+            className="!w-52 py-2 tabular-nums"
+          />
+        )}
+      </div>
+      <Button className="mt-2.5 w-full" variant="soft" disabled={!n || busy} onClick={usar}>
+        {existente ? `Usar ${existente.name}: 1 pieza por venta` : `Crear insumo ${n || '…'} y usar 1 pieza por venta`}
+      </Button>
+    </div>
   )
 }
 
@@ -323,6 +379,10 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
               ))}
             </div>
           </div>
+        )}
+
+        {enReceta.length === 0 && name.trim() && (
+          <CompradoHecho productName={name} ingredients={ingredients} onUse={ing => setQty(ing.id, 1)} />
         )}
 
         {enReceta.length > 0 && (

@@ -138,6 +138,7 @@ export async function saveIngredient(data: Omit<Ingredient, 'id' | 'stock'>, exi
     const row: Ingredient = current ? { ...current, ...data } : { ...data, id: uid(), stock: 0 }
     await db.ingredients.put(row)
     await enqueue('ingredients', 'upsert', row)
+    return row
   })
 }
 
