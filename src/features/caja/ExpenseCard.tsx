@@ -6,7 +6,7 @@ import { Button } from '../../components/ui'
 export function ExpenseCard({ expenses, onAdd, canAdd }: { expenses: Expense[]; onAdd: () => void; canAdd: boolean }) {
   return (
     <div className="flex flex-col rounded-3xl border border-cream-200 bg-cream-50 p-6">
-      <h2 className="mb-4 text-xl font-semibold">Gastos de hoy</h2>
+      <h2 className="mb-4 text-xl font-semibold">Gastos del turno</h2>
       {expenses.length === 0 ? (
         <p className="flex-1 py-4 text-sm text-berry-700/50">Sin gastos en este turno.</p>
       ) : (

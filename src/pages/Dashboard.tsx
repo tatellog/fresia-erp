@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { openCashSession } from '../services/cash'
+import { CORTE_CADA, openCashSession } from '../services/cash'
 import { db } from '../data/db'
 import {
   cupsBySize, delta, hourlySales, profit, salesByLine, salesSummary, topToppings,
@@ -85,8 +85,8 @@ export default function Dashboard() {
   const atencion = needsAttention(stock.ingredients, stock.usage)
 
   const alerts: string[] = []
-  if (openSession && Date.now() - openSession.openTs > 10 * 3600_000)
-    alerts.push('La caja lleva abierta más tiempo de lo habitual: haz el corte.')
+  if (openSession && Date.now() - openSession.openTs > CORTE_CADA)
+    alerts.push('La caja lleva abierta más de una semana: toca hacer el corte.')
   if (!openSession && data.resumen.tickets === 0 && now.getHours() >= 10 && now.getHours() < 20)
     alerts.push('La caja sigue cerrada: ábrela para empezar el día.')
   if (lastClosed && (lastClosed.closeAmount ?? 0) !== (lastClosed.expected ?? 0) && !lastClosed.note)

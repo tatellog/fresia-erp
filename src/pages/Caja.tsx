@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
-import type { Sale } from '../data/types'
-import { expectedCash, openCashSession, paidInCash } from '../services/cash'
+import type { Expense, Sale } from '../data/types'
+import { CORTE_CADA, expectedCash, openCashSession, paidInCash } from '../services/cash'
 import { saleNet, saleReceived, totalFees, totalTips } from '../services/fees'
-import { fmtTime, startOfDay } from '../lib/format'
+import { fmtSince, fmtWeekday, fmtTime, startOfDay } from '../lib/format'
 import { Empty } from '../components/ui'
 import { ArrowDownCircleIcon, BoxIcon, LockIcon, ReceiptIcon, UnlockIcon } from '../components/ui/icons'
 import { CashStatusBadge } from '../features/caja/CashStatusBadge'
@@ -20,8 +20,7 @@ import { GastoSheet } from '../features/caja/GastoSheet'
 import { RegistrarCompraSheet } from '../features/inventario/RegistrarCompraSheet'
 import { RetiroSheet } from '../features/caja/RetiroSheet'
 import { SaleSheet } from '../features/caja/SaleSheet'
-
-const DIEZ_HORAS = 10 * 3600_000
+import { GastoSheet as GastoDetalle } from '../features/historial/GastoSheet'
 
 export default function Caja() {
   // null = caja cerrada; undefined = consulta aún cargando
@@ -41,6 +40,7 @@ export default function Caja() {
   const branch = useLiveQuery(async () => (await db.meta.get('branch'))?.value || 'Principal')
   const [sheet, setSheet] = useState<'abrir' | 'gasto' | 'retiro' | 'compra' | null>(null)
   const [saleDetail, setSaleDetail] = useState<Sale | null>(null)
+  const [gastoDetail, setGastoDetail] = useState<Expense | null>(null)
 
   const gastos = useMemo(() => (sessionExpenses ?? []).filter(e => (e.kind ?? 'gasto') === 'gasto'), [sessionExpenses])
   const retiros = useMemo(() => (sessionExpenses ?? []).filter(e => e.kind === 'retiro'), [sessionExpenses])
@@ -63,9 +63,10 @@ export default function Caja() {
         amount: e.amount,
         tone: 'out' as const,
         tag: e.kind === 'retiro' ? 'retiro' : paidInCash(e) ? 'gasto' : `gasto · ${e.payment}`,
+        onTap: () => setGastoDetail(e),
       })),
     ]
-    return items.sort((a, b) => b.ts - a.ts).slice(0, 30)
+    return items.sort((a, b) => b.ts - a.ts)
   }, [session, sessionSales, sessionExpenses])
 
   if (session === undefined || !history || !todaySales || !sessionSales) return null
@@ -82,7 +83,7 @@ export default function Caja() {
   const deliveryTotal = turno.filter(s => s.payment === 'rappi' || s.payment === 'office' || s.payment === 'didi').reduce((s, x) => s + x.total, 0)
   const dayTotal = turno.reduce((s, x) => s + saleReceived(x), 0)
 
-  const openTooLong = session && Date.now() - session.openTs > DIEZ_HORAS
+  const openTooLong = session && Date.now() - session.openTs > CORTE_CADA
   const lastClosed = history[0]
   const pendingDiff = lastClosed && (lastClosed.closeAmount ?? 0) !== (lastClosed.expected ?? 0) && !lastClosed.note
 
@@ -100,7 +101,7 @@ export default function Caja() {
           <CashStatusBadge open={!!session} />
           {session && (
             <p className="mt-2 text-xs text-berry-700/55">
-              Abierta desde <b>{fmtTime(session.openTs)}</b>
+              Abierta desde <b>{fmtSince(session.openTs)}</b>
               {session.employeeName && <> · Atiende <b>{session.employeeName}</b></>}
             </p>
           )}
@@ -110,7 +111,7 @@ export default function Caja() {
       {/* alertas */}
       {openTooLong && (
         <div className="mb-4 rounded-2xl border border-amber-600/25 bg-amber-50 px-5 py-3.5 text-sm font-medium text-amber-800">
-          La caja lleva abierta más tiempo de lo habitual. Considera hacer el corte.
+          La caja sigue abierta desde el {fmtWeekday(session.openTs)}, {fmtTime(session.openTs)}. Ya pasó una semana: toca hacer el corte.
         </div>
       )}
       {pendingDiff && (
@@ -175,6 +176,7 @@ export default function Caja() {
       {sheet === 'compra' && session && <RegistrarCompraSheet onClose={() => setSheet(null)} />}
       {sheet === 'retiro' && session && <RetiroSheet sessionId={session.id} onClose={() => setSheet(null)} />}
       {saleDetail && <SaleSheet sale={saleDetail} onClose={() => setSaleDetail(null)} />}
+      {gastoDetail && <GastoDetalle expense={gastoDetail} onClose={() => setGastoDetail(null)} />}
     </div>
   )
 }

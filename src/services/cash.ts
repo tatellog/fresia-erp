@@ -4,6 +4,9 @@ import type { CashSession, Expense, ExpenseKind, ExpensePayment, Sale } from '..
 import { round2 } from '../lib/format'
 import { enqueue } from './outbox'
 
+/** el corte se hace cada semana: pasado este tiempo con la caja abierta, la app lo pide */
+export const CORTE_CADA = 7 * 24 * 3600_000
+
 /**
  * La caja abierta: la sesión sin cierre que se abrió más recientemente.
  * Con la bajada desde la nube pueden llegar sesiones viejas que nadie
