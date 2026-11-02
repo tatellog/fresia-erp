@@ -20,6 +20,50 @@ const PERIODOS = [
 ] as const
 type PeriodId = (typeof PERIODOS)[number]['id']
 
+const DIA_MS = 86_400_000
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+/**
+ * Ventana de fechas del periodo elegido. 'Mes' es el mes calendario
+ * (mesOffset 0 = el actual, −1 = el anterior, …) con flechas para moverse;
+ * los demás periodos son días hacia atrás desde hoy. El periodo anterior
+ * para comparar cubre el mismo avance, para no comparar un mes a medias
+ * contra uno completo.
+ */
+function ventana(periodo: PeriodId, mesOffset: number) {
+  if (periodo === 'mes') {
+    const hoy = new Date()
+    const y = hoy.getFullYear()
+    const m = hoy.getMonth() + mesOffset
+    const desde = new Date(y, m, 1).getTime()
+    const hasta = new Date(y, m + 1, 1).getTime()
+    const pDesde = new Date(y, m - 1, 1).getTime()
+    const finReal = Math.min(hasta, Date.now())
+    const nombre = cap(new Date(y, m, 1).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }))
+    const nombreAnterior = new Date(y, m - 1, 1).toLocaleDateString('es-MX', { month: 'long' })
+    return {
+      desde, hasta, pDesde,
+      pHasta: Math.min(desde, pDesde + (finReal - desde)),
+      dias: Math.max(1, Math.ceil((finReal - desde) / DIA_MS)),
+      titulo: `Ventas · ${nombre}`,
+      tituloGastos: `Gastos · ${nombre}`,
+      vsLabel: `vs. ${nombreAnterior}`,
+      nombre,
+    }
+  }
+  const def = PERIODOS.find(p => p.id === periodo)!
+  const desde = startOfDay(def.days - 1)
+  const [pDesde, pHasta] = previousWindow(desde, Date.now(), def.days)
+  return {
+    desde, hasta: Infinity, pDesde, pHasta,
+    dias: def.days,
+    titulo: periodo === 'hoy' ? 'Ventas de hoy' : `Ventas · últimos ${def.days} días`,
+    tituloGastos: periodo === 'hoy' ? 'Gastos de hoy' : `Gastos · últimos ${def.days} días`,
+    vsLabel: periodo === 'hoy' ? 'vs. ayer a esta hora' : `vs. ${def.days} días anteriores`,
+    nombre: '',
+  }
+}
+
 const CANALES: { id: Payment; label: string; color: string }[] = [
   { id: 'efectivo', label: 'Efectivo', color: 'var(--color-green-600)' },
   { id: 'tarjeta', label: 'Tarjeta', color: 'var(--color-berry-500)' },
@@ -35,20 +79,26 @@ const CANALES: { id: Payment; label: string; color: string }[] = [
  */
 export function MoneyHero({ goalMoney }: { goalMoney: number }) {
   const [periodo, setPeriodo] = useState<PeriodId>('hoy')
+  const [mesOffset, setMesOffset] = useState(0)
   const [verGastos, setVerGastos] = useState(false)
-  // dos meses: el periodo más largo y el anterior del mismo largo para comparar
-  const sales30 = useLiveQuery(() => db.sales.where('ts').aboveOrEqual(startOfDay(59)).toArray())
-  const gastos30 = useLiveQuery(() => db.expenses.where('ts').aboveOrEqual(startOfDay(59)).toArray())
+  // la ventana elegida y la anterior del mismo largo para comparar
+  const win = useMemo(() => ventana(periodo, mesOffset), [periodo, mesOffset])
+  const ventasRows = useLiveQuery(
+    () => db.sales.where('ts').between(win.pDesde, win.hasta, true, false).toArray(),
+    [win.pDesde, win.hasta],
+  )
+  const gastosRows = useLiveQuery(
+    () => db.expenses.where('ts').between(win.desde, win.hasta, true, false).toArray(),
+    [win.desde, win.hasta],
+  )
 
   const data = useMemo(() => {
-    if (!sales30 || !gastos30) return null
-    const def = PERIODOS.find(p => p.id === periodo)!
-    const desde = startOfDay(def.days - 1)
-    const enPeriodo = sales30.filter(s => s.ts >= desde)
+    if (!ventasRows || !gastosRows) return null
+    const enPeriodo = ventasRows.filter(s => s.ts >= win.desde)
     const resumen = salesSummary(enPeriodo)
     const utilidad = profit(enPeriodo)
     // gastos reales del periodo (los retiros no son gastos, solo mueven efectivo)
-    const gastosDelPeriodo = gastos30.filter(g => g.ts >= desde && g.kind !== 'retiro')
+    const gastosDelPeriodo = gastosRows.filter(g => g.kind !== 'retiro')
     const gastosPeriodo = round2(gastosDelPeriodo.reduce((s, g) => s + g.amount, 0))
     const netoReal = round2(resumen.net - gastosPeriodo)
     // dónde quedó la ganancia: lo cobrado en efectivo menos lo gastado en efectivo; el resto está en Mercado Pago
@@ -56,9 +106,8 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
     const gastosEfectivo = round2(gastosDelPeriodo.filter(g => (g.payment ?? 'efectivo') === 'efectivo').reduce((s, g) => s + g.amount, 0))
     const efectivoNeto = round2(ventasEfectivo - gastosEfectivo)
     const bancoNeto = round2(netoReal - efectivoNeto)
-    const [pDesde, pHasta] = previousWindow(desde, Date.now(), def.days)
     const actual = periodMetrics(enPeriodo)
-    const anterior = periodMetrics(sales30.filter(s => s.ts >= pDesde && s.ts < pHasta))
+    const anterior = periodMetrics(ventasRows.filter(s => s.ts >= win.pDesde && s.ts < win.pHasta))
     const top = topProducts(enPeriodo)
     const extremos = periodo === 'hoy' ? {} : dayExtremes(enPeriodo)
     const mejorCanal = channelProfit(enPeriodo).find(c => c.profit > 0)
@@ -70,19 +119,19 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
       return { ...c, monto, fees, neto, cobros: del.length, pct: resumen.net > 0 ? Math.round((neto / resumen.net) * 100) : 0 }
     })
     return {
-      def, resumen, utilidad, canales, gastosPeriodo, netoReal, efectivoNeto, bancoNeto,
+      resumen, utilidad, canales, gastosPeriodo, netoReal, efectivoNeto, bancoNeto,
       gastosLista: [...gastosDelPeriodo].sort((a, b) => b.ts - a.ts),
       actual, anterior, top, extremos, mejorCanal,
       cambio: pctChange(actual.net, anterior.net),
       explicacion: explainChange(actual, anterior),
       margenNeto: resumen.total > 0 ? Math.round((netoReal / resumen.total) * 100) : 0,
-      promedioDiario: round2(resumen.net / def.days),
+      promedioDiario: round2(resumen.net / win.dias),
     }
-  }, [sales30, gastos30, periodo])
+  }, [ventasRows, gastosRows, periodo, win])
 
   if (!data) return null
   const { resumen, utilidad, canales, gastosPeriodo, netoReal, efectivoNeto, bancoNeto, gastosLista, margenNeto, actual, anterior, top, extremos, mejorCanal, cambio } = data
-  const vsAnterior = periodo === 'hoy' ? 'vs. ayer a esta hora' : `vs. ${data.def.days} días anteriores`
+  const vsAnterior = win.vsLabel
   const corto = (n: string) => n.replace(' · ', ' ')
   const dia = (ts: number) => {
     const t = new Date(ts).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })
@@ -94,13 +143,34 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
       {/* periodo de un toque */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-berry-700/60">
-          {periodo === 'hoy' ? 'Ventas de hoy' : `Ventas · últimos ${data.def.days} días`}
+          {win.titulo}
         </span>
-        <div className="flex gap-1.5">
+        <div className="flex items-center gap-1.5">
+          {periodo === 'mes' && (
+            <div className="mr-2 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setMesOffset(o => o - 1)}
+                aria-label="Mes anterior"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-cream-300 text-lg text-berry-700 transition-colors hover:bg-cream-200"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={() => setMesOffset(o => Math.min(0, o + 1))}
+                disabled={mesOffset >= 0}
+                aria-label="Mes siguiente"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-cream-300 text-lg text-berry-700 transition-colors hover:bg-cream-200 disabled:opacity-30"
+              >
+                ›
+              </button>
+            </div>
+          )}
           {PERIODOS.map(p => (
             <button
               key={p.id}
-              onClick={() => setPeriodo(p.id)}
+              onClick={() => { setPeriodo(p.id); setMesOffset(0) }}
               className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
                 periodo === p.id ? 'border-berry-500 bg-berry-500 text-white shadow-sm' : 'border-cream-300 text-berry-700/70'
               }`}
@@ -178,7 +248,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
       <GastosSheet
         open={verGastos}
         onClose={() => setVerGastos(false)}
-        titulo={periodo === 'hoy' ? 'Gastos de hoy' : `Gastos · últimos ${data.def.days} días`}
+        titulo={win.tituloGastos}
         gastos={gastosLista}
         total={gastosPeriodo}
       />
