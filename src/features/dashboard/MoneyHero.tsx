@@ -43,8 +43,14 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
     const resumen = salesSummary(enPeriodo)
     const utilidad = profit(enPeriodo)
     // gastos reales del periodo (los retiros no son gastos, solo mueven efectivo)
-    const gastosPeriodo = round2(gastos30.filter(g => g.ts >= desde && g.kind !== 'retiro').reduce((s, g) => s + g.amount, 0))
+    const gastosDelPeriodo = gastos30.filter(g => g.ts >= desde && g.kind !== 'retiro')
+    const gastosPeriodo = round2(gastosDelPeriodo.reduce((s, g) => s + g.amount, 0))
     const netoReal = round2(resumen.net - gastosPeriodo)
+    // dónde quedó la ganancia: lo cobrado en efectivo menos lo gastado en efectivo; el resto está en Mercado Pago
+    const ventasEfectivo = round2(enPeriodo.filter(s => s.payment === 'efectivo').reduce((s, x) => s + x.total, 0))
+    const gastosEfectivo = round2(gastosDelPeriodo.filter(g => (g.payment ?? 'efectivo') === 'efectivo').reduce((s, g) => s + g.amount, 0))
+    const efectivoNeto = round2(ventasEfectivo - gastosEfectivo)
+    const bancoNeto = round2(netoReal - efectivoNeto)
     const [pDesde, pHasta] = previousWindow(desde, Date.now(), def.days)
     const actual = periodMetrics(enPeriodo)
     const anterior = periodMetrics(sales30.filter(s => s.ts >= pDesde && s.ts < pHasta))
@@ -59,7 +65,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
       return { ...c, monto, fees, neto, cobros: del.length, pct: resumen.net > 0 ? Math.round((neto / resumen.net) * 100) : 0 }
     })
     return {
-      def, resumen, utilidad, canales, gastosPeriodo, netoReal,
+      def, resumen, utilidad, canales, gastosPeriodo, netoReal, efectivoNeto, bancoNeto,
       actual, anterior, top, extremos, mejorCanal,
       cambio: pctChange(actual.net, anterior.net),
       explicacion: explainChange(actual, anterior),
@@ -69,7 +75,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
   }, [sales30, gastos30, periodo])
 
   if (!data) return null
-  const { resumen, utilidad, canales, gastosPeriodo, netoReal, margenNeto, actual, anterior, top, extremos, mejorCanal, cambio } = data
+  const { resumen, utilidad, canales, gastosPeriodo, netoReal, efectivoNeto, bancoNeto, margenNeto, actual, anterior, top, extremos, mejorCanal, cambio } = data
   const vsAnterior = periodo === 'hoy' ? 'vs. ayer a esta hora' : `vs. ${data.def.days} días anteriores`
   const corto = (n: string) => n.replace(' · ', ' ')
   const dia = (ts: number) => {
@@ -120,7 +126,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
               {money(netoReal)}
             </div>
             <div className="mt-3 text-sm text-berry-700/70">
-              ventas menos {money(gastosPeriodo)} de gastos{utilidad.fees > 0 && <> y {money(utilidad.fees)} de comisión de tarjeta</>} · <b className="text-berry-900">{margenNeto}%</b> neto
+              de cada <b className="text-berry-900">$100</b> que vendes te quedas <b className="text-berry-900">${margenNeto}</b>
             </div>
           </div>
         </div>
@@ -140,6 +146,25 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
         </div>
       </div>
 
+      {/* la cuenta, clarita: qué entró, qué salió y qué te queda */}
+      <div className="mt-7 rounded-2xl bg-cream-100/60 px-5 py-4">
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+          <Paso label="Cobraste" value={money(resumen.total)} />
+          <Signo>−</Signo>
+          <Paso label="Comisión de tarjeta" value={money(utilidad.fees)} />
+          <Signo>−</Signo>
+          <Paso label="Gastos y compras" value={money(gastosPeriodo)} />
+          <Signo>=</Signo>
+          <Paso label="Te queda" value={money(netoReal)} strong negative={netoReal < 0} />
+        </div>
+        {resumen.tickets > 0 && (
+          <p className="mt-3 border-t border-cream-200 pt-3 text-sm text-berry-700/75">
+            Dónde quedó: <b className="text-berry-900">{money(bancoNeto)}</b> en Mercado Pago (tarjeta, transferencias y apps) y{' '}
+            <b className="text-berry-900">{money(efectivoNeto)}</b> en efectivo.
+          </p>
+        )}
+      </div>
+
       {/* de dónde viene: clientes, ticket y productos por ticket, y lo que costó */}
       <div className="mt-7 border-t border-cream-200 pt-6">
         {data.explicacion && <p className="mb-5 text-sm text-berry-700/80">{data.explicacion}</p>}
@@ -155,10 +180,10 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
             hint={actual.costsKnown ? undefined : 'faltan compras de insumos'}
           />
           <MetricTile
-            label="Utilidad estimada"
+            label="Utilidad por recetas"
             value={actual.costsKnown ? moneyInt(actual.profit) : '·'}
             change={actual.costsKnown && anterior.costsKnown ? pctChange(actual.profit, anterior.profit) : null}
-            hint={actual.costsKnown ? undefined : 'faltan compras de insumos'}
+            hint={actual.costsKnown ? 'solo resta ingredientes, no gastos' : 'faltan compras de insumos'}
           />
           <MetricTile
             label="Margen bruto"
@@ -216,6 +241,22 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
       </div>
     </div>
   )
+}
+
+/** un paso de la cuenta del periodo: etiqueta arriba y cifra abajo */
+function Paso({ label, value, strong = false, negative = false }: { label: string; value: string; strong?: boolean; negative?: boolean }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-berry-700/55">{label}</div>
+      <div className={`mt-0.5 tabular-nums ${strong ? `font-display text-2xl font-bold ${negative ? 'text-red-600' : 'text-green-700'}` : 'text-lg font-semibold text-berry-900'}`}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function Signo({ children }: { children: string }) {
+  return <span className="self-center text-xl font-light text-berry-700/40">{children}</span>
 }
 
 /** dato corto para decidir: etiqueta, respuesta y detalle */
