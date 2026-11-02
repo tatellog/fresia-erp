@@ -33,15 +33,18 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
   const [periodo, setPeriodo] = useState<PeriodId>('hoy')
   // dos meses: el periodo más largo y el anterior del mismo largo para comparar
   const sales30 = useLiveQuery(() => db.sales.where('ts').aboveOrEqual(startOfDay(59)).toArray())
+  const gastos30 = useLiveQuery(() => db.expenses.where('ts').aboveOrEqual(startOfDay(59)).toArray())
 
   const data = useMemo(() => {
-    if (!sales30) return null
+    if (!sales30 || !gastos30) return null
     const def = PERIODOS.find(p => p.id === periodo)!
     const desde = startOfDay(def.days - 1)
     const enPeriodo = sales30.filter(s => s.ts >= desde)
     const resumen = salesSummary(enPeriodo)
     const utilidad = profit(enPeriodo)
-    const costsKnown = enPeriodo.some(s => s.cost > 0) || enPeriodo.length === 0
+    // gastos reales del periodo (los retiros no son gastos, solo mueven efectivo)
+    const gastosPeriodo = round2(gastos30.filter(g => g.ts >= desde && g.kind !== 'retiro').reduce((s, g) => s + g.amount, 0))
+    const netoReal = round2(resumen.net - gastosPeriodo)
     const [pDesde, pHasta] = previousWindow(desde, Date.now(), def.days)
     const actual = periodMetrics(enPeriodo)
     const anterior = periodMetrics(sales30.filter(s => s.ts >= pDesde && s.ts < pHasta))
@@ -56,17 +59,17 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
       return { ...c, monto, fees, neto, cobros: del.length, pct: resumen.net > 0 ? Math.round((neto / resumen.net) * 100) : 0 }
     })
     return {
-      def, resumen, utilidad, costsKnown, canales,
+      def, resumen, utilidad, canales, gastosPeriodo, netoReal,
       actual, anterior, top, extremos, mejorCanal,
       cambio: pctChange(actual.net, anterior.net),
       explicacion: explainChange(actual, anterior),
-      margen: resumen.total > 0 ? Math.round((utilidad.profit / resumen.total) * 100) : 0,
+      margenNeto: resumen.total > 0 ? Math.round((netoReal / resumen.total) * 100) : 0,
       promedioDiario: round2(resumen.net / def.days),
     }
-  }, [sales30, periodo])
+  }, [sales30, gastos30, periodo])
 
   if (!data) return null
-  const { resumen, utilidad, costsKnown, canales, margen, actual, anterior, top, extremos, mejorCanal, cambio } = data
+  const { resumen, utilidad, canales, gastosPeriodo, netoReal, margenNeto, actual, anterior, top, extremos, mejorCanal, cambio } = data
   const vsAnterior = periodo === 'hoy' ? 'vs. ayer a esta hora' : `vs. ${data.def.days} días anteriores`
   const corto = (n: string) => n.replace(' · ', ' ')
   const dia = (ts: number) => {
@@ -112,14 +115,12 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
             </div>
           </div>
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-berry-700/60">Ganancia</div>
-            <div className="mt-2 font-display text-[40px] font-bold leading-none tabular-nums text-green-700 lg:text-[48px]">
-              {costsKnown ? money(utilidad.profit) : '·'}
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-berry-700/60">Ganancia neta</div>
+            <div className={`mt-2 font-display text-[40px] font-bold leading-none tabular-nums lg:text-[48px] ${netoReal >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+              {money(netoReal)}
             </div>
             <div className="mt-3 text-sm text-berry-700/70">
-              {costsKnown
-                ? <>después de insumos{utilidad.fees > 0 && <> y {money(utilidad.fees)} de comisión de tarjeta</>} · <b className="text-berry-900">{margen}%</b> de margen</>
-                : 'registra compras de insumos para calcularla'}
+              ventas menos {money(gastosPeriodo)} de gastos{utilidad.fees > 0 && <> y {money(utilidad.fees)} de comisión de tarjeta</>} · <b className="text-berry-900">{margenNeto}%</b> neto
             </div>
           </div>
         </div>
