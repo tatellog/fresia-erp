@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
-import type { Payment } from '../../data/types'
+import type { Expense, Payment } from '../../data/types'
+import { Sheet } from '../../components/ui'
 import { profit, salesSummary } from '../../services/analytics'
 import { channelProfit, dayExtremes, explainChange, pctChange, periodMetrics, previousWindow, topProducts } from '../../services/insights'
 import { MetricTile } from './MetricTile'
@@ -31,6 +32,7 @@ const CANALES: { id: Payment; label: string; color: string }[] = [
  */
 export function MoneyHero({ goalMoney }: { goalMoney: number }) {
   const [periodo, setPeriodo] = useState<PeriodId>('hoy')
+  const [verGastos, setVerGastos] = useState(false)
   // dos meses: el periodo más largo y el anterior del mismo largo para comparar
   const sales30 = useLiveQuery(() => db.sales.where('ts').aboveOrEqual(startOfDay(59)).toArray())
   const gastos30 = useLiveQuery(() => db.expenses.where('ts').aboveOrEqual(startOfDay(59)).toArray())
@@ -66,6 +68,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
     })
     return {
       def, resumen, utilidad, canales, gastosPeriodo, netoReal, efectivoNeto, bancoNeto,
+      gastosLista: [...gastosDelPeriodo].sort((a, b) => b.ts - a.ts),
       actual, anterior, top, extremos, mejorCanal,
       cambio: pctChange(actual.net, anterior.net),
       explicacion: explainChange(actual, anterior),
@@ -75,7 +78,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
   }, [sales30, gastos30, periodo])
 
   if (!data) return null
-  const { resumen, utilidad, canales, gastosPeriodo, netoReal, efectivoNeto, bancoNeto, margenNeto, actual, anterior, top, extremos, mejorCanal, cambio } = data
+  const { resumen, utilidad, canales, gastosPeriodo, netoReal, efectivoNeto, bancoNeto, gastosLista, margenNeto, actual, anterior, top, extremos, mejorCanal, cambio } = data
   const vsAnterior = periodo === 'hoy' ? 'vs. ayer a esta hora' : `vs. ${data.def.days} días anteriores`
   const corto = (n: string) => n.replace(' · ', ' ')
   const dia = (ts: number) => {
@@ -153,7 +156,7 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
           <Signo>−</Signo>
           <Paso label="Comisión de tarjeta" value={money(utilidad.fees)} />
           <Signo>−</Signo>
-          <Paso label="Gastos y compras" value={money(gastosPeriodo)} />
+          <Paso label="Gastos y compras" value={money(gastosPeriodo)} onClick={() => setVerGastos(true)} />
           <Signo>=</Signo>
           <Paso label="Te queda" value={money(netoReal)} strong negative={netoReal < 0} />
         </div>
@@ -164,6 +167,14 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
           </p>
         )}
       </div>
+
+      <GastosSheet
+        open={verGastos}
+        onClose={() => setVerGastos(false)}
+        titulo={periodo === 'hoy' ? 'Gastos de hoy' : `Gastos · últimos ${data.def.days} días`}
+        gastos={gastosLista}
+        total={gastosPeriodo}
+      />
 
       {/* de dónde viene: clientes, ticket y productos por ticket, y lo que costó */}
       <div className="mt-7 border-t border-cream-200 pt-6">
@@ -243,15 +254,91 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
   )
 }
 
-/** un paso de la cuenta del periodo: etiqueta arriba y cifra abajo */
-function Paso({ label, value, strong = false, negative = false }: { label: string; value: string; strong?: boolean; negative?: boolean }) {
-  return (
-    <div>
+/** un paso de la cuenta del periodo: etiqueta arriba y cifra abajo; con onClick se vuelve tocable */
+function Paso({ label, value, strong = false, negative = false, onClick }: {
+  label: string; value: string; strong?: boolean; negative?: boolean; onClick?: () => void
+}) {
+  const contenido = (
+    <>
       <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-berry-700/55">{label}</div>
-      <div className={`mt-0.5 tabular-nums ${strong ? `font-display text-2xl font-bold ${negative ? 'text-red-600' : 'text-green-700'}` : 'text-lg font-semibold text-berry-900'}`}>
+      <div className={`mt-0.5 tabular-nums ${strong ? `font-display text-2xl font-bold ${negative ? 'text-red-600' : 'text-green-700'}` : 'text-lg font-semibold text-berry-900'} ${onClick ? 'underline decoration-berry-300 decoration-dotted underline-offset-4' : ''}`}>
         {value}
       </div>
-    </div>
+      {onClick && <div className="mt-0.5 text-[11px] font-medium text-berry-500">ver detalle</div>}
+    </>
+  )
+  if (onClick) return <button type="button" onClick={onClick} className="text-left">{contenido}</button>
+  return <div>{contenido}</div>
+}
+
+const PAGO_LABEL: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia' }
+
+/** detalle de los gastos del periodo: por día, con forma de pago y totales */
+function GastosSheet({ open, onClose, titulo, gastos, total }: {
+  open: boolean; onClose: () => void; titulo: string; gastos: Expense[]; total: number
+}) {
+  const dias = useMemo(() => {
+    const porDia = new Map<string, { label: string; total: number; items: Expense[] }>()
+    for (const g of gastos) {
+      const d = new Date(g.ts)
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+      if (!porDia.has(key)) {
+        const label = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+        porDia.set(key, { label: label.charAt(0).toUpperCase() + label.slice(1), total: 0, items: [] })
+      }
+      const dia = porDia.get(key)!
+      dia.items.push(g)
+      dia.total = round2(dia.total + g.amount)
+    }
+    return [...porDia.values()]
+  }, [gastos])
+  const porPago = useMemo(() =>
+    (['efectivo', 'tarjeta', 'transferencia'] as const)
+      .map(p => ({ id: p, total: round2(gastos.filter(g => (g.payment ?? 'efectivo') === p).reduce((s, g) => s + g.amount, 0)) }))
+      .filter(p => p.total > 0),
+  [gastos])
+
+  return (
+    <Sheet open={open} onClose={onClose} title={titulo}>
+      {gastos.length === 0 ? (
+        <p className="py-6 text-center text-sm text-berry-700/60">Sin gastos en este periodo.</p>
+      ) : (
+        <>
+          <div className="mb-5 flex flex-wrap gap-2">
+            {porPago.map(p => (
+              <span key={p.id} className="rounded-full bg-cream-200/80 px-3 py-1 text-xs font-semibold text-berry-700 tabular-nums">
+                {PAGO_LABEL[p.id]} · {money(p.total)}
+              </span>
+            ))}
+          </div>
+          <div className="space-y-5">
+            {dias.map(d => (
+              <div key={d.label}>
+                <div className="mb-2 flex items-baseline justify-between gap-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-berry-700/55">{d.label}</span>
+                  <span className="text-xs font-semibold tabular-nums text-berry-700/70">{money(d.total)}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {d.items.map(g => (
+                    <div key={g.id} className="flex items-center justify-between gap-3 rounded-xl bg-cream-100/70 px-4 py-2.5">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{g.concept}</div>
+                        <div className="text-xs text-berry-700/55">{PAGO_LABEL[g.payment ?? 'efectivo']}</div>
+                      </div>
+                      <div className="shrink-0 text-sm font-semibold tabular-nums">−{money(g.amount)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex items-baseline justify-between border-t border-cream-200 pt-4">
+            <span className="text-sm font-semibold">Total del periodo</span>
+            <span className="font-display text-xl font-bold tabular-nums">−{money(total)}</span>
+          </div>
+        </>
+      )}
+    </Sheet>
   )
 }
 
