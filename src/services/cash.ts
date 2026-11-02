@@ -56,3 +56,19 @@ export async function addExpense(concept: string, amount: number, sessionId?: st
     await enqueue('expenses', 'upsert', row)
   })
 }
+
+/** corrige un gasto ya registrado: concepto, monto o forma de pago */
+export async function updateExpense(row: Expense) {
+  return db.transaction('rw', [db.expenses, db.outbox], async () => {
+    await db.expenses.put(row)
+    await enqueue('expenses', 'upsert', row)
+  })
+}
+
+/** borra un gasto capturado por error, en este dispositivo y en la base de datos */
+export async function deleteExpense(row: Expense) {
+  return db.transaction('rw', [db.expenses, db.outbox], async () => {
+    await db.expenses.delete(row.id)
+    await enqueue('expenses', 'delete', row)
+  })
+}

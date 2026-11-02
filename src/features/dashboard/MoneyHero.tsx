@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../data/db'
-import type { Expense, Payment } from '../../data/types'
-import { Sheet } from '../../components/ui'
+import type { Expense, ExpensePayment, Payment } from '../../data/types'
+import { Button, decimal, Field, Input, NumberInput, Sheet } from '../../components/ui'
+import { deleteExpense, updateExpense } from '../../services/cash'
+import { ExpensePaymentPicker } from '../caja/ExpensePaymentPicker'
+import { fmtDateTime } from '../../lib/format'
 import { profit, salesSummary } from '../../services/analytics'
 import { channelProfit, dayExtremes, explainChange, pctChange, periodMetrics, previousWindow, topProducts } from '../../services/insights'
 import { MetricTile } from './MetricTile'
@@ -150,21 +153,25 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
       </div>
 
       {/* la cuenta, clarita: qué entró, qué salió y qué te queda */}
-      <div className="mt-7 rounded-2xl bg-cream-100/60 px-5 py-4">
-        <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-          <Paso label="Cobraste" value={money(resumen.total)} />
-          <Signo>−</Signo>
-          <Paso label="Comisión de tarjeta" value={money(utilidad.fees)} />
-          <Signo>−</Signo>
-          <Paso label="Gastos y compras" value={money(gastosPeriodo)} onClick={() => setVerGastos(true)} />
-          <Signo>=</Signo>
-          <Paso label="Te queda" value={money(netoReal)} strong negative={netoReal < 0} />
+      <div className="mt-7">
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-berry-700/60">La cuenta, clarita</div>
+        <div className="flex flex-wrap items-stretch gap-2.5">
+          <PasoCard label="Cobraste" value={money(resumen.total)} />
+          <Operador>−</Operador>
+          <PasoCard label="Comisión de tarjeta" value={money(utilidad.fees)} resta />
+          <Operador>−</Operador>
+          <PasoCard label="Gastos y compras" value={money(gastosPeriodo)} resta onClick={() => setVerGastos(true)} />
+          <Operador>=</Operador>
+          <PasoCard label="Te queda" value={money(netoReal)} resultado negative={netoReal < 0} />
         </div>
         {resumen.tickets > 0 && (
-          <p className="mt-3 border-t border-cream-200 pt-3 text-sm text-berry-700/75">
-            Dónde quedó: <b className="text-berry-900">{money(bancoNeto)}</b> en Mercado Pago (tarjeta, transferencias y apps) y{' '}
-            <b className="text-berry-900">{money(efectivoNeto)}</b> en efectivo.
-          </p>
+          <div className="mt-5">
+            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-berry-700/60">Dónde quedó tu ganancia</div>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <LugarCard nombre="En Mercado Pago" detalle="Tarjeta, transferencias, Rappi y DiDi, menos lo que pagaste desde la cuenta." value={bancoNeto} />
+              <LugarCard nombre="En efectivo" detalle="Ventas en efectivo, menos los gastos que salieron de la caja." value={efectivoNeto} />
+            </div>
+          </div>
         )}
       </div>
 
@@ -254,29 +261,53 @@ export function MoneyHero({ goalMoney }: { goalMoney: number }) {
   )
 }
 
-/** un paso de la cuenta del periodo: etiqueta arriba y cifra abajo; con onClick se vuelve tocable */
-function Paso({ label, value, strong = false, negative = false, onClick }: {
-  label: string; value: string; strong?: boolean; negative?: boolean; onClick?: () => void
+/** un paso de la cuenta: tarjeta con etiqueta y cifra; las restas llevan − y el resultado va en color */
+function PasoCard({ label, value, resta = false, resultado = false, negative = false, onClick }: {
+  label: string; value: string; resta?: boolean; resultado?: boolean; negative?: boolean; onClick?: () => void
 }) {
+  const caja = `flex min-w-[132px] flex-1 flex-col justify-between rounded-2xl px-4 py-3 text-left ${
+    resultado ? (negative ? 'bg-red-50' : 'bg-green-100/70') : 'bg-cream-100/70'
+  }`
   const contenido = (
     <>
-      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-berry-700/55">{label}</div>
-      <div className={`mt-0.5 tabular-nums ${strong ? `font-display text-2xl font-bold ${negative ? 'text-red-600' : 'text-green-700'}` : 'text-lg font-semibold text-berry-900'} ${onClick ? 'underline decoration-berry-300 decoration-dotted underline-offset-4' : ''}`}>
-        {value}
+      <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-berry-700/55">{label}</div>
+      <div className={`mt-1.5 font-display text-[22px] font-bold leading-none tabular-nums ${
+        resultado ? (negative ? 'text-red-600' : 'text-green-700') : 'text-berry-900'
+      }`}>
+        {resta ? `−${value}` : value}
       </div>
-      {onClick && <div className="mt-0.5 text-[11px] font-medium text-berry-500">ver detalle</div>}
+      {onClick && <div className="mt-1.5 text-[11px] font-semibold text-berry-500">Ver detalle →</div>}
     </>
   )
-  if (onClick) return <button type="button" onClick={onClick} className="text-left">{contenido}</button>
-  return <div>{contenido}</div>
+  if (onClick) return <button type="button" onClick={onClick} className={caja}>{contenido}</button>
+  return <div className={caja}>{contenido}</div>
+}
+
+function Operador({ children }: { children: string }) {
+  return <span className="self-center font-display text-2xl font-light text-berry-700/45">{children}</span>
+}
+
+/** dónde quedó la ganancia del periodo, con su explicación en una línea */
+function LugarCard({ nombre, detalle, value }: { nombre: string; detalle: string; value: number }) {
+  return (
+    <div className="rounded-2xl bg-cream-100/70 px-4 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm font-semibold">{nombre}</span>
+        <span className={`font-display text-xl font-bold tabular-nums ${value < 0 ? 'text-red-600' : 'text-berry-900'}`}>{money(value)}</span>
+      </div>
+      <p className="mt-1 text-xs leading-relaxed text-berry-700/55">{detalle}</p>
+    </div>
+  )
 }
 
 const PAGO_LABEL: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia' }
 
-/** detalle de los gastos del periodo: por día, con forma de pago y totales */
+/** detalle de los gastos del periodo: por día, con forma de pago y totales; cada gasto se puede corregir */
 function GastosSheet({ open, onClose, titulo, gastos, total }: {
   open: boolean; onClose: () => void; titulo: string; gastos: Expense[]; total: number
 }) {
+  const [editando, setEditando] = useState<Expense | null>(null)
+  const cerrar = () => { setEditando(null); onClose() }
   const dias = useMemo(() => {
     const porDia = new Map<string, { label: string; total: number; items: Expense[] }>()
     for (const g of gastos) {
@@ -298,8 +329,16 @@ function GastosSheet({ open, onClose, titulo, gastos, total }: {
       .filter(p => p.total > 0),
   [gastos])
 
+  if (!open) return null
+  if (editando) {
+    return (
+      <Sheet open onClose={cerrar} title="Corregir gasto">
+        <EditarGasto gasto={editando} onDone={() => setEditando(null)} />
+      </Sheet>
+    )
+  }
   return (
-    <Sheet open={open} onClose={onClose} title={titulo}>
+    <Sheet open onClose={cerrar} title={titulo}>
       {gastos.length === 0 ? (
         <p className="py-6 text-center text-sm text-berry-700/60">Sin gastos en este periodo.</p>
       ) : (
@@ -320,13 +359,21 @@ function GastosSheet({ open, onClose, titulo, gastos, total }: {
                 </div>
                 <div className="space-y-1.5">
                   {d.items.map(g => (
-                    <div key={g.id} className="flex items-center justify-between gap-3 rounded-xl bg-cream-100/70 px-4 py-2.5">
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => setEditando(g)}
+                      className="flex w-full items-center justify-between gap-3 rounded-xl bg-cream-100/70 px-4 py-2.5 text-left transition-colors hover:bg-cream-200/70"
+                    >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium">{g.concept}</div>
-                        <div className="text-xs text-berry-700/55">{PAGO_LABEL[g.payment ?? 'efectivo']}</div>
+                        <div className="text-xs text-berry-700/55">{PAGO_LABEL[g.payment ?? 'efectivo']} · toca para corregir</div>
                       </div>
-                      <div className="shrink-0 text-sm font-semibold tabular-nums">−{money(g.amount)}</div>
-                    </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="text-sm font-semibold tabular-nums">−{money(g.amount)}</span>
+                        <span className="text-berry-700/35">›</span>
+                      </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -342,8 +389,49 @@ function GastosSheet({ open, onClose, titulo, gastos, total }: {
   )
 }
 
-function Signo({ children }: { children: string }) {
-  return <span className="self-center text-xl font-light text-berry-700/40">{children}</span>
+/** formulario para corregir o borrar un gasto ya registrado */
+function EditarGasto({ gasto, onDone }: { gasto: Expense; onDone: () => void }) {
+  const [concept, setConcept] = useState(gasto.concept)
+  const [amount, setAmount] = useState(String(gasto.amount))
+  const [payment, setPayment] = useState<ExpensePayment>(gasto.payment ?? 'efectivo')
+  const [confirmaBorrar, setConfirmaBorrar] = useState(false)
+  const a = decimal(amount)
+  return (
+    <>
+      <button type="button" onClick={onDone} className="mb-3 text-sm font-semibold text-berry-500">← Volver a la lista</button>
+      <p className="mb-4 text-xs text-berry-700/55">Registrado el {fmtDateTime(gasto.ts)}</p>
+      <Field label="Concepto">
+        <Input value={concept} onChange={e => setConcept(e.target.value)} />
+      </Field>
+      <Field label="Monto ($)">
+        <NumberInput value={amount} onChange={e => setAmount(e.target.value)} />
+      </Field>
+      <ExpensePaymentPicker value={payment} onChange={p => setPayment(p as ExpensePayment)} />
+      <Button
+        className="w-full"
+        disabled={!(concept.trim() && a > 0)}
+        onClick={async () => {
+          await updateExpense({ ...gasto, concept: concept.trim(), amount: a, payment })
+          onDone()
+        }}
+      >
+        Guardar cambios
+      </Button>
+      <button
+        type="button"
+        className={`mt-3 w-full rounded-full border py-2.5 text-sm font-semibold transition-colors ${
+          confirmaBorrar ? 'border-red-300 bg-red-50 text-red-700' : 'border-cream-300 text-red-600'
+        }`}
+        onClick={async () => {
+          if (!confirmaBorrar) { setConfirmaBorrar(true); return }
+          await deleteExpense(gasto)
+          onDone()
+        }}
+      >
+        {confirmaBorrar ? '¿Seguro? Toca otra vez y se borra' : 'Borrar este gasto'}
+      </button>
+    </>
+  )
 }
 
 /** dato corto para decidir: etiqueta, respuesta y detalle */
