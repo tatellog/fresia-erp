@@ -55,8 +55,12 @@ export async function setIngredientInList(ing: Ingredient, group: ToppingGroup, 
   }, ing)
 }
 
+/** mete varios insumos a una lista de un golpe */
+export async function addToList(ings: Ingredient[], group: ToppingGroup) {
+  for (const i of ings) await setIngredientInList(i, group, true)
+}
+
 /** estrena una lista con los mismos toppings de otra */
 export async function copyToppings(from: ToppingGroup, to: ToppingGroup) {
-  const origen = await db.ingredients.filter(i => (i.toppingGroups ?? []).includes(from)).toArray()
-  for (const i of origen) await setIngredientInList(i, to, true)
+  await addToList(await db.ingredients.filter(i => (i.toppingGroups ?? []).includes(from)).toArray(), to)
 }

@@ -5,7 +5,7 @@ import type { Ingredient, Product } from '../../data/types'
 import { EXTRA_TOPPING_PRICE, includedToppings, toppingPremium, toppingsCharge } from '../../services/sales'
 import { productLine } from '../../services/catalog'
 import { toppingPhoto } from '../../services/photos'
-import { copyToppings, toppingCountByList } from '../../services/toppingLists'
+import { addToList } from '../../services/toppingLists'
 import { money, round2 } from '../../lib/format'
 import { Button, Sheet } from '../../components/ui'
 
@@ -96,9 +96,8 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
   )
   const line = productLine(product)
   const included = includedToppings(product)
-  // para rescatar una lista vacía sin salir de la venta
+  // si la lista del producto quedó vacía, el mostrador elige de todo el inventario
   const todas = useLiveQuery(() => db.ingredients.toArray(), [])
-  const listas = useLiveQuery(() => db.toppingLists.orderBy('sort').toArray(), [])
   const extrasDisponibles = useLiveQuery(
     () => db.products.filter(p => p.active && !!line && (p.extraScope ?? []).includes(line)).toArray(),
     [line],
@@ -109,7 +108,7 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
   const [extraTops, setExtraTops] = useState<Map<string, { t: Ingredient; qty: number }>>(new Map())
   const [extras, setExtras] = useState<Map<string, Product>>(new Map())
 
-  if (!toppings || !extrasDisponibles) return null
+  if (!toppings || !todas || !extrasDisponibles) return null
 
   const incluidosCount = [...incluidos.values()].reduce((s, x) => s + x.qty, 0)
 
@@ -164,9 +163,11 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
   const premiumTotal = chosen.reduce((s, t) => s + premium(t), 0)
   const extrasTotal = [...extras.values()].reduce((s, e) => s + e.price, 0)
   const price = round2(product.price + toppingsTotal + extrasTotal)
-  const ordered = [...toppings].sort((a, b) => a.name.localeCompare(b.name))
-  const cuentas = toppingCountByList(todas ?? [])
-  const conToppings = (listas ?? []).filter(l => l.id !== product.toppingGroup && (cuentas.get(l.id) ?? 0) > 0)
+  // un producto que incluye toppings siempre ofrece algo que elegir: si su
+  // lista está vacía valen todos los toppings del inventario
+  const sinLista = toppings.length === 0
+  const elegibles = sinLista ? todas.filter(i => (i.toppingGroups ?? []).length > 0 || !!i.portion) : toppings
+  const ordered = [...elegibles].sort((a, b) => a.name.localeCompare(b.name))
   const llenos = incluidosCount >= included
 
   return (
@@ -197,30 +198,26 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
             />
           )
         })}
-        {toppings.length === 0 && (
-          <div className="col-span-full">
-            <p className="text-sm text-berry-700/60">
-              Su lista de toppings está vacía. Cópiale los de otra lista y sigue vendiendo; en Productos puedes afinarla luego.
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {conToppings.map(l => (
-                <button
-                  key={l.id}
-                  onClick={() => void copyToppings(l.id, product.toppingGroup!)}
-                  className="rounded-full border border-dashed border-berry-300 px-3.5 py-2 text-sm font-semibold text-berry-700 active:bg-cream-200"
-                >
-                  Usar los {cuentas.get(l.id)} de {l.name}
-                </button>
-              ))}
-              {conToppings.length === 0 && (
-                <span className="text-sm text-berry-700/60">Marca sus toppings en Productos › {product.name}.</span>
-              )}
-            </div>
-          </div>
+        {ordered.length === 0 && (
+          <p className="col-span-full text-sm text-berry-700/60">
+            No hay toppings en Inventario. Dalos de alta ahí o en Productos › {product.name}.
+          </p>
         )}
       </div>
 
-      {toppings.length > 0 && (
+      {sinLista && ordered.length > 0 && (
+        <div className="mb-5 -mt-3 flex flex-wrap items-baseline justify-between gap-2 rounded-xl bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+          <span>Su lista de toppings está vacía, así que valen todos. Ajústala en Productos › {product.name}.</span>
+          <button
+            onClick={() => void addToList(ordered, product.toppingGroup!)}
+            className="shrink-0 font-bold underline underline-offset-2"
+          >
+            Dejar estos fijos
+          </button>
+        </div>
+      )}
+
+      {ordered.length > 0 && (
         <>
           <p className="mb-2 text-sm font-medium text-berry-700">
             Topping extra <span className="font-normal text-berry-700/60">
