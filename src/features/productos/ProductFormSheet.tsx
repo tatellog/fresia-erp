@@ -13,6 +13,7 @@ import { toppingCountByList, toppingListName } from '../../services/toppingLists
 import { Button, Field, Input, Sheet } from '../../components/ui'
 import { CupIcon } from '../../components/ui/icons'
 import { ToppingListChips } from '../toppings/ToppingListChips'
+import { ToppingListMembers } from '../toppings/ToppingListMembers'
 
 /** secciones del menú en el orden del punto de venta; "Otros" cae en Extras */
 const sections: { id: Line; label: string }[] = [
@@ -297,7 +298,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
 
       <Section title="Toppings que elige el cliente" summary={toppingsSummary} defaultOpen={!!toppingGroup}>
         <p className="mb-3 text-xs text-berry-700/60">
-          Si el producto lleva toppings, al venderlo el cliente los escoge de una lista. Una lista es el conjunto de toppings que se le ofrecen; a cada topping se le asignan sus listas desde Inventario.
+          Si el producto lleva toppings, al venderlo el cliente los escoge de una lista. Una lista es el conjunto de toppings que se le ofrecen; aquí mismo marcas cuáles trae.
         </p>
         <div className="grid grid-cols-2 gap-2">
           {([false, true] as const).map(yes => (
@@ -324,11 +325,7 @@ export function ProductFormSheet({ product, nextSort, onClose }: { product?: Pro
               onToggle={setToppingGroup}
               onCreated={setToppingGroup}
             />
-            {(countByList.get(toppingGroup) ?? 0) === 0 && (
-              <p className="mt-2 text-xs text-amber-700">
-                Esta lista aún no tiene toppings. Entra a Inventario, abre cada topping y márcale esta lista.
-              </p>
-            )}
+            <ToppingListMembers group={toppingGroup} lists={lists} ingredients={ingredients} />
 
             <div className="mt-4 rounded-xl bg-cream-200 px-4 py-3">
               <div className="flex items-center justify-between gap-3">

@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../data/db'
 import { deleteIngredient, registerPurchase, registerWaste, saveIngredient } from '../services/inventory'
+import { copyToppings, setIngredientInList } from '../services/toppingLists'
 
 const byName = async (name: string) => (await db.ingredients.toArray()).find(i => i.name === name)!
 
@@ -52,6 +53,39 @@ describe('CRUD de insumos', () => {
     expect(plano.toppingGroups).toBeUndefined()
     expect(plano.portion).toBeUndefined()
     expect(plano.premiumPrice).toBeUndefined()
+  })
+
+  it('listas de toppings: marcar desde el producto mete el insumo con porción y desmarcar lo saca', async () => {
+    await saveIngredient({ name: 'Nutella', unit: 'g', cost: 1, minStock: 100 })
+    const nutella = await byName('Nutella')
+
+    await setIngredientInList(nutella, 'waffle', true)
+    const topping = await byName('Nutella')
+    expect(topping.toppingGroups).toEqual(['waffle'])
+    // sin porción el topping no descontaría inventario: estrena una
+    expect(topping.portion).toBeGreaterThan(0)
+
+    await setIngredientInList(topping, 'waffle', false)
+    expect((await byName('Nutella')).toppingGroups).toBeUndefined()
+  })
+
+  it('listas de toppings: marcar una segunda lista conserva la primera', async () => {
+    await saveIngredient({ name: 'Cajeta', unit: 'ml', cost: 1, minStock: 100, toppingGroups: ['clasica'], portion: 20 })
+    await setIngredientInList(await byName('Cajeta'), 'waffle', true)
+    const dos = await byName('Cajeta')
+    expect(dos.toppingGroups).toEqual(['clasica', 'waffle'])
+    expect(dos.portion).toBe(20)
+  })
+
+  it('listas de toppings: una lista nueva se estrena copiando los toppings de otra', async () => {
+    await saveIngredient({ name: 'Fresa', unit: 'g', cost: 1, minStock: 100, toppingGroups: ['clasica'], portion: 40 })
+    await saveIngredient({ name: 'Nuez', unit: 'g', cost: 1, minStock: 100, toppingGroups: ['clasica'], portion: 12 })
+    await saveIngredient({ name: 'Vaso', unit: 'pza', cost: 1, minStock: 100 })
+
+    await copyToppings('clasica', 'waffle')
+
+    const enWaffle = (await db.ingredients.toArray()).filter(i => (i.toppingGroups ?? []).includes('waffle')).map(i => i.name)
+    expect(enWaffle.sort()).toEqual(['Fresa', 'Nuez'])
   })
 
   it('compra y merma mueven la existencia del insumo dado de alta', async () => {

@@ -1,6 +1,7 @@
 import { db } from '../data/db'
 import { uid } from '../data/ids'
-import type { Ingredient, ToppingGroup, ToppingList } from '../data/types'
+import type { Ingredient, ToppingGroup, ToppingList, Unit } from '../data/types'
+import { saveIngredient } from './inventory'
 import { enqueue } from './outbox'
 
 /** listas con las que nació el menú; existen en todo dispositivo aunque la nube no las traiga */
@@ -37,4 +38,25 @@ export const toppingCountByList = (ingredients: Ingredient[]) => {
   const count = new Map<ToppingGroup, number>()
   for (const i of ingredients) for (const g of i.toppingGroups ?? []) count.set(g, (count.get(g) ?? 0) + 1)
   return count
+}
+
+/** porción con la que estrena un insumo que se vuelve topping (se corrige en Inventario) */
+export const defaultPortion = (unit: Unit) => (unit === 'pza' ? 1 : 20)
+
+/** mete o saca un insumo de una lista de toppings, guardando al momento */
+export async function setIngredientInList(ing: Ingredient, group: ToppingGroup, on: boolean) {
+  const groups = (ing.toppingGroups ?? []).filter(g => g !== group)
+  if (on) groups.push(group)
+  await saveIngredient({
+    ...ing,
+    toppingGroups: groups.length ? groups : undefined,
+    // sin porción el topping no descontaría nada del inventario
+    portion: on ? ing.portion || defaultPortion(ing.unit) : ing.portion,
+  }, ing)
+}
+
+/** estrena una lista con los mismos toppings de otra */
+export async function copyToppings(from: ToppingGroup, to: ToppingGroup) {
+  const origen = await db.ingredients.filter(i => (i.toppingGroups ?? []).includes(from)).toArray()
+  for (const i of origen) await setIngredientInList(i, to, true)
 }

@@ -192,7 +192,9 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
           )
         })}
         {toppings.length === 0 && (
-          <p className="col-span-full text-sm text-berry-700/60">No hay toppings de esta línea en Inventario.</p>
+          <p className="col-span-full text-sm text-berry-700/60">
+            Su lista de toppings está vacía. En Productos, abre {product.name} y marca los toppings que trae.
+          </p>
         )}
       </div>
 
