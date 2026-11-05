@@ -5,6 +5,7 @@ import type { Ingredient, Product } from '../../data/types'
 import { EXTRA_TOPPING_PRICE, includedToppings, toppingPremium, toppingsCharge } from '../../services/sales'
 import { productLine } from '../../services/catalog'
 import { toppingPhoto } from '../../services/photos'
+import { copyToppings, toppingCountByList } from '../../services/toppingLists'
 import { money, round2 } from '../../lib/format'
 import { Button, Sheet } from '../../components/ui'
 
@@ -95,6 +96,9 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
   )
   const line = productLine(product)
   const included = includedToppings(product)
+  // para rescatar una lista vacía sin salir de la venta
+  const todas = useLiveQuery(() => db.ingredients.toArray(), [])
+  const listas = useLiveQuery(() => db.toppingLists.orderBy('sort').toArray(), [])
   const extrasDisponibles = useLiveQuery(
     () => db.products.filter(p => p.active && !!line && (p.extraScope ?? []).includes(line)).toArray(),
     [line],
@@ -161,6 +165,8 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
   const extrasTotal = [...extras.values()].reduce((s, e) => s + e.price, 0)
   const price = round2(product.price + toppingsTotal + extrasTotal)
   const ordered = [...toppings].sort((a, b) => a.name.localeCompare(b.name))
+  const cuentas = toppingCountByList(todas ?? [])
+  const conToppings = (listas ?? []).filter(l => l.id !== product.toppingGroup && (cuentas.get(l.id) ?? 0) > 0)
   const llenos = incluidosCount >= included
 
   return (
@@ -192,9 +198,25 @@ export function ToppingPickerSheet({ product, onConfirm, onClose }: {
           )
         })}
         {toppings.length === 0 && (
-          <p className="col-span-full text-sm text-berry-700/60">
-            Su lista de toppings está vacía. En Productos, abre {product.name} y marca los toppings que trae.
-          </p>
+          <div className="col-span-full">
+            <p className="text-sm text-berry-700/60">
+              Su lista de toppings está vacía. Cópiale los de otra lista y sigue vendiendo; en Productos puedes afinarla luego.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {conToppings.map(l => (
+                <button
+                  key={l.id}
+                  onClick={() => void copyToppings(l.id, product.toppingGroup!)}
+                  className="rounded-full border border-dashed border-berry-300 px-3.5 py-2 text-sm font-semibold text-berry-700 active:bg-cream-200"
+                >
+                  Usar los {cuentas.get(l.id)} de {l.name}
+                </button>
+              ))}
+              {conToppings.length === 0 && (
+                <span className="text-sm text-berry-700/60">Marca sus toppings en Productos › {product.name}.</span>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
