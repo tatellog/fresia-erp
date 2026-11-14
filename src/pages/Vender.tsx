@@ -10,6 +10,7 @@ import { money } from '../lib/format'
 import { Button, Empty, Sheet } from '../components/ui'
 import { ProductCard } from '../features/vender/ProductCard'
 import { CartLines } from '../features/vender/CartLines'
+import { TicketScroll } from '../features/vender/TicketScroll'
 import { PaymentPicker } from '../features/vender/PaymentPicker'
 import { CashChange } from '../features/vender/CashChange'
 import { TipPicker } from '../features/vender/TipPicker'
@@ -364,8 +365,8 @@ export default function Vender() {
 
       {/* ticket fijo: iPad horizontal y pantallas grandes */}
       <aside className="sticky top-6 hidden w-80 shrink-0 lg:block xl:w-[22rem]">
-        <div className="rounded-3xl border border-cream-200 bg-cream-50 p-5">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="flex max-h-[calc(100dvh-3rem)] flex-col rounded-3xl border border-cream-200 bg-cream-50 p-5">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
             <h2 className="text-lg font-bold">Ticket</h2>
             {count > 0 && (
               <span className="rounded-full bg-berry-50 px-2.5 py-0.5 text-xs font-bold text-berry-500">
@@ -378,7 +379,10 @@ export default function Vender() {
             <p className="py-10 text-center font-display text-lg italic text-berry-700/45">Para mi bombón.</p>
           ) : (
             <>
-              <CartLines lines={cart} setQty={setQty} />
+              <TicketScroll count={count}>
+                <CartLines lines={cart} setQty={setQty} />
+              </TicketScroll>
+              <div className="shrink-0">
               <div className="mb-4 flex items-baseline justify-between border-t border-cream-200 pt-3.5">
                 <span className="text-sm font-medium text-berry-700/70">Total</span>
                 <span className="font-display text-[30px] font-bold tabular-nums">{money(total)}</span>
@@ -394,6 +398,7 @@ export default function Vender() {
               </Button>
               {botonDespues}
               <p className="mt-3 text-center text-[11px] uppercase tracking-[0.18em] text-berry-900/35">Hechas al momento</p>
+              </div>
             </>
           )}
         </div>
