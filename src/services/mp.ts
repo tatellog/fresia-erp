@@ -17,7 +17,7 @@ export interface MpTerminal {
 export type TerminalOutcome = 'paid' | 'canceled' | 'expired' | 'failed'
 
 /** la terminal ya tiene algo encolado y Mercado Pago no acepta nada más */
-const COLA_OCUPADA = 'La terminal tiene un trabajo pendiente y Mercado Pago no acepta otro hasta que se resuelva. Abre «Cobros vinculados → Cobros automáticos» en la Point para que lo recoja, o usa «Destrabar terminal» en Ajustes para sacarlo de la cola.'
+const COLA_OCUPADA = 'La terminal tiene un trabajo pendiente y Mercado Pago no acepta otro hasta que se resuelva. Si en la Point aparece un cobro, termínalo o cancélalo ahí y reintenta. Mientras tanto cobra directo en la Point y toca «Ya se cobró en la Point».'
 
 /**
  * Mercado Pago contesta en inglés y sin decir qué hacer. En el mostrador eso
@@ -88,16 +88,47 @@ export async function chargeOnTerminal(amount: number, reference: string): Promi
     terminal_id: terminalId,
     reference: reference.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64),
   })
+  let orderId: string
   try {
-    return (await enviar()).order_id
+    orderId = (await enviar()).order_id
   } catch (e) {
     const trabada = e instanceof Error && e.message === COLA_OCUPADA
-    if (!trabada || !(await cancelPendingPrint())) throw e
-    return (await enviar()).order_id
+    if (!trabada || !(await destrabarTerminal())) throw e
+    orderId = (await enviar()).order_id
+  }
+  // se recuerda hasta que termine: si la app se cierra esperando el pago, el
+  // cobro sigue en la cola de la Point y bloquea todos los siguientes
+  await db.meta.put({ key: 'mpPendingOrder', value: orderId })
+  return orderId
+}
+
+/** cobro mandado a la Point que todavía no termina */
+export const getPendingOrder = async () => (await db.meta.get('mpPendingOrder'))?.value || null
+
+const olvidarOrden = async (orderId: string) => {
+  if (await getPendingOrder() === orderId) await db.meta.delete('mpPendingOrder')
+}
+
+export async function cancelTerminalOrder(orderId: string) {
+  try {
+    return await call({ action: 'cancel', order_id: orderId })
+  } finally {
+    await olvidarOrden(orderId)
   }
 }
 
-export const cancelTerminalOrder = (orderId: string) => call({ action: 'cancel', order_id: orderId })
+/**
+ * Saca de la cola lo que este dispositivo dejó atorado: el ticket que la
+ * Point no recogió y el cobro que se quedó esperando. Devuelve si había algo.
+ * Un cobro que la Point ya tomó no se deja cancelar desde aquí: ese se
+ * cancela en la terminal.
+ */
+export async function destrabarTerminal(): Promise<boolean> {
+  const orderId = await getPendingOrder()
+  const habiaTicket = await cancelPendingPrint().catch(() => true)
+  if (orderId) await cancelTerminalOrder(orderId).catch(() => {})
+  return habiaTicket || !!orderId
+}
 
 /**
  * Manda a imprimir el ticket de venta; devuelve el id de la acción.
@@ -192,10 +223,11 @@ export async function waitForPayment(
     try {
       const { status, status_detail } = await call<{ status: string; status_detail?: string }>({ action: 'status', order_id: orderId })
       opts?.onStatus?.(status, status_detail)
-      if (status === 'processed') return 'paid'
-      if (status === 'canceled') return 'canceled'
-      if (status === 'expired') return 'expired'
-      if (status === 'failed' || status === 'refunded') return 'failed'
+      const fin = ({ processed: 'paid', canceled: 'canceled', expired: 'expired', failed: 'failed', refunded: 'failed' } as const)[status as 'processed']
+      if (fin) {
+        await olvidarOrden(orderId)
+        return fin
+      }
     } catch {
       // red intermitente: se vuelve a intentar en el siguiente ciclo
     }

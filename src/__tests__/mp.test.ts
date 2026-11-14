@@ -15,9 +15,9 @@ describe('mensajes de la terminal Mercado Pago', () => {
   it('la terminal ocupada explica cómo destrabarla', () => {
     const m = mensajeDeAyuda('There is already a queued order on the terminal.')
     expect(m).toMatch(/trabajo pendiente/)
-    // las dos salidas reales: que la Point lo recoja, o sacarlo de la cola
-    expect(m).toMatch(/Cobros vinculados/)
-    expect(m).toMatch(/Destrabar terminal/)
+    // las dos salidas reales: resolverlo en la Point, o cobrar ahí y registrar
+    expect(m).toMatch(/cancélalo ahí/)
+    expect(m).toMatch(/Ya se cobró en la Point/)
   })
 
   it('el modo equivocado manda a activar PDV', () => {
@@ -47,6 +47,7 @@ describe('cobro con la cola trabada', () => {
     invoke.mockReset()
     await db.meta.put({ key: 'mpTerminalId', value: 'TERM-1' })
     await db.meta.put({ key: 'mpPendingPrint', value: 'accion-atorada' })
+    await db.meta.delete('mpPendingOrder')
   })
 
   const enPdv = { data: { terminals: [{ id: 'TERM-1', operating_mode: 'PDV' }] }, error: null }
@@ -68,6 +69,20 @@ describe('cobro con la cola trabada', () => {
     invoke.mockResolvedValueOnce(enPdv).mockResolvedValueOnce(encolada)
     await expect(chargeOnTerminal(120, 'venta-1')).rejects.toThrow(/trabajo pendiente/)
     expect(invoke).toHaveBeenCalledTimes(2)
+  })
+
+  it('cancela el cobro que se quedó esperando y vuelve a cobrar', async () => {
+    await db.meta.delete('mpPendingPrint')
+    await db.meta.put({ key: 'mpPendingOrder', value: 'ord-atorada' })
+    invoke
+      .mockResolvedValueOnce(enPdv)
+      .mockResolvedValueOnce(encolada)
+      .mockResolvedValueOnce({ data: { status: 'canceled' }, error: null })
+      .mockResolvedValueOnce({ data: { order_id: 'ord-2' }, error: null })
+
+    expect(await chargeOnTerminal(120, 'venta-2')).toBe('ord-2')
+    expect(invoke.mock.calls[2][1].body).toMatchObject({ action: 'cancel', order_id: 'ord-atorada' })
+    expect((await db.meta.get('mpPendingOrder'))?.value).toBe('ord-2')
   })
 
   it('con la Point en modo normal no manda el cobro y explica qué hacer', async () => {

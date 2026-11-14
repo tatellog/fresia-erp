@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { db } from '../../data/db'
 import { cloudEnabled, supabase } from '../../services/sync/client'
 import {
-  cancelPendingPrint, clearPendingPrint, getPendingPrint, linkTerminal, listTerminals,
+  clearPendingPrint, destrabarTerminal, getPendingOrder, getPendingPrint, linkTerminal, listTerminals,
   printStatus, printTicket, setTerminalMode, unlinkTerminal, type MpTerminal,
 } from '../../services/mp'
 import { renderTicket } from '../../services/ticket'
@@ -20,7 +20,7 @@ export function TerminalCard() {
   const [modo, setModo] = useState<MpTerminal['operating_mode'] | null>(null)
 
   const linked = useLiveQuery(async () => (await db.meta.get('mpTerminalId'))?.value)
-  const pendiente = useLiveQuery(getPendingPrint)
+  const pendiente = useLiveQuery(async () => (await getPendingPrint()) || (await getPendingOrder()))
 
   useEffect(() => {
     if (!cloudEnabled) return
@@ -193,7 +193,7 @@ export function TerminalCard() {
               onClick={async () => {
                 setBusy(true)
                 try {
-                  await cancelPendingPrint()
+                  await destrabarTerminal()
                   setStatus('✓ Cola liberada: la terminal vuelve a aceptar cobros y tickets')
                 } catch (e) { setStatus(`✗ ${e instanceof Error ? e.message : e}`) }
                 setBusy(false)
