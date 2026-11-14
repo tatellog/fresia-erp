@@ -31,7 +31,12 @@ const AYUDA: [RegExp, string][] = [
    'La terminal no está en modo PDV. Actívalo en Ajustes → Terminal Mercado Pago y reinicia la Point para que tome el modo.'],
   [/unauthorized|invalid.*token|forbidden/i,
    'Mercado Pago rechazó las credenciales. Hay que renovar el token de la cuenta (secreto MP_ACCESS_TOKEN en Supabase).'],
+  [/invalid value for property/i,
+   'Mercado Pago no aceptó el cobro. Pasa con montos muy chicos (menos de $5): cóbralo directo en la Point y registra la venta aquí.'],
 ]
+
+/** la Point en modo normal nunca recoge lo que manda la app: el cobro se quedaría esperando */
+export const TERMINAL_EN_MODO_NORMAL = 'La Point está en modo normal y no recibe cobros de la app. Cóbralo directo en la terminal y toca «Ya se cobró en la Point». Para que la app vuelva a mandar los cobros: Ajustes → Terminal Mercado Pago → Modo PDV, y reinicia la Point.'
 
 export const mensajeDeAyuda = (msg: string) => AYUDA.find(([re]) => re.test(msg))?.[1] ?? msg
 
@@ -74,6 +79,9 @@ export const unlinkTerminal = () => db.meta.delete('mpTerminalId')
 export async function chargeOnTerminal(amount: number, reference: string): Promise<string> {
   const terminalId = await getLinkedTerminal()
   if (!terminalId) throw new Error('No hay terminal vinculada (Ajustes → Terminal Mercado Pago)')
+  // si no se puede consultar el modo, se manda igual y la espera lo dirá
+  const modo = await listTerminals().then(ts => ts.find(t => t.id === terminalId)?.operating_mode).catch(() => undefined)
+  if (modo === 'STANDALONE') throw new Error(TERMINAL_EN_MODO_NORMAL)
   const enviar = () => call<{ order_id: string }>({
     action: 'charge',
     amount,

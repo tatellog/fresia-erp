@@ -28,6 +28,10 @@ describe('mensajes de la terminal Mercado Pago', () => {
     expect(mensajeDeAyuda('unauthorized')).toMatch(/MP_ACCESS_TOKEN/)
   })
 
+  it('el monto rechazado manda a cobrar directo en la Point', () => {
+    expect(mensajeDeAyuda('Invalid value for property')).toMatch(/directo en la Point/)
+  })
+
   it('un mensaje desconocido se deja tal cual', () => {
     expect(mensajeDeAyuda('Amount must be greater than zero')).toBe('Amount must be greater than zero')
   })
@@ -45,21 +49,30 @@ describe('cobro con la cola trabada', () => {
     await db.meta.put({ key: 'mpPendingPrint', value: 'accion-atorada' })
   })
 
+  const enPdv = { data: { terminals: [{ id: 'TERM-1', operating_mode: 'PDV' }] }, error: null }
+
   it('saca de la cola el ticket que nadie recogió y vuelve a cobrar', async () => {
     invoke
+      .mockResolvedValueOnce(enPdv)                                     // la Point está en PDV
       .mockResolvedValueOnce(encolada)                                  // el cobro rebota
       .mockResolvedValueOnce({ data: { status: 'canceled' }, error: null }) // se cancela la impresión
       .mockResolvedValueOnce({ data: { order_id: 'ord-1' }, error: null })  // y el cobro entra
 
     expect(await chargeOnTerminal(120, 'venta-1')).toBe('ord-1')
-    expect(invoke.mock.calls[1][1].body).toMatchObject({ action: 'cancel_action', action_id: 'accion-atorada' })
+    expect(invoke.mock.calls[2][1].body).toMatchObject({ action: 'cancel_action', action_id: 'accion-atorada' })
     expect(await db.meta.get('mpPendingPrint')).toBeUndefined()
   })
 
   it('sin impresión pendiente el error se propaga tal cual', async () => {
     await db.meta.delete('mpPendingPrint')
-    invoke.mockResolvedValueOnce(encolada)
+    invoke.mockResolvedValueOnce(enPdv).mockResolvedValueOnce(encolada)
     await expect(chargeOnTerminal(120, 'venta-1')).rejects.toThrow(/trabajo pendiente/)
+    expect(invoke).toHaveBeenCalledTimes(2)
+  })
+
+  it('con la Point en modo normal no manda el cobro y explica qué hacer', async () => {
+    invoke.mockResolvedValueOnce({ data: { terminals: [{ id: 'TERM-1', operating_mode: 'STANDALONE' }] }, error: null })
+    await expect(chargeOnTerminal(120, 'venta-1')).rejects.toThrow(/modo normal.*Ya se cobró en la Point/)
     expect(invoke).toHaveBeenCalledTimes(1)
   })
 })

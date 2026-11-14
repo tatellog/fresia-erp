@@ -245,6 +245,19 @@ export default function Vender() {
     await registrar()
   }
 
+  /**
+   * La tarjeta se pasó directo en la Point (modo normal, sin red o cobro
+   * atorado): se retira la orden de la app para que no se cobre dos veces
+   * y la venta se registra igual, como pago con tarjeta.
+   */
+  const registrarCobroManual = async () => {
+    const orderId = terminalOrder.current
+    terminalOrder.current = null
+    setTerminal(null)
+    if (orderId) await cancelTerminalOrder(orderId).catch(() => {})
+    await registrar()
+  }
+
   const cancelarTerminal = async () => {
     const orderId = terminalOrder.current
     terminalOrder.current = null
@@ -417,6 +430,14 @@ export default function Vender() {
                 <Button variant="soft" onClick={cancelarTerminal}>Cancelar cobro</Button>
               )}
             </div>
+            {(terminal.error || terminal.lento) && (
+              <div className="mt-4 border-t border-cream-300 pt-4">
+                <Button variant="soft" className="w-full" onClick={registrarCobroManual}>
+                  Ya se cobró en la Point · registrar venta
+                </Button>
+                <p className="mt-1.5 text-xs text-berry-700/50">Solo si el pago ya salió aprobado en la terminal.</p>
+              </div>
+            )}
           </div>
         </div>
       )}
